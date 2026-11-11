@@ -1,0 +1,192 @@
+[
+  {
+    "id": "csi",
+    "name": "Church of South India",
+    "family": "anglican_episcopal"
+  },
+  {
+    "id": "cni",
+    "name": "Church of North India",
+    "family": "anglican_episcopal"
+  },
+  {
+    "id": "anglican",
+    "name": "Anglican / Church of England",
+    "family": "anglican_episcopal"
+  },
+  {
+    "id": "episcopal",
+    "name": "Episcopal",
+    "family": "anglican_episcopal"
+  },
+  {
+    "id": "mar-thoma",
+    "name": "Mar Thoma Church",
+    "family": "mar_thoma_st_thomas"
+  },
+  {
+    "id": "church-of-the-east",
+    "name": "Assyrian Church of the East / Chaldean Syriac",
+    "family": "mar_thoma_st_thomas"
+  },
+  {
+    "id": "st-thomas-evangelical",
+    "name": "St Thomas Evangelical Church of India",
+    "family": "mar_thoma_st_thomas"
+  },
+  {
+    "id": "catholic-latin",
+    "name": "Catholic (Latin)",
+    "family": "catholic"
+  },
+  {
+    "id": "catholic-syro-malabar",
+    "name": "Catholic (Syro-Malabar)",
+    "family": "catholic"
+  },
+  {
+    "id": "catholic-syro-malankara",
+    "name": "Catholic (Syro-Malankara)",
+    "family": "catholic"
+  },
+  {
+    "id": "malankara-orthodox",
+    "name": "Malankara Orthodox Syrian Church",
+    "family": "oriental_orthodox"
+  },
+  {
+    "id": "jacobite-syrian",
+    "name": "Jacobite Syrian Orthodox Church",
+    "family": "oriental_orthodox"
+  },
+  {
+    "id": "coptic-orthodox",
+    "name": "Coptic Orthodox",
+    "family": "oriental_orthodox"
+  },
+  {
+    "id": "ethiopian-eritrean-orthodox",
+    "name": "Ethiopian / Eritrean Orthodox",
+    "family": "oriental_orthodox"
+  },
+  {
+    "id": "armenian-apostolic",
+    "name": "Armenian Apostolic",
+    "family": "oriental_orthodox"
+  },
+  {
+    "id": "eastern-orthodox",
+    "name": "Eastern Orthodox (Greek, Russian, Antiochian and others)",
+    "family": "eastern_orthodox"
+  },
+  {
+    "id": "assemblies-of-god",
+    "name": "Assemblies of God",
+    "family": "pentecostal_charismatic"
+  },
+  {
+    "id": "ipc",
+    "name": "Indian Pentecostal Church of God (IPC)",
+    "family": "pentecostal_charismatic"
+  },
+  {
+    "id": "church-of-god",
+    "name": "Church of God",
+    "family": "pentecostal_charismatic"
+  },
+  {
+    "id": "sharon-pentecostal",
+    "name": "Sharon Fellowship / Pentecostal",
+    "family": "pentecostal_charismatic"
+  },
+  {
+    "id": "tpm",
+    "name": "The Pentecostal Mission",
+    "family": "pentecostal_charismatic"
+  },
+  {
+    "id": "charismatic",
+    "name": "Charismatic / Spirit-filled",
+    "family": "pentecostal_charismatic"
+  },
+  {
+    "id": "brethren",
+    "name": "Brethren",
+    "family": "evangelical"
+  },
+  {
+    "id": "evangelical-church",
+    "name": "Evangelical Church",
+    "family": "evangelical"
+  },
+  {
+    "id": "baptist",
+    "name": "Baptist",
+    "family": "baptist"
+  },
+  {
+    "id": "baptist-convention",
+    "name": "Baptist Convention (Northeast India and others)",
+    "family": "baptist"
+  },
+  {
+    "id": "southern-baptist",
+    "name": "Southern Baptist",
+    "family": "baptist"
+  },
+  {
+    "id": "methodist",
+    "name": "Methodist",
+    "family": "methodist_wesleyan"
+  },
+  {
+    "id": "wesleyan-nazarene",
+    "name": "Wesleyan / Church of the Nazarene",
+    "family": "methodist_wesleyan"
+  },
+  {
+    "id": "lutheran",
+    "name": "Lutheran",
+    "family": "lutheran"
+  },
+  {
+    "id": "presbyterian",
+    "name": "Presbyterian",
+    "family": "reformed_presbyterian"
+  },
+  {
+    "id": "reformed",
+    "name": "Reformed",
+    "family": "reformed_presbyterian"
+  },
+  {
+    "id": "non-denominational",
+    "name": "Non-denominational",
+    "family": "non_denominational"
+  },
+  {
+    "id": "salvation-army",
+    "name": "Salvation Army",
+    "family": "other"
+  },
+  {
+    "id": "seventh-day-adventist",
+    "name": "Seventh-day Adventist",
+    "family": "other"
+  },
+  {
+    "id": "mennonite",
+    "name": "Mennonite",
+    "family": "other"
+  },
+  {
+    "id": "exploring",
+    "name": "Still exploring",
+    "family": "other"
+  },
+  {
+    "id": "other",
+    "name": "Other",
+    "family": "other"
+  }
+]

@@ -1,0 +1,4577 @@
+[
+  {
+    "slug": "intercessory-prayer",
+    "label": "Intercessory Prayer",
+    "category": "faith",
+    "subgroup": "Prayer",
+    "description": "Standing in the gap in prayer for other people.",
+    "synonyms": [
+      "intercession",
+      "praying for others"
+    ],
+    "legacySlugs": [
+      "prayer-intercession"
+    ]
+  },
+  {
+    "slug": "morning-prayer",
+    "label": "Morning Prayer",
+    "category": "faith",
+    "subgroup": "Prayer",
+    "description": "Starting the day with set time in prayer.",
+    "synonyms": [
+      "early prayer",
+      "daybreak prayer"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "evening-prayer",
+    "label": "Evening Prayer",
+    "category": "faith",
+    "subgroup": "Prayer",
+    "description": "Ending the day with thanks and prayer.",
+    "synonyms": [
+      "night prayer",
+      "compline",
+      "vespers"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "prayer-walking",
+    "label": "Prayer Walking",
+    "category": "faith",
+    "subgroup": "Prayer",
+    "description": "Praying as you walk through your neighbourhood.",
+    "synonyms": [
+      "prayer walk",
+      "walking prayer"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "prayer-partners",
+    "label": "Prayer Partners",
+    "category": "faith",
+    "subgroup": "Prayer",
+    "description": "A regular prayer rhythm with one trusted friend.",
+    "synonyms": [
+      "prayer buddy",
+      "prayer accountability"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "fasting",
+    "label": "Fasting",
+    "category": "faith",
+    "subgroup": "Prayer",
+    "description": "Setting aside food or habits to focus on God.",
+    "synonyms": [
+      "fast",
+      "days of fasting"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "silent-prayer",
+    "label": "Silent Prayer",
+    "category": "faith",
+    "subgroup": "Prayer",
+    "description": "Quiet time with God without words.",
+    "synonyms": [
+      "stillness",
+      "waiting on god"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "contemplative-prayer",
+    "label": "Contemplative Prayer",
+    "category": "faith",
+    "subgroup": "Prayer",
+    "description": "Resting attentively in God's presence.",
+    "synonyms": [
+      "centering prayer",
+      "contemplation"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "prayer-journaling",
+    "label": "Prayer Journaling",
+    "category": "faith",
+    "subgroup": "Prayer",
+    "description": "Writing out prayers and noting answers.",
+    "synonyms": [
+      "prayer diary",
+      "written prayers"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "devotional-journaling",
+    "label": "Devotional Journaling",
+    "category": "faith",
+    "subgroup": "Prayer",
+    "description": "Reflective writing alongside daily devotions.",
+    "synonyms": [
+      "gratitude journal",
+      "quiet time journal"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "praying-the-psalms",
+    "label": "Praying the Psalms",
+    "category": "faith",
+    "subgroup": "Prayer",
+    "description": "Using the Psalms as words for your own prayers.",
+    "synonyms": [
+      "psalm prayers",
+      "psalms"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "lectio-divina",
+    "label": "Lectio Divina",
+    "category": "faith",
+    "subgroup": "Prayer",
+    "description": "Slow, prayerful reading of a short passage of scripture.",
+    "synonyms": [
+      "divine reading",
+      "meditative reading"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "daily-office",
+    "label": "Daily Office",
+    "category": "faith",
+    "subgroup": "Prayer",
+    "description": "Fixed hours of prayer through the day.",
+    "synonyms": [
+      "liturgy of the hours",
+      "fixed hour prayer",
+      "divine office"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "prayer-meetings",
+    "label": "Prayer Meetings",
+    "category": "faith",
+    "subgroup": "Prayer",
+    "description": "Gathering with others to pray together.",
+    "synonyms": [
+      "corporate prayer",
+      "prayer night",
+      "prayer gathering"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "healing-prayer",
+    "label": "Healing Prayer",
+    "category": "faith",
+    "subgroup": "Prayer",
+    "description": "Praying with and for those who are unwell or hurting.",
+    "synonyms": [
+      "prayer for healing",
+      "prayer ministry"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "night-vigil",
+    "label": "Night Vigil",
+    "category": "faith",
+    "subgroup": "Prayer",
+    "description": "Staying up through the night in prayer.",
+    "synonyms": [
+      "all night prayer",
+      "watch night",
+      "vigil"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "daily-bible-study",
+    "label": "Daily Bible Study",
+    "category": "faith",
+    "subgroup": "Scripture",
+    "description": "Reading and studying a passage of the Bible each day.",
+    "synonyms": [
+      "daily bible reading",
+      "bible study",
+      "quiet time"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "bible-in-a-year",
+    "label": "Bible in a Year",
+    "category": "faith",
+    "subgroup": "Scripture",
+    "description": "Reading through the whole Bible in twelve months.",
+    "synonyms": [
+      "read the bible in a year",
+      "yearly bible plan",
+      "bible reading plan"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "inductive-bible-study",
+    "label": "Inductive Bible Study",
+    "category": "faith",
+    "subgroup": "Scripture",
+    "description": "Observing, interpreting and applying a passage step by step.",
+    "synonyms": [
+      "observe interpret apply",
+      "study method"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "scripture-memory",
+    "label": "Scripture Memory",
+    "category": "faith",
+    "subgroup": "Scripture",
+    "description": "Learning verses by heart.",
+    "synonyms": [
+      "memorising verses",
+      "bible memorization",
+      "memory verses"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "bible-journaling",
+    "label": "Bible Journaling",
+    "category": "faith",
+    "subgroup": "Scripture",
+    "description": "Writing and drawing alongside the passage you read.",
+    "synonyms": [
+      "illustrated bible",
+      "scripture journaling"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "gospel-study",
+    "label": "Gospel Study",
+    "category": "faith",
+    "subgroup": "Scripture",
+    "description": "Reading slowly through Matthew, Mark, Luke and John.",
+    "synonyms": [
+      "gospels",
+      "life of jesus"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "psalms-and-wisdom",
+    "label": "Psalms and Wisdom",
+    "category": "faith",
+    "subgroup": "Scripture",
+    "description": "Reading Psalms, Proverbs and Job for daily life.",
+    "synonyms": [
+      "proverbs",
+      "wisdom literature"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "old-testament-study",
+    "label": "Old Testament Study",
+    "category": "faith",
+    "subgroup": "Scripture",
+    "description": "Exploring the Law, history and prophets.",
+    "synonyms": [
+      "ot study",
+      "hebrew bible",
+      "prophets"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "new-testament-study",
+    "label": "New Testament Study",
+    "category": "faith",
+    "subgroup": "Scripture",
+    "description": "Studying the letters and early church.",
+    "synonyms": [
+      "nt study",
+      "epistles",
+      "letters of paul"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "bible-languages",
+    "label": "Bible Languages",
+    "category": "faith",
+    "subgroup": "Scripture",
+    "description": "Reading the Bible in Greek or Hebrew.",
+    "synonyms": [
+      "biblical greek",
+      "biblical hebrew",
+      "original languages"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "bible-translations",
+    "label": "Bible Translations",
+    "category": "faith",
+    "subgroup": "Scripture",
+    "description": "Comparing translations and how they were made.",
+    "synonyms": [
+      "bible versions",
+      "translation comparison"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "topical-bible-study",
+    "label": "Topical Bible Study",
+    "category": "faith",
+    "subgroup": "Scripture",
+    "description": "Following one theme across the whole Bible.",
+    "synonyms": [
+      "thematic study",
+      "word study"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "audio-bible",
+    "label": "Audio Bible",
+    "category": "faith",
+    "subgroup": "Scripture",
+    "description": "Listening to the Bible on the go.",
+    "synonyms": [
+      "bible audio",
+      "listening to scripture",
+      "bible app"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "mother-tongue-bible",
+    "label": "Mother Tongue Bible",
+    "category": "faith",
+    "subgroup": "Scripture",
+    "description": "Reading scripture in your first language.",
+    "synonyms": [
+      "malayalam bible",
+      "tamil bible",
+      "hindi bible",
+      "telugu bible",
+      "regional language bible"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "family-bible-reading",
+    "label": "Family Bible Reading",
+    "category": "faith",
+    "subgroup": "Scripture",
+    "description": "Reading the Bible together at home.",
+    "synonyms": [
+      "family devotions",
+      "household bible time"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "bible-reading-groups",
+    "label": "Bible Reading Groups",
+    "category": "faith",
+    "subgroup": "Scripture",
+    "description": "A small group reading a book of the Bible together.",
+    "synonyms": [
+      "bible study group",
+      "book study"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "worship-ministry",
+    "label": "Worship Ministry",
+    "category": "faith",
+    "subgroup": "Worship",
+    "description": "Serving on a worship team at church.",
+    "synonyms": [
+      "worship team",
+      "worship leading",
+      "praise team"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "congregational-singing",
+    "label": "Congregational Singing",
+    "category": "faith",
+    "subgroup": "Worship",
+    "description": "Singing hymns and songs together as a church.",
+    "synonyms": [
+      "hymns",
+      "church singing",
+      "hymn singing"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "choir",
+    "label": "Choir",
+    "category": "faith",
+    "subgroup": "Worship",
+    "description": "Singing in a church or community choir.",
+    "synonyms": [
+      "church choir",
+      "sing in choir",
+      "choral"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "songwriting-for-worship",
+    "label": "Songwriting for Worship",
+    "category": "faith",
+    "subgroup": "Worship",
+    "description": "Writing songs for the church to sing.",
+    "synonyms": [
+      "worship songwriting",
+      "writing worship songs"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "instrumental-worship",
+    "label": "Instrumental Worship",
+    "category": "faith",
+    "subgroup": "Worship",
+    "description": "Playing instruments to lead others in worship.",
+    "synonyms": [
+      "worship band",
+      "worship musician"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "spontaneous-worship",
+    "label": "Spontaneous Worship",
+    "category": "faith",
+    "subgroup": "Worship",
+    "description": "Open, unplanned worship and singing.",
+    "synonyms": [
+      "free worship",
+      "prophetic worship",
+      "soaking"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "liturgical-worship",
+    "label": "Liturgical Worship",
+    "category": "faith",
+    "subgroup": "Worship",
+    "description": "Worship shaped by set prayers, readings and seasons.",
+    "synonyms": [
+      "liturgy",
+      "high church worship",
+      "formal worship"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "malayalam-worship",
+    "label": "Malayalam Worship",
+    "category": "faith",
+    "subgroup": "Worship",
+    "description": "Worship songs and services in Malayalam.",
+    "synonyms": [
+      "malayalam songs",
+      "kerala worship",
+      "malayalam christian songs"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "tamil-worship",
+    "label": "Tamil Worship",
+    "category": "faith",
+    "subgroup": "Worship",
+    "description": "Worship songs and services in Tamil.",
+    "synonyms": [
+      "tamil songs",
+      "tamil christian songs",
+      "tamil church"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "hindi-worship",
+    "label": "Hindi Worship",
+    "category": "faith",
+    "subgroup": "Worship",
+    "description": "Worship songs and services in Hindi.",
+    "synonyms": [
+      "hindi songs",
+      "hindi christian songs",
+      "hindi church"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "telugu-and-kannada-worship",
+    "label": "Telugu and Kannada Worship",
+    "category": "faith",
+    "subgroup": "Worship",
+    "description": "Worship songs and services in Telugu or Kannada.",
+    "synonyms": [
+      "telugu songs",
+      "kannada songs",
+      "telugu church"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "gospel-choir",
+    "label": "Gospel Choir",
+    "category": "faith",
+    "subgroup": "Worship",
+    "description": "Joyful gospel singing in harmony.",
+    "synonyms": [
+      "gospel singing",
+      "black gospel",
+      "gospel music"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "hymn-playing",
+    "label": "Hymn Playing",
+    "category": "faith",
+    "subgroup": "Worship",
+    "description": "Playing hymns on the piano or organ for others.",
+    "synonyms": [
+      "church pianist",
+      "church organist",
+      "hymn accompaniment"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "sound-and-media-team",
+    "label": "Sound and Media Team",
+    "category": "faith",
+    "subgroup": "Worship",
+    "description": "Running sound, projection and streaming for church services.",
+    "synonyms": [
+      "church sound",
+      "live stream",
+      "church av"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "worship-songs-at-home",
+    "label": "Worship Songs at Home",
+    "category": "faith",
+    "subgroup": "Worship",
+    "description": "Singing and playing worship with friends at home.",
+    "synonyms": [
+      "house worship",
+      "living room worship",
+      "home worship"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "prayer-and-worship-nights",
+    "label": "Prayer and Worship Nights",
+    "category": "faith",
+    "subgroup": "Worship",
+    "description": "Evenings of extended singing and prayer.",
+    "synonyms": [
+      "worship night",
+      "night of worship",
+      "taize"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "missions-and-outreach",
+    "label": "Missions and Outreach",
+    "category": "faith",
+    "subgroup": "Serving",
+    "description": "Local and global mission work.",
+    "synonyms": [
+      "missions",
+      "evangelism",
+      "outreach"
+    ],
+    "legacySlugs": [
+      "missions-outreach"
+    ]
+  },
+  {
+    "slug": "short-term-missions",
+    "label": "Short-Term Missions",
+    "category": "faith",
+    "subgroup": "Serving",
+    "description": "Joining a mission trip for a week or two.",
+    "synonyms": [
+      "mission trip",
+      "missions trip",
+      "outreach trip"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "street-evangelism",
+    "label": "Street Evangelism",
+    "category": "faith",
+    "subgroup": "Serving",
+    "description": "Sharing the gospel with people in public places.",
+    "synonyms": [
+      "street outreach",
+      "open air",
+      "evangelism"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "feeding-the-hungry",
+    "label": "Feeding the Hungry",
+    "category": "faith",
+    "subgroup": "Serving",
+    "description": "Preparing and giving meals to people in need.",
+    "synonyms": [
+      "soup kitchen",
+      "food drive",
+      "langar",
+      "community kitchen"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "visiting-the-sick",
+    "label": "Visiting the Sick",
+    "category": "faith",
+    "subgroup": "Serving",
+    "description": "Spending time with people in hospital or at home.",
+    "synonyms": [
+      "hospital visits",
+      "sick visits",
+      "pastoral visits"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "childrens-ministry",
+    "label": "Children's Ministry",
+    "category": "faith",
+    "subgroup": "Serving",
+    "description": "Teaching and caring for children at church.",
+    "synonyms": [
+      "sunday school",
+      "kids church",
+      "vbs",
+      "vacation bible school"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "youth-ministry",
+    "label": "Youth Ministry",
+    "category": "faith",
+    "subgroup": "Serving",
+    "description": "Mentoring teens and young people in faith.",
+    "synonyms": [
+      "youth group",
+      "youth leader",
+      "teen ministry"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "prison-ministry",
+    "label": "Prison Ministry",
+    "category": "faith",
+    "subgroup": "Serving",
+    "description": "Visiting and caring for people in prison.",
+    "synonyms": [
+      "jail ministry",
+      "prison visits"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "orphan-care",
+    "label": "Orphan Care",
+    "category": "faith",
+    "subgroup": "Serving",
+    "description": "Supporting children without family care.",
+    "synonyms": [
+      "children's home",
+      "foster care",
+      "adoption"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "refugee-and-migrant-support",
+    "label": "Refugee and Migrant Support",
+    "category": "faith",
+    "subgroup": "Serving",
+    "description": "Welcoming and helping people far from home.",
+    "synonyms": [
+      "migrant ministry",
+      "refugee care",
+      "newcomers"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "disaster-relief",
+    "label": "Disaster Relief",
+    "category": "faith",
+    "subgroup": "Serving",
+    "description": "Helping communities after floods, storms and quakes.",
+    "synonyms": [
+      "relief work",
+      "flood relief",
+      "emergency aid"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "church-hospitality",
+    "label": "Church Hospitality",
+    "category": "faith",
+    "subgroup": "Serving",
+    "description": "Welcoming people and hosting at church.",
+    "synonyms": [
+      "greeters",
+      "welcome team",
+      "church hosting"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "anti-trafficking-work",
+    "label": "Anti-Trafficking Work",
+    "category": "faith",
+    "subgroup": "Serving",
+    "description": "Standing against trafficking and exploitation.",
+    "synonyms": [
+      "human trafficking",
+      "freedom work",
+      "rescue work"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "slum-and-village-ministry",
+    "label": "Slum and Village Ministry",
+    "category": "faith",
+    "subgroup": "Serving",
+    "description": "Serving communities in villages and informal settlements.",
+    "synonyms": [
+      "village ministry",
+      "rural ministry",
+      "urban poor"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "giving-and-generosity",
+    "label": "Giving and Generosity",
+    "category": "faith",
+    "subgroup": "Serving",
+    "description": "Giving time and money to those in need.",
+    "synonyms": [
+      "tithing",
+      "almsgiving",
+      "charity",
+      "generosity"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "campus-ministry",
+    "label": "Campus Ministry",
+    "category": "faith",
+    "subgroup": "Serving",
+    "description": "Serving and leading faith groups on campus.",
+    "synonyms": [
+      "college ministry",
+      "student ministry",
+      "campus fellowship"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "small-group",
+    "label": "Small Group",
+    "category": "faith",
+    "subgroup": "Community",
+    "description": "A small circle that meets for life and faith together.",
+    "synonyms": [
+      "cell group",
+      "home group",
+      "life group",
+      "connect group"
+    ],
+    "legacySlugs": [
+      "small-group-fellowship"
+    ]
+  },
+  {
+    "slug": "discipleship",
+    "label": "Discipleship",
+    "category": "faith",
+    "subgroup": "Community",
+    "description": "Walking alongside someone to follow Jesus more closely.",
+    "synonyms": [
+      "discipling",
+      "spiritual growth"
+    ],
+    "legacySlugs": [
+      "discipleship-mentoring"
+    ]
+  },
+  {
+    "slug": "mentoring",
+    "label": "Mentoring",
+    "category": "faith",
+    "subgroup": "Community",
+    "description": "Meeting with a more experienced believer for guidance.",
+    "synonyms": [
+      "spiritual mentor",
+      "mentorship",
+      "spiritual direction"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "accountability-partners",
+    "label": "Accountability Partners",
+    "category": "faith",
+    "subgroup": "Community",
+    "description": "Honest, regular check-ins with a trusted friend.",
+    "synonyms": [
+      "accountability",
+      "accountability group"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "deep-conversations",
+    "label": "Deep Conversations",
+    "category": "faith",
+    "subgroup": "Community",
+    "description": "Unhurried one-on-one talks about faith and life.",
+    "synonyms": [
+      "heart to heart",
+      "one on one",
+      "deep talks"
+    ],
+    "legacySlugs": [
+      "deep-1v1-talks"
+    ]
+  },
+  {
+    "slug": "group-hangouts",
+    "label": "Group Hangouts",
+    "category": "faith",
+    "subgroup": "Community",
+    "description": "Relaxed time with a few friends from church.",
+    "synonyms": [
+      "small group hangouts",
+      "friend group",
+      "group fellowship"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "hosting-home-fellowship",
+    "label": "Hosting Home Fellowship",
+    "category": "faith",
+    "subgroup": "Community",
+    "description": "Opening your home for meals and prayer.",
+    "synonyms": [
+      "home fellowship",
+      "house church",
+      "open home"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "church-potlucks",
+    "label": "Church Potlucks",
+    "category": "faith",
+    "subgroup": "Community",
+    "description": "Shared meals with your church family.",
+    "synonyms": [
+      "fellowship meal",
+      "agape feast",
+      "church lunch",
+      "love feast"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "young-adults-fellowship",
+    "label": "Young Adults Fellowship",
+    "category": "faith",
+    "subgroup": "Community",
+    "description": "A community of Christians in their twenties and thirties.",
+    "synonyms": [
+      "young adults",
+      "young adult group",
+      "twenties group"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "young-professionals-fellowship",
+    "label": "Young Professionals Fellowship",
+    "category": "faith",
+    "subgroup": "Community",
+    "description": "Fellowship for working Christians.",
+    "synonyms": [
+      "young professionals",
+      "working believers",
+      "marketplace fellowship"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "student-fellowship",
+    "label": "Student Fellowship",
+    "category": "faith",
+    "subgroup": "Community",
+    "description": "Fellowship with other Christian students.",
+    "synonyms": [
+      "christian union",
+      "campus fellowship",
+      "student group"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "couples-and-marriage-groups",
+    "label": "Couples and Marriage Groups",
+    "category": "faith",
+    "subgroup": "Community",
+    "description": "Growing in marriage alongside other couples.",
+    "synonyms": [
+      "marriage group",
+      "couples fellowship",
+      "marriage enrichment"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "parenting-together",
+    "label": "Parenting Together",
+    "category": "faith",
+    "subgroup": "Community",
+    "description": "Support and encouragement for Christian parents.",
+    "synonyms": [
+      "parents group",
+      "moms group",
+      "dads group",
+      "parenting"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "womens-fellowship",
+    "label": "Women's Fellowship",
+    "category": "faith",
+    "subgroup": "Community",
+    "description": "Fellowship, prayer and study among women.",
+    "synonyms": [
+      "women's group",
+      "ladies fellowship",
+      "women's ministry"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "mens-fellowship",
+    "label": "Men's Fellowship",
+    "category": "faith",
+    "subgroup": "Community",
+    "description": "Fellowship, prayer and study among men.",
+    "synonyms": [
+      "men's group",
+      "men's ministry",
+      "brotherhood"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "church-retreats",
+    "label": "Church Retreats",
+    "category": "faith",
+    "subgroup": "Community",
+    "description": "Weekends away for rest, prayer and community.",
+    "synonyms": [
+      "retreat",
+      "camp",
+      "church camp",
+      "conference"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "apologetics",
+    "label": "Apologetics",
+    "category": "faith",
+    "subgroup": "Learning",
+    "description": "Giving thoughtful reasons for the Christian faith.",
+    "synonyms": [
+      "defending the faith",
+      "christian apologetics",
+      "reasons for faith"
+    ],
+    "legacySlugs": [
+      "christian-apologetics"
+    ]
+  },
+  {
+    "slug": "theology",
+    "label": "Theology",
+    "category": "faith",
+    "subgroup": "Learning",
+    "description": "Studying the doctrines of the Christian faith.",
+    "synonyms": [
+      "doctrine",
+      "systematic theology",
+      "theology study"
+    ],
+    "legacySlugs": [
+      "theology-history"
+    ]
+  },
+  {
+    "slug": "church-history",
+    "label": "Church History",
+    "category": "faith",
+    "subgroup": "Learning",
+    "description": "The story of the church from the apostles to today.",
+    "synonyms": [
+      "early church",
+      "reformation",
+      "history of christianity"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "faith-and-work",
+    "label": "Faith and Work",
+    "category": "faith",
+    "subgroup": "Learning",
+    "description": "Living out faith in your job and career.",
+    "synonyms": [
+      "work and faith",
+      "marketplace faith",
+      "vocation"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "faith-and-science",
+    "label": "Faith and Science",
+    "category": "faith",
+    "subgroup": "Learning",
+    "description": "Exploring how faith and science fit together.",
+    "synonyms": [
+      "science and faith",
+      "creation and evolution"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "christian-ethics",
+    "label": "Christian Ethics",
+    "category": "faith",
+    "subgroup": "Learning",
+    "description": "Thinking through right and wrong from a biblical view.",
+    "synonyms": [
+      "ethics",
+      "moral theology",
+      "biblical ethics"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "world-religions",
+    "label": "World Religions",
+    "category": "faith",
+    "subgroup": "Learning",
+    "description": "Understanding other faiths in order to love neighbours well.",
+    "synonyms": [
+      "other religions",
+      "comparative religion",
+      "interfaith"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "hindu-and-muslim-neighbours",
+    "label": "Hindu and Muslim Neighbours",
+    "category": "faith",
+    "subgroup": "Learning",
+    "description": "Sharing life and faith with Hindu and Muslim friends.",
+    "synonyms": [
+      "hindu background",
+      "muslim background",
+      "neighbour faiths"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "spiritual-disciplines",
+    "label": "Spiritual Disciplines",
+    "category": "faith",
+    "subgroup": "Learning",
+    "description": "Habits such as silence, solitude, fasting and simplicity.",
+    "synonyms": [
+      "spiritual formation",
+      "disciplines of faith",
+      "solitude"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "church-planting",
+    "label": "Church Planting",
+    "category": "faith",
+    "subgroup": "Learning",
+    "description": "Starting new churches and fellowships.",
+    "synonyms": [
+      "church planters",
+      "new churches",
+      "planting"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "preaching-and-teaching",
+    "label": "Preaching and Teaching",
+    "category": "faith",
+    "subgroup": "Learning",
+    "description": "Preparing and sharing messages from scripture.",
+    "synonyms": [
+      "sermons",
+      "preaching",
+      "bible teaching",
+      "expository"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "christian-counselling",
+    "label": "Christian Counselling",
+    "category": "faith",
+    "subgroup": "Learning",
+    "description": "Caring for hearts and minds with biblical wisdom.",
+    "synonyms": [
+      "pastoral counselling",
+      "biblical counselling",
+      "soul care"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "christianity-in-asia",
+    "label": "Christianity in Asia",
+    "category": "faith",
+    "subgroup": "Learning",
+    "description": "The story of the church in India and across Asia.",
+    "synonyms": [
+      "indian church history",
+      "st thomas christians",
+      "asian church"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "biblical-archaeology",
+    "label": "Biblical Archaeology",
+    "category": "faith",
+    "subgroup": "Learning",
+    "description": "What digs and ancient sites tell us about the Bible.",
+    "synonyms": [
+      "archaeology",
+      "bible history",
+      "ancient near east"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "pastoral-training",
+    "label": "Pastoral Training",
+    "category": "faith",
+    "subgroup": "Learning",
+    "description": "Preparing for church leadership and pastoral work.",
+    "synonyms": [
+      "seminary",
+      "bible college",
+      "ministry training"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "hiking",
+    "label": "Hiking",
+    "category": "hobbies",
+    "subgroup": "Outdoors",
+    "description": "Walking trails and exploring creation on foot.",
+    "synonyms": [
+      "trekking",
+      "treks",
+      "nature trails",
+      "weekend treks"
+    ],
+    "legacySlugs": [
+      "hiking-outdoors"
+    ]
+  },
+  {
+    "slug": "camping",
+    "label": "Camping",
+    "category": "hobbies",
+    "subgroup": "Outdoors",
+    "description": "Spending nights outdoors under the sky.",
+    "synonyms": [
+      "tent camping",
+      "campfire",
+      "outdoor camping"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "trail-running",
+    "label": "Trail Running",
+    "category": "hobbies",
+    "subgroup": "Outdoors",
+    "description": "Running on dirt paths and hills.",
+    "synonyms": [
+      "off road running",
+      "mountain running",
+      "trail run"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "climbing",
+    "label": "Climbing",
+    "category": "hobbies",
+    "subgroup": "Outdoors",
+    "description": "Scaling rock faces, walls and boulders.",
+    "synonyms": [
+      "bouldering",
+      "rock climbing",
+      "indoor climbing",
+      "wall climbing"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "cycling",
+    "label": "Cycling",
+    "category": "hobbies",
+    "subgroup": "Outdoors",
+    "description": "Riding a bicycle for fun and fitness.",
+    "synonyms": [
+      "biking",
+      "road cycling",
+      "bike rides",
+      "mountain biking"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "birdwatching",
+    "label": "Birdwatching",
+    "category": "hobbies",
+    "subgroup": "Outdoors",
+    "description": "Spotting and identifying wild birds.",
+    "synonyms": [
+      "birding",
+      "bird spotting",
+      "ornithology"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "stargazing",
+    "label": "Stargazing",
+    "category": "hobbies",
+    "subgroup": "Outdoors",
+    "description": "Watching the night sky and its stars.",
+    "synonyms": [
+      "astronomy",
+      "star watching",
+      "telescope"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "gardening",
+    "label": "Gardening",
+    "category": "hobbies",
+    "subgroup": "Outdoors",
+    "description": "Growing flowers, vegetables and plants.",
+    "synonyms": [
+      "plants",
+      "vegetable garden",
+      "urban gardening",
+      "home garden"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "fishing",
+    "label": "Fishing",
+    "category": "hobbies",
+    "subgroup": "Outdoors",
+    "description": "Spending a quiet day by the water with a line.",
+    "synonyms": [
+      "angling",
+      "fly fishing"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "kayaking",
+    "label": "Kayaking",
+    "category": "hobbies",
+    "subgroup": "Outdoors",
+    "description": "Paddling on lakes, rivers and the sea.",
+    "synonyms": [
+      "canoeing",
+      "paddling",
+      "rowing"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "swimming",
+    "label": "Swimming",
+    "category": "hobbies",
+    "subgroup": "Outdoors",
+    "description": "Swimming laps or in open water.",
+    "synonyms": [
+      "open water swimming",
+      "pool swimming",
+      "laps"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "beach-days",
+    "label": "Beach Days",
+    "category": "hobbies",
+    "subgroup": "Outdoors",
+    "description": "Time at the shore with friends and family.",
+    "synonyms": [
+      "seaside",
+      "beach",
+      "coastal"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "road-trips",
+    "label": "Road Trips",
+    "category": "hobbies",
+    "subgroup": "Outdoors",
+    "description": "Long drives with good company and stops on the way.",
+    "synonyms": [
+      "bike trips",
+      "long drives",
+      "ride out"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "wildlife-and-nature-walks",
+    "label": "Wildlife and Nature Walks",
+    "category": "hobbies",
+    "subgroup": "Outdoors",
+    "description": "Slow walks to notice plants and animals.",
+    "synonyms": [
+      "nature walks",
+      "safari",
+      "forest walks",
+      "nature"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "running",
+    "label": "Running",
+    "category": "hobbies",
+    "subgroup": "Sports",
+    "description": "Regular running from short jogs to marathons.",
+    "synonyms": [
+      "jogging",
+      "marathon",
+      "5k",
+      "10k",
+      "half marathon"
+    ],
+    "legacySlugs": [
+      "running-marathon"
+    ]
+  },
+  {
+    "slug": "gym-training",
+    "label": "Gym Training",
+    "category": "hobbies",
+    "subgroup": "Sports",
+    "description": "Strength training and healthy stewardship of the body.",
+    "synonyms": [
+      "weightlifting",
+      "gym",
+      "strength training",
+      "workout"
+    ],
+    "legacySlugs": [
+      "strength-fitness"
+    ]
+  },
+  {
+    "slug": "calisthenics",
+    "label": "Calisthenics",
+    "category": "hobbies",
+    "subgroup": "Sports",
+    "description": "Building strength with bodyweight exercises.",
+    "synonyms": [
+      "bodyweight training",
+      "pull ups",
+      "street workout"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "yoga",
+    "label": "Yoga",
+    "category": "hobbies",
+    "subgroup": "Sports",
+    "description": "Stretching, strength and breathing practice.",
+    "synonyms": [
+      "stretching",
+      "asana",
+      "flexibility"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "cricket",
+    "label": "Cricket",
+    "category": "hobbies",
+    "subgroup": "Sports",
+    "description": "Playing or following India's favourite game.",
+    "synonyms": [
+      "ipl",
+      "test cricket",
+      "gully cricket",
+      "box cricket"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "football",
+    "label": "Football",
+    "category": "hobbies",
+    "subgroup": "Sports",
+    "description": "Playing or watching the world's game.",
+    "synonyms": [
+      "soccer",
+      "five a side",
+      "futsal"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "basketball",
+    "label": "Basketball",
+    "category": "hobbies",
+    "subgroup": "Sports",
+    "description": "Pick-up games and shooting hoops.",
+    "synonyms": [
+      "hoops",
+      "pickup basketball"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "volleyball",
+    "label": "Volleyball",
+    "category": "hobbies",
+    "subgroup": "Sports",
+    "description": "Beach, court or church-lawn volleyball.",
+    "synonyms": [
+      "beach volleyball",
+      "court volleyball"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "badminton",
+    "label": "Badminton",
+    "category": "hobbies",
+    "subgroup": "Sports",
+    "description": "Friendly court matches and doubles.",
+    "synonyms": [
+      "racquet sports",
+      "shuttlecock",
+      "shuttle"
+    ],
+    "legacySlugs": [
+      "racquet-sports"
+    ]
+  },
+  {
+    "slug": "tennis",
+    "label": "Tennis",
+    "category": "hobbies",
+    "subgroup": "Sports",
+    "description": "Singles and doubles on the court.",
+    "synonyms": [
+      "lawn tennis",
+      "tennis matches"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "table-tennis",
+    "label": "Table Tennis",
+    "category": "hobbies",
+    "subgroup": "Sports",
+    "description": "Fast games across the table.",
+    "synonyms": [
+      "ping pong",
+      "tt"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "pickleball",
+    "label": "Pickleball",
+    "category": "hobbies",
+    "subgroup": "Sports",
+    "description": "A friendly paddle game that is easy to pick up.",
+    "synonyms": [
+      "paddle sport"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "kabaddi",
+    "label": "Kabaddi",
+    "category": "hobbies",
+    "subgroup": "Sports",
+    "description": "The team contact sport of tag and defence.",
+    "synonyms": [
+      "kho kho",
+      "indian sports"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "martial-arts",
+    "label": "Martial Arts",
+    "category": "hobbies",
+    "subgroup": "Sports",
+    "description": "Training in discipline, self-defence and fitness.",
+    "synonyms": [
+      "karate",
+      "judo",
+      "taekwondo",
+      "kickboxing",
+      "boxing"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "hockey",
+    "label": "Hockey",
+    "category": "hobbies",
+    "subgroup": "Sports",
+    "description": "Field or ice hockey with a team.",
+    "synonyms": [
+      "field hockey",
+      "ice hockey"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "skating",
+    "label": "Skating",
+    "category": "hobbies",
+    "subgroup": "Sports",
+    "description": "Roller, inline or skateboard skating.",
+    "synonyms": [
+      "skateboarding",
+      "roller skating",
+      "rollerblading"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "following-sports",
+    "label": "Following Sports",
+    "category": "hobbies",
+    "subgroup": "Sports",
+    "description": "Watching and talking about matches with friends.",
+    "synonyms": [
+      "sports fan",
+      "watching sports",
+      "match day"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "photography",
+    "label": "Photography",
+    "category": "hobbies",
+    "subgroup": "Creative",
+    "description": "Capturing everyday life and creation with a camera.",
+    "synonyms": [
+      "photos",
+      "street photography",
+      "portrait photography",
+      "camera"
+    ],
+    "legacySlugs": [
+      "photography-film"
+    ]
+  },
+  {
+    "slug": "filmmaking",
+    "label": "Filmmaking",
+    "category": "hobbies",
+    "subgroup": "Creative",
+    "description": "Shooting and editing short films and videos.",
+    "synonyms": [
+      "videography",
+      "video editing",
+      "short films",
+      "cinematography"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "drawing",
+    "label": "Drawing",
+    "category": "hobbies",
+    "subgroup": "Creative",
+    "description": "Sketching with pencil, pen or tablet.",
+    "synonyms": [
+      "sketching",
+      "pencil drawing",
+      "illustration"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "painting",
+    "label": "Painting",
+    "category": "hobbies",
+    "subgroup": "Creative",
+    "description": "Working with watercolour, acrylic or oils.",
+    "synonyms": [
+      "watercolour",
+      "acrylic painting",
+      "oil painting",
+      "art"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "calligraphy",
+    "label": "Calligraphy",
+    "category": "hobbies",
+    "subgroup": "Creative",
+    "description": "Beautiful lettering by hand.",
+    "synonyms": [
+      "hand lettering",
+      "brush lettering",
+      "lettering"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "crafts",
+    "label": "Crafts",
+    "category": "hobbies",
+    "subgroup": "Creative",
+    "description": "Making things by hand.",
+    "synonyms": [
+      "diy",
+      "handmade",
+      "arts and crafts",
+      "crafting"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "knitting-and-crochet",
+    "label": "Knitting and Crochet",
+    "category": "hobbies",
+    "subgroup": "Creative",
+    "description": "Making clothes and gifts with yarn.",
+    "synonyms": [
+      "crochet",
+      "knitting",
+      "yarn",
+      "embroidery"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "sewing",
+    "label": "Sewing",
+    "category": "hobbies",
+    "subgroup": "Creative",
+    "description": "Making and mending clothes by hand or machine.",
+    "synonyms": [
+      "tailoring",
+      "stitching",
+      "fashion design"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "woodworking",
+    "label": "Woodworking",
+    "category": "hobbies",
+    "subgroup": "Creative",
+    "description": "Building and carving things from wood.",
+    "synonyms": [
+      "carpentry",
+      "wood craft",
+      "furniture making"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "pottery",
+    "label": "Pottery",
+    "category": "hobbies",
+    "subgroup": "Creative",
+    "description": "Shaping clay by hand or on a wheel.",
+    "synonyms": [
+      "ceramics",
+      "clay work"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "creative-writing",
+    "label": "Creative Writing",
+    "category": "hobbies",
+    "subgroup": "Creative",
+    "description": "Stories, poems and essays for the joy of it.",
+    "synonyms": [
+      "writing",
+      "fiction writing",
+      "poetry",
+      "short stories",
+      "journaling"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "blogging",
+    "label": "Blogging",
+    "category": "hobbies",
+    "subgroup": "Creative",
+    "description": "Sharing thoughts and stories online.",
+    "synonyms": [
+      "blog",
+      "newsletter",
+      "writing online"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "digital-art",
+    "label": "Digital Art",
+    "category": "hobbies",
+    "subgroup": "Creative",
+    "description": "Making art on a tablet or computer.",
+    "synonyms": [
+      "graphic design hobby",
+      "procreate",
+      "illustration digital"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "baking",
+    "label": "Baking",
+    "category": "hobbies",
+    "subgroup": "Creative",
+    "description": "Bread, cakes and bakes for sharing.",
+    "synonyms": [
+      "sourdough",
+      "bread baking",
+      "cake baking"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "rangoli-and-kolam",
+    "label": "Rangoli and Kolam",
+    "category": "hobbies",
+    "subgroup": "Creative",
+    "description": "Drawing patterns of colour at the door.",
+    "synonyms": [
+      "rangoli",
+      "kolam",
+      "alpana",
+      "floor art"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "scrapbooking",
+    "label": "Scrapbooking",
+    "category": "hobbies",
+    "subgroup": "Creative",
+    "description": "Keeping memories in handmade albums.",
+    "synonyms": [
+      "memory keeping",
+      "journaling scrapbook"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "guitar",
+    "label": "Guitar",
+    "category": "hobbies",
+    "subgroup": "Music",
+    "description": "Playing acoustic or electric guitar.",
+    "synonyms": [
+      "acoustic guitar",
+      "strumming",
+      "fingerstyle",
+      "electric guitar"
+    ],
+    "legacySlugs": [
+      "acoustic-guitar"
+    ]
+  },
+  {
+    "slug": "piano-and-keyboard",
+    "label": "Piano and Keyboard",
+    "category": "hobbies",
+    "subgroup": "Music",
+    "description": "Playing the piano or keyboard.",
+    "synonyms": [
+      "keys",
+      "keyboard",
+      "piano",
+      "synth"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "drums",
+    "label": "Drums",
+    "category": "hobbies",
+    "subgroup": "Music",
+    "description": "Keeping rhythm on drums and percussion.",
+    "synonyms": [
+      "percussion",
+      "cajon",
+      "drumming",
+      "tabla"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "bass-guitar",
+    "label": "Bass Guitar",
+    "category": "hobbies",
+    "subgroup": "Music",
+    "description": "Holding the low end of the band.",
+    "synonyms": [
+      "bass",
+      "bass playing"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "violin-and-strings",
+    "label": "Violin and Strings",
+    "category": "hobbies",
+    "subgroup": "Music",
+    "description": "Playing violin, viola, cello or other strings.",
+    "synonyms": [
+      "violin",
+      "cello",
+      "viola",
+      "strings"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "singing",
+    "label": "Singing",
+    "category": "hobbies",
+    "subgroup": "Music",
+    "description": "Singing for joy, alone or with others.",
+    "synonyms": [
+      "vocals",
+      "vocalist",
+      "solo singing"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "carnatic-music",
+    "label": "Carnatic Music",
+    "category": "hobbies",
+    "subgroup": "Music",
+    "description": "Learning or listening to South Indian classical music.",
+    "synonyms": [
+      "carnatic",
+      "south indian classical",
+      "carnatic singing"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "hindustani-music",
+    "label": "Hindustani Music",
+    "category": "hobbies",
+    "subgroup": "Music",
+    "description": "Learning or listening to North Indian classical music.",
+    "synonyms": [
+      "hindustani",
+      "north indian classical",
+      "raga"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "songwriting",
+    "label": "Songwriting",
+    "category": "hobbies",
+    "subgroup": "Music",
+    "description": "Writing your own songs and lyrics.",
+    "synonyms": [
+      "writing songs",
+      "lyrics",
+      "composing"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "music-production",
+    "label": "Music Production",
+    "category": "hobbies",
+    "subgroup": "Music",
+    "description": "Recording and producing music on a computer.",
+    "synonyms": [
+      "home recording",
+      "beat making",
+      "daw",
+      "music producer"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "jamming",
+    "label": "Jamming",
+    "category": "hobbies",
+    "subgroup": "Music",
+    "description": "Playing music together for the fun of it.",
+    "synonyms": [
+      "jam session",
+      "band practice",
+      "playing together"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "ukulele",
+    "label": "Ukulele",
+    "category": "hobbies",
+    "subgroup": "Music",
+    "description": "A small, happy instrument that is easy to start on.",
+    "synonyms": [
+      "uke",
+      "ukelele"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "flute-and-wind-instruments",
+    "label": "Flute and Wind Instruments",
+    "category": "hobbies",
+    "subgroup": "Music",
+    "description": "Flute, saxophone, harmonica and other winds.",
+    "synonyms": [
+      "flute",
+      "saxophone",
+      "harmonica",
+      "clarinet"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "learning-an-instrument",
+    "label": "Learning an Instrument",
+    "category": "hobbies",
+    "subgroup": "Music",
+    "description": "Starting out on an instrument as an adult.",
+    "synonyms": [
+      "music lessons",
+      "learning music",
+      "beginner music"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "chess",
+    "label": "Chess",
+    "category": "hobbies",
+    "subgroup": "Games",
+    "description": "Slow thinking and friendly rivalry over the board.",
+    "synonyms": [
+      "chess matches",
+      "board game chess",
+      "strategy chess"
+    ],
+    "legacySlugs": [
+      "board-games-chess"
+    ]
+  },
+  {
+    "slug": "board-games",
+    "label": "Board Games",
+    "category": "hobbies",
+    "subgroup": "Games",
+    "description": "Tabletop games and game nights.",
+    "synonyms": [
+      "tabletop",
+      "game night",
+      "catan",
+      "board game night"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "card-games",
+    "label": "Card Games",
+    "category": "hobbies",
+    "subgroup": "Games",
+    "description": "Cards for evenings with friends and family.",
+    "synonyms": [
+      "cards",
+      "rummy",
+      "poker",
+      "uno",
+      "twenty nine"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "puzzles",
+    "label": "Puzzles",
+    "category": "hobbies",
+    "subgroup": "Games",
+    "description": "Jigsaws, crosswords and brain teasers.",
+    "synonyms": [
+      "jigsaw",
+      "crossword",
+      "sudoku",
+      "logic puzzles"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "video-games",
+    "label": "Video Games",
+    "category": "hobbies",
+    "subgroup": "Games",
+    "description": "Playing console, PC or mobile games.",
+    "synonyms": [
+      "gaming",
+      "console gaming",
+      "pc gaming",
+      "mobile games"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "co-op-gaming",
+    "label": "Co-op Gaming",
+    "category": "hobbies",
+    "subgroup": "Games",
+    "description": "Playing video games together as a team.",
+    "synonyms": [
+      "multiplayer games",
+      "online gaming",
+      "team games"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "role-playing-games",
+    "label": "Role-Playing Games",
+    "category": "hobbies",
+    "subgroup": "Games",
+    "description": "Telling stories together with dice and imagination.",
+    "synonyms": [
+      "tabletop rpg",
+      "dungeons and dragons",
+      "d&d"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "carrom",
+    "label": "Carrom",
+    "category": "hobbies",
+    "subgroup": "Games",
+    "description": "The classic family board game of flicking discs.",
+    "synonyms": [
+      "carrom board",
+      "indian board games"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "trivia-and-quizzes",
+    "label": "Trivia and Quizzes",
+    "category": "hobbies",
+    "subgroup": "Games",
+    "description": "Bible quizzes, pub-style quiz and general knowledge.",
+    "synonyms": [
+      "quiz night",
+      "bible quiz",
+      "trivia night",
+      "quizzing"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "escape-rooms",
+    "label": "Escape Rooms",
+    "category": "hobbies",
+    "subgroup": "Games",
+    "description": "Solving puzzles together under the clock.",
+    "synonyms": [
+      "escape room",
+      "puzzle rooms"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "strategy-games",
+    "label": "Strategy Games",
+    "category": "hobbies",
+    "subgroup": "Games",
+    "description": "Games of planning, resources and long-term thinking.",
+    "synonyms": [
+      "strategy",
+      "civilization",
+      "real time strategy"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "cooking",
+    "label": "Cooking",
+    "category": "hobbies",
+    "subgroup": "Food",
+    "description": "Making meals from scratch and sharing them.",
+    "synonyms": [
+      "home cooking",
+      "cooking at home",
+      "recipes",
+      "kitchen"
+    ],
+    "legacySlugs": [
+      "cooking-baking"
+    ]
+  },
+  {
+    "slug": "hosting-dinners",
+    "label": "Hosting Dinners",
+    "category": "hobbies",
+    "subgroup": "Food",
+    "description": "Having friends and family around your table.",
+    "synonyms": [
+      "dinner parties",
+      "hospitality",
+      "feeding people"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "indian-regional-cooking",
+    "label": "Indian Regional Cooking",
+    "category": "hobbies",
+    "subgroup": "Food",
+    "description": "Dishes from Kerala, Tamil Nadu, Punjab, Bengal and beyond.",
+    "synonyms": [
+      "kerala cooking",
+      "south indian cooking",
+      "biryani",
+      "sadya"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "barbecue-and-grilling",
+    "label": "Barbecue and Grilling",
+    "category": "hobbies",
+    "subgroup": "Food",
+    "description": "Cooking over a fire or grill.",
+    "synonyms": [
+      "bbq",
+      "grilling",
+      "barbeque"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "street-food-hunting",
+    "label": "Street Food Hunting",
+    "category": "hobbies",
+    "subgroup": "Food",
+    "description": "Seeking out the best street stalls.",
+    "synonyms": [
+      "street food",
+      "chaat",
+      "food stalls"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "home-brewing-tea-and-coffee",
+    "label": "Home Brewing Tea and Coffee",
+    "category": "hobbies",
+    "subgroup": "Food",
+    "description": "Making a perfect cup at home.",
+    "synonyms": [
+      "pour over",
+      "home brew",
+      "tea making",
+      "chai making"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "meal-prep",
+    "label": "Meal Prep",
+    "category": "hobbies",
+    "subgroup": "Food",
+    "description": "Planning and cooking meals for the week.",
+    "synonyms": [
+      "batch cooking",
+      "meal planning",
+      "healthy cooking"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "vegan-and-vegetarian-cooking",
+    "label": "Vegan and Vegetarian Cooking",
+    "category": "hobbies",
+    "subgroup": "Food",
+    "description": "Plant-based meals that taste good.",
+    "synonyms": [
+      "plant based cooking",
+      "vegetarian",
+      "vegan"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "preserving-and-pickling",
+    "label": "Preserving and Pickling",
+    "category": "hobbies",
+    "subgroup": "Food",
+    "description": "Making achar, jams and preserves.",
+    "synonyms": [
+      "pickling",
+      "achar",
+      "jam making",
+      "fermenting"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "food-photography",
+    "label": "Food Photography",
+    "category": "hobbies",
+    "subgroup": "Food",
+    "description": "Making meals look as good as they taste.",
+    "synonyms": [
+      "food photos",
+      "food styling"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "trying-new-restaurants",
+    "label": "Trying New Restaurants",
+    "category": "hobbies",
+    "subgroup": "Food",
+    "description": "Going out to find places worth returning to.",
+    "synonyms": [
+      "foodie",
+      "eating out",
+      "restaurants"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "book-club",
+    "label": "Book Club",
+    "category": "hobbies",
+    "subgroup": "Reading",
+    "description": "Reading the same book and talking it over.",
+    "synonyms": [
+      "reading group",
+      "book discussion",
+      "literature"
+    ],
+    "legacySlugs": [
+      "reading-books"
+    ]
+  },
+  {
+    "slug": "reading-fiction",
+    "label": "Reading Fiction",
+    "category": "hobbies",
+    "subgroup": "Reading",
+    "description": "Novels, short stories and long evenings with a story.",
+    "synonyms": [
+      "novels",
+      "fiction",
+      "story reading"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "reading-non-fiction",
+    "label": "Reading Non-Fiction",
+    "category": "hobbies",
+    "subgroup": "Reading",
+    "description": "Biographies, history and ideas.",
+    "synonyms": [
+      "non fiction",
+      "biographies",
+      "memoirs",
+      "history reading"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "classic-literature",
+    "label": "Classic Literature",
+    "category": "hobbies",
+    "subgroup": "Reading",
+    "description": "Old books that have lasted for a reason.",
+    "synonyms": [
+      "classics",
+      "great books",
+      "literary classics"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "poetry",
+    "label": "Poetry",
+    "category": "hobbies",
+    "subgroup": "Reading",
+    "description": "Reading and writing poems.",
+    "synonyms": [
+      "poems",
+      "verse",
+      "poetry reading"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "audiobooks",
+    "label": "Audiobooks",
+    "category": "hobbies",
+    "subgroup": "Reading",
+    "description": "Books to listen to while walking or travelling.",
+    "synonyms": [
+      "listening to books",
+      "audio books"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "reading-challenge",
+    "label": "Reading Challenge",
+    "category": "hobbies",
+    "subgroup": "Reading",
+    "description": "Setting a goal for how many books to read.",
+    "synonyms": [
+      "reading goals",
+      "goodreads",
+      "books per year"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "second-hand-bookshops",
+    "label": "Second-Hand Bookshops",
+    "category": "hobbies",
+    "subgroup": "Reading",
+    "description": "Browsing used books and old shelves.",
+    "synonyms": [
+      "book hunting",
+      "used books",
+      "secondhand books",
+      "library visits"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "journaling",
+    "label": "Journaling",
+    "category": "hobbies",
+    "subgroup": "Reading",
+    "description": "Writing down your days and thoughts.",
+    "synonyms": [
+      "diary",
+      "daily journal",
+      "writing diary"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "comics-and-graphic-novels",
+    "label": "Comics and Graphic Novels",
+    "category": "hobbies",
+    "subgroup": "Reading",
+    "description": "Stories told through pictures and words.",
+    "synonyms": [
+      "manga",
+      "comic books",
+      "graphic novels"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "learning-languages",
+    "label": "Learning Languages",
+    "category": "hobbies",
+    "subgroup": "Reading",
+    "description": "Picking up a new spoken language.",
+    "synonyms": [
+      "language learning",
+      "learning a language",
+      "hindi",
+      "tamil",
+      "spanish",
+      "duolingo"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "study-groups",
+    "label": "Study Groups",
+    "category": "hobbies",
+    "subgroup": "Reading",
+    "description": "Learning something new alongside others.",
+    "synonyms": [
+      "study circle",
+      "self study",
+      "learning together"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "specialty-coffee",
+    "label": "Specialty Coffee",
+    "category": "tastes",
+    "subgroup": "Food & Drink",
+    "description": "Third-wave cafes and coffee worth talking over.",
+    "synonyms": [
+      "pour over coffee",
+      "third wave coffee",
+      "espresso",
+      "coffee shops",
+      "cafes"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "filter-coffee",
+    "label": "Filter Coffee",
+    "category": "tastes",
+    "subgroup": "Food & Drink",
+    "description": "South Indian filter coffee, strong and sweet.",
+    "synonyms": [
+      "kaapi",
+      "filter kaapi",
+      "south indian coffee"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "chai",
+    "label": "Chai",
+    "category": "tastes",
+    "subgroup": "Food & Drink",
+    "description": "Tea with milk and spice, ideally with company.",
+    "synonyms": [
+      "masala chai",
+      "tea",
+      "cutting chai",
+      "tea time"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "home-style-cooking",
+    "label": "Home-Style Cooking",
+    "category": "tastes",
+    "subgroup": "Food & Drink",
+    "description": "Food that tastes like home.",
+    "synonyms": [
+      "home food",
+      "comfort food",
+      "mom's cooking"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "south-indian-food",
+    "label": "South Indian Food",
+    "category": "tastes",
+    "subgroup": "Food & Drink",
+    "description": "Idli, dosa, sambar and everything with coconut.",
+    "synonyms": [
+      "dosa",
+      "idli",
+      "appam",
+      "kerala food",
+      "tamil food"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "north-indian-food",
+    "label": "North Indian Food",
+    "category": "tastes",
+    "subgroup": "Food & Drink",
+    "description": "Rotis, dals and curries from the north.",
+    "synonyms": [
+      "punjabi food",
+      "paratha",
+      "roti",
+      "dal makhani"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "street-food",
+    "label": "Street Food",
+    "category": "tastes",
+    "subgroup": "Food & Drink",
+    "description": "Quick, fresh and cheap food from the stall.",
+    "synonyms": [
+      "chaat",
+      "pani puri",
+      "roadside food"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "biryani",
+    "label": "Biryani",
+    "category": "tastes",
+    "subgroup": "Food & Drink",
+    "description": "Slow-cooked rice with spice and meat or vegetables.",
+    "synonyms": [
+      "dum biryani",
+      "hyderabadi biryani"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "baking-and-desserts",
+    "label": "Baking and Desserts",
+    "category": "tastes",
+    "subgroup": "Food & Drink",
+    "description": "Bakes, cakes and sweet things.",
+    "synonyms": [
+      "cakes",
+      "sweets",
+      "desserts",
+      "mithai"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "fresh-juice-and-lassi",
+    "label": "Fresh Juice and Lassi",
+    "category": "tastes",
+    "subgroup": "Food & Drink",
+    "description": "Cold drinks that suit a hot afternoon.",
+    "synonyms": [
+      "lassi",
+      "juice bars",
+      "fresh juice",
+      "nannari"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "vegetarian-eating",
+    "label": "Vegetarian Eating",
+    "category": "tastes",
+    "subgroup": "Food & Drink",
+    "description": "Meat-free meals as a way of life.",
+    "synonyms": [
+      "veg",
+      "pure veg",
+      "vegetarian food"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "spicy-food",
+    "label": "Spicy Food",
+    "category": "tastes",
+    "subgroup": "Food & Drink",
+    "description": "Food with real heat.",
+    "synonyms": [
+      "hot food",
+      "chilli",
+      "extra spicy"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "global-cuisines",
+    "label": "Global Cuisines",
+    "category": "tastes",
+    "subgroup": "Food & Drink",
+    "description": "Trying food from other parts of the world.",
+    "synonyms": [
+      "world food",
+      "italian food",
+      "chinese food",
+      "thai food",
+      "mexican food"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "farm-to-table",
+    "label": "Farm-to-Table",
+    "category": "tastes",
+    "subgroup": "Food & Drink",
+    "description": "Fresh, local and seasonal cooking.",
+    "synonyms": [
+      "organic food",
+      "local food",
+      "seasonal eating"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "healthy-eating",
+    "label": "Healthy Eating",
+    "category": "tastes",
+    "subgroup": "Food & Drink",
+    "description": "Eating well without fuss.",
+    "synonyms": [
+      "clean eating",
+      "nutrition",
+      "wholesome food"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "movie-nights",
+    "label": "Movie Nights",
+    "category": "tastes",
+    "subgroup": "Film & TV",
+    "description": "Watching films together with snacks.",
+    "synonyms": [
+      "movies",
+      "film night",
+      "cinema nights",
+      "going to cinema"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "classic-films",
+    "label": "Classic Films",
+    "category": "tastes",
+    "subgroup": "Film & TV",
+    "description": "Old films that still work.",
+    "synonyms": [
+      "old movies",
+      "black and white films",
+      "golden age cinema"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "malayalam-cinema",
+    "label": "Malayalam Cinema",
+    "category": "tastes",
+    "subgroup": "Film & TV",
+    "description": "Films from the Malayalam industry.",
+    "synonyms": [
+      "mollywood",
+      "malayalam movies",
+      "kerala cinema"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "tamil-cinema",
+    "label": "Tamil Cinema",
+    "category": "tastes",
+    "subgroup": "Film & TV",
+    "description": "Films from the Tamil industry.",
+    "synonyms": [
+      "kollywood",
+      "tamil movies"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "hindi-cinema",
+    "label": "Hindi Cinema",
+    "category": "tastes",
+    "subgroup": "Film & TV",
+    "description": "Films from Bollywood and beyond.",
+    "synonyms": [
+      "bollywood",
+      "hindi movies"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "telugu-and-kannada-cinema",
+    "label": "Telugu and Kannada Cinema",
+    "category": "tastes",
+    "subgroup": "Film & TV",
+    "description": "Films from the Telugu and Kannada industries.",
+    "synonyms": [
+      "tollywood",
+      "telugu movies",
+      "sandalwood",
+      "kannada movies"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "hollywood-films",
+    "label": "Hollywood Films",
+    "category": "tastes",
+    "subgroup": "Film & TV",
+    "description": "Big-screen stories from Hollywood.",
+    "synonyms": [
+      "hollywood movies",
+      "english movies",
+      "blockbusters"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "faith-based-films",
+    "label": "Faith-Based Films",
+    "category": "tastes",
+    "subgroup": "Film & TV",
+    "description": "Films that wrestle with faith and God.",
+    "synonyms": [
+      "christian movies",
+      "faith films",
+      "christian cinema"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "documentaries",
+    "label": "Documentaries",
+    "category": "tastes",
+    "subgroup": "Film & TV",
+    "description": "True stories and real people.",
+    "synonyms": [
+      "docs",
+      "documentary films",
+      "nonfiction film"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "animation-and-anime",
+    "label": "Animation and Anime",
+    "category": "tastes",
+    "subgroup": "Film & TV",
+    "description": "Hand-drawn and animated stories.",
+    "synonyms": [
+      "anime",
+      "animated films",
+      "cartoons",
+      "pixar"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "tv-series",
+    "label": "TV Series",
+    "category": "tastes",
+    "subgroup": "Film & TV",
+    "description": "Binge-worthy shows worth talking about.",
+    "synonyms": [
+      "tv shows",
+      "web series",
+      "series",
+      "binge watching"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "comedy",
+    "label": "Comedy",
+    "category": "tastes",
+    "subgroup": "Film & TV",
+    "description": "Stand-up, sketches and sitcoms.",
+    "synonyms": [
+      "stand up comedy",
+      "sitcoms",
+      "funny shows"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "crime-and-mystery",
+    "label": "Crime and Mystery",
+    "category": "tastes",
+    "subgroup": "Film & TV",
+    "description": "Detective stories and whodunnits.",
+    "synonyms": [
+      "thrillers",
+      "detective stories",
+      "murder mystery"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "period-dramas",
+    "label": "Period Dramas",
+    "category": "tastes",
+    "subgroup": "Film & TV",
+    "description": "Historical stories with costumes and care.",
+    "synonyms": [
+      "historical dramas",
+      "costume dramas",
+      "history shows"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "sci-fi-and-fantasy",
+    "label": "Sci-Fi and Fantasy",
+    "category": "tastes",
+    "subgroup": "Film & TV",
+    "description": "Mythic worlds, space and big ideas.",
+    "synonyms": [
+      "science fiction",
+      "sci fi",
+      "fantasy",
+      "narnia",
+      "tolkien",
+      "lord of the rings"
+    ],
+    "legacySlugs": [
+      "sci-fi-fantasy"
+    ]
+  },
+  {
+    "slug": "christian-classics",
+    "label": "Christian Classics",
+    "category": "tastes",
+    "subgroup": "Books",
+    "description": "Augustine, Bunyan, Lewis and others that last.",
+    "synonyms": [
+      "cs lewis",
+      "mere christianity",
+      "pilgrim's progress",
+      "confessions"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "christian-living-books",
+    "label": "Christian Living Books",
+    "category": "tastes",
+    "subgroup": "Books",
+    "description": "Modern books on following Jesus daily.",
+    "synonyms": [
+      "christian living",
+      "devotional books",
+      "spiritual growth books"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "biography-and-memoir",
+    "label": "Biography and Memoir",
+    "category": "tastes",
+    "subgroup": "Books",
+    "description": "The life stories of ordinary and remarkable people.",
+    "synonyms": [
+      "biographies",
+      "autobiographies",
+      "life stories",
+      "memoirs"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "missionary-biographies",
+    "label": "Missionary Biographies",
+    "category": "tastes",
+    "subgroup": "Books",
+    "description": "Stories of missionaries and the people they served.",
+    "synonyms": [
+      "missionary stories",
+      "hudson taylor",
+      "amy carmichael",
+      "ida scudder"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "theology-books",
+    "label": "Theology Books",
+    "category": "tastes",
+    "subgroup": "Books",
+    "description": "Deep reading on doctrine and the church.",
+    "synonyms": [
+      "doctrine books",
+      "systematic theology books",
+      "theology reading"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "church-history-books",
+    "label": "Church History Books",
+    "category": "tastes",
+    "subgroup": "Books",
+    "description": "Books on the church through the ages.",
+    "synonyms": [
+      "history of the church books",
+      "reformation books"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "fiction",
+    "label": "Fiction",
+    "category": "tastes",
+    "subgroup": "Books",
+    "description": "Stories that move you.",
+    "synonyms": [
+      "novels",
+      "literary fiction",
+      "story books"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "historical-fiction",
+    "label": "Historical Fiction",
+    "category": "tastes",
+    "subgroup": "Books",
+    "description": "Stories set in the past.",
+    "synonyms": [
+      "historical novels",
+      "period novels"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "fantasy-novels",
+    "label": "Fantasy Novels",
+    "category": "tastes",
+    "subgroup": "Books",
+    "description": "Sprawling worlds and big quests.",
+    "synonyms": [
+      "fantasy books",
+      "epic fantasy",
+      "tolkien books"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "science-fiction-novels",
+    "label": "Science Fiction Novels",
+    "category": "tastes",
+    "subgroup": "Books",
+    "description": "Big ideas set in the future.",
+    "synonyms": [
+      "sci fi novels",
+      "space opera",
+      "dune"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "mystery-novels",
+    "label": "Mystery Novels",
+    "category": "tastes",
+    "subgroup": "Books",
+    "description": "Puzzles on the page.",
+    "synonyms": [
+      "detective novels",
+      "crime novels",
+      "thrillers books"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "self-improvement-books",
+    "label": "Self-Improvement Books",
+    "category": "tastes",
+    "subgroup": "Books",
+    "description": "Books on habits, focus and growth.",
+    "synonyms": [
+      "habits",
+      "productivity books",
+      "personal growth"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "business-books",
+    "label": "Business Books",
+    "category": "tastes",
+    "subgroup": "Books",
+    "description": "Books on work, leadership and building things.",
+    "synonyms": [
+      "leadership books",
+      "management books",
+      "entrepreneurship books"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "theology-podcasts",
+    "label": "Theology Podcasts",
+    "category": "tastes",
+    "subgroup": "Books",
+    "description": "Sermons and teaching on the Bible to listen to anywhere.",
+    "synonyms": [
+      "bibleproject",
+      "sermon podcasts",
+      "bible podcasts",
+      "sermons"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "tech-and-startup-podcasts",
+    "label": "Tech and Startup Podcasts",
+    "category": "tastes",
+    "subgroup": "Books",
+    "description": "Shows on technology, startups and the people building them.",
+    "synonyms": [
+      "ai podcasts",
+      "startup podcasts",
+      "tech news podcasts",
+      "lex fridman"
+    ],
+    "legacySlugs": [
+      "tech-podcasts"
+    ]
+  },
+  {
+    "slug": "indian-authors",
+    "label": "Indian Authors",
+    "category": "tastes",
+    "subgroup": "Books",
+    "description": "Stories and essays from Indian writers.",
+    "synonyms": [
+      "indian writing",
+      "indian literature",
+      "arundhati roy",
+      "r k narayan"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "worship-music",
+    "label": "Worship Music",
+    "category": "tastes",
+    "subgroup": "Music",
+    "description": "Songs that point the heart toward God.",
+    "synonyms": [
+      "christian music",
+      "praise and worship",
+      "contemporary worship"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "indie-and-acoustic-worship",
+    "label": "Indie and Acoustic Worship",
+    "category": "tastes",
+    "subgroup": "Music",
+    "description": "Folk-flavoured, stripped back worship songs.",
+    "synonyms": [
+      "indie worship",
+      "acoustic worship",
+      "folk worship",
+      "maverick city"
+    ],
+    "legacySlugs": [
+      "indie-worship"
+    ]
+  },
+  {
+    "slug": "gospel-music",
+    "label": "Gospel Music",
+    "category": "tastes",
+    "subgroup": "Music",
+    "description": "Soulful, joyful gospel songs.",
+    "synonyms": [
+      "gospel",
+      "black gospel",
+      "gospel choir music"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "hymns",
+    "label": "Hymns",
+    "category": "tastes",
+    "subgroup": "Music",
+    "description": "Old songs of the church with rich words.",
+    "synonyms": [
+      "classic hymns",
+      "traditional hymns",
+      "old hymns"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "christian-rock-and-pop",
+    "label": "Christian Rock and Pop",
+    "category": "tastes",
+    "subgroup": "Music",
+    "description": "Guitars, drums and faith lyrics.",
+    "synonyms": [
+      "christian rock",
+      "christian pop",
+      "ccm",
+      "contemporary christian"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "christian-hip-hop",
+    "label": "Christian Hip Hop",
+    "category": "tastes",
+    "subgroup": "Music",
+    "description": "Faith and rhyme over beats.",
+    "synonyms": [
+      "christian rap",
+      "holy hip hop",
+      "gospel rap"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "carnatic-and-hindustani-listening",
+    "label": "Carnatic and Hindustani Listening",
+    "category": "tastes",
+    "subgroup": "Music",
+    "description": "Enjoying Indian classical music.",
+    "synonyms": [
+      "indian classical",
+      "raga",
+      "carnatic concerts",
+      "classical indian"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "film-songs",
+    "label": "Film Songs",
+    "category": "tastes",
+    "subgroup": "Music",
+    "description": "Hits from Indian cinema.",
+    "synonyms": [
+      "bollywood songs",
+      "filmy songs",
+      "movie songs",
+      "malayalam songs"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "folk-and-acoustic",
+    "label": "Folk and Acoustic",
+    "category": "tastes",
+    "subgroup": "Music",
+    "description": "Gentle, story-driven acoustic music.",
+    "synonyms": [
+      "folk music",
+      "acoustic music",
+      "singer songwriter"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "classical-music",
+    "label": "Classical Music",
+    "category": "tastes",
+    "subgroup": "Music",
+    "description": "Orchestra, piano and chamber works.",
+    "synonyms": [
+      "orchestral",
+      "classical",
+      "symphony",
+      "bach"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "jazz",
+    "label": "Jazz",
+    "category": "tastes",
+    "subgroup": "Music",
+    "description": "Smooth, curious music with room to breathe.",
+    "synonyms": [
+      "smooth jazz",
+      "jazz music"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "lo-fi-and-focus-music",
+    "label": "Lo-Fi and Focus Music",
+    "category": "tastes",
+    "subgroup": "Music",
+    "description": "Calm instrumentals for study and work.",
+    "synonyms": [
+      "lofi",
+      "lo fi",
+      "study beats",
+      "deep work beats",
+      "focus music"
+    ],
+    "legacySlugs": [
+      "lofi-deep-focus"
+    ]
+  },
+  {
+    "slug": "pop-and-rock",
+    "label": "Pop and Rock",
+    "category": "tastes",
+    "subgroup": "Music",
+    "description": "Mainstream and classic rock and pop.",
+    "synonyms": [
+      "pop music",
+      "rock music",
+      "classic rock"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "live-concerts",
+    "label": "Live Concerts",
+    "category": "tastes",
+    "subgroup": "Music",
+    "description": "Going to hear music live.",
+    "synonyms": [
+      "concerts",
+      "gigs",
+      "music festivals"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "early-bird",
+    "label": "Early Bird",
+    "category": "tastes",
+    "subgroup": "Style & Home",
+    "description": "Slow, early mornings before the day begins.",
+    "synonyms": [
+      "early riser",
+      "morning person",
+      "5am",
+      "sunrise",
+      "early morning"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "night-owl",
+    "label": "Night Owl",
+    "category": "tastes",
+    "subgroup": "Style & Home",
+    "description": "Quiet, late evenings when thoughts come easily.",
+    "synonyms": [
+      "late nights",
+      "night person",
+      "evening person",
+      "late night"
+    ],
+    "legacySlugs": [
+      "night-owl-builder"
+    ]
+  },
+  {
+    "slug": "minimalism",
+    "label": "Minimalism",
+    "category": "tastes",
+    "subgroup": "Style & Home",
+    "description": "Living with less and valuing what stays.",
+    "synonyms": [
+      "simple living",
+      "decluttering",
+      "minimalist"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "home-decor",
+    "label": "Home Decor",
+    "category": "tastes",
+    "subgroup": "Style & Home",
+    "description": "Making home feel warm and welcoming.",
+    "synonyms": [
+      "interiors",
+      "decorating",
+      "interior design",
+      "home styling"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "plants-at-home",
+    "label": "Plants at Home",
+    "category": "tastes",
+    "subgroup": "Style & Home",
+    "description": "Keeping green things alive indoors.",
+    "synonyms": [
+      "houseplants",
+      "indoor plants",
+      "balcony garden"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "fashion",
+    "label": "Fashion",
+    "category": "tastes",
+    "subgroup": "Style & Home",
+    "description": "Dressing with care and your own style.",
+    "synonyms": [
+      "clothing",
+      "style",
+      "outfits",
+      "fashion sense"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "modest-and-traditional-dress",
+    "label": "Modest and Traditional Dress",
+    "category": "tastes",
+    "subgroup": "Style & Home",
+    "description": "Sarees, kurtas and clothing with heritage.",
+    "synonyms": [
+      "saree",
+      "kurta",
+      "traditional wear",
+      "ethnic wear"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "slow-living",
+    "label": "Slow Living",
+    "category": "tastes",
+    "subgroup": "Style & Home",
+    "description": "Unhurried days with room for people.",
+    "synonyms": [
+      "slow life",
+      "simple life",
+      "intentional living"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "thrifting",
+    "label": "Thrifting",
+    "category": "tastes",
+    "subgroup": "Style & Home",
+    "description": "Finding good things second-hand.",
+    "synonyms": [
+      "thrift shopping",
+      "second hand shopping",
+      "vintage"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "quiet-evenings",
+    "label": "Quiet Evenings",
+    "category": "tastes",
+    "subgroup": "Style & Home",
+    "description": "Staying in with tea, a book and few plans.",
+    "synonyms": [
+      "homebody",
+      "staying in",
+      "cosy evenings",
+      "introvert"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "social-evenings",
+    "label": "Social Evenings",
+    "category": "tastes",
+    "subgroup": "Style & Home",
+    "description": "Busy evenings full of friends and conversation.",
+    "synonyms": [
+      "going out",
+      "extrovert",
+      "hanging out",
+      "people person"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "planners-and-notebooks",
+    "label": "Planners and Notebooks",
+    "category": "tastes",
+    "subgroup": "Style & Home",
+    "description": "Stationery, planning and tidy pages.",
+    "synonyms": [
+      "stationery",
+      "bullet journal",
+      "planner",
+      "notebooks"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "pets",
+    "label": "Pets",
+    "category": "tastes",
+    "subgroup": "Style & Home",
+    "description": "Living with a dog, cat or other animals.",
+    "synonyms": [
+      "dogs",
+      "cats",
+      "pet lover",
+      "animal lover"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "minimal-tech",
+    "label": "Minimal Tech",
+    "category": "tastes",
+    "subgroup": "Style & Home",
+    "description": "Using devices on your own terms.",
+    "synonyms": [
+      "digital detox",
+      "screen free",
+      "dumbphone"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "travel",
+    "label": "Travel",
+    "category": "tastes",
+    "subgroup": "Travel",
+    "description": "Seeing new places and meeting new people.",
+    "synonyms": [
+      "travelling",
+      "traveling",
+      "trips",
+      "wanderlust"
+    ],
+    "legacySlugs": [
+      "travel-culture"
+    ]
+  },
+  {
+    "slug": "backpacking",
+    "label": "Backpacking",
+    "category": "tastes",
+    "subgroup": "Travel",
+    "description": "Travelling light and cheap across places.",
+    "synonyms": [
+      "budget travel",
+      "backpacker",
+      "hostels"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "heritage-trips",
+    "label": "Heritage Trips",
+    "category": "tastes",
+    "subgroup": "Travel",
+    "description": "Visiting old churches, forts and historic places.",
+    "synonyms": [
+      "historic sites",
+      "heritage walks",
+      "old churches",
+      "historical places"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "pilgrimage",
+    "label": "Pilgrimage",
+    "category": "tastes",
+    "subgroup": "Travel",
+    "description": "Travel to places of prayer and history.",
+    "synonyms": [
+      "holy land",
+      "sacred places",
+      "church pilgrimage"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "hill-stations",
+    "label": "Hill Stations",
+    "category": "tastes",
+    "subgroup": "Travel",
+    "description": "Cool, green mountain towns.",
+    "synonyms": [
+      "mountains",
+      "shimla",
+      "ooty",
+      "munnar",
+      "coorg",
+      "darjeeling"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "beach-holidays",
+    "label": "Beach Holidays",
+    "category": "tastes",
+    "subgroup": "Travel",
+    "description": "Sun, sea and slow days.",
+    "synonyms": [
+      "beaches",
+      "goa",
+      "coastal holidays"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "kerala-backwaters",
+    "label": "Kerala Backwaters",
+    "category": "tastes",
+    "subgroup": "Travel",
+    "description": "Houseboats and quiet green water.",
+    "synonyms": [
+      "backwaters",
+      "alleppey",
+      "kerala trip"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "himalayan-treks",
+    "label": "Himalayan Treks",
+    "category": "tastes",
+    "subgroup": "Travel",
+    "description": "High routes and mountain passes.",
+    "synonyms": [
+      "himalayas",
+      "ladakh",
+      "spiti",
+      "himachal"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "city-breaks",
+    "label": "City Breaks",
+    "category": "tastes",
+    "subgroup": "Travel",
+    "description": "A weekend wandering a city.",
+    "synonyms": [
+      "weekend trips",
+      "city trips",
+      "urban exploring"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "train-journeys",
+    "label": "Train Journeys",
+    "category": "tastes",
+    "subgroup": "Travel",
+    "description": "Long rides by rail.",
+    "synonyms": [
+      "railways",
+      "train travel",
+      "irctc",
+      "indian railways"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "missions-travel",
+    "label": "Missions Travel",
+    "category": "tastes",
+    "subgroup": "Travel",
+    "description": "Travelling to serve and meet believers abroad.",
+    "synonyms": [
+      "mission trips abroad",
+      "global church travel"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "cultural-festivals",
+    "label": "Cultural Festivals",
+    "category": "tastes",
+    "subgroup": "Travel",
+    "description": "Seeing local festivals and traditions.",
+    "synonyms": [
+      "festivals",
+      "local culture",
+      "folk festivals"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "local-food-trails",
+    "label": "Local Food Trails",
+    "category": "tastes",
+    "subgroup": "Travel",
+    "description": "Travelling for the food.",
+    "synonyms": [
+      "food tours",
+      "food travel",
+      "eating local"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "slow-travel",
+    "label": "Slow Travel",
+    "category": "tastes",
+    "subgroup": "Travel",
+    "description": "Staying longer and going deeper in one place.",
+    "synonyms": [
+      "long stays",
+      "digital nomad",
+      "extended travel"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "ai-and-machine-learning",
+    "label": "AI and Machine Learning",
+    "category": "skills",
+    "subgroup": "Tech",
+    "description": "Building and training AI systems, models and agents.",
+    "synonyms": [
+      "ai",
+      "artificial intelligence",
+      "machine learning",
+      "llm",
+      "deep learning",
+      "ml",
+      "ai engineering"
+    ],
+    "legacySlugs": [
+      "ai-engineering",
+      "machine-learning"
+    ]
+  },
+  {
+    "slug": "web-development",
+    "label": "Web Development",
+    "category": "skills",
+    "subgroup": "Tech",
+    "description": "Building websites and web apps.",
+    "synonyms": [
+      "full stack",
+      "frontend",
+      "backend",
+      "react",
+      "nextjs",
+      "javascript",
+      "typescript"
+    ],
+    "legacySlugs": [
+      "fullstack-dev"
+    ]
+  },
+  {
+    "slug": "mobile-apps",
+    "label": "Mobile Apps",
+    "category": "skills",
+    "subgroup": "Tech",
+    "description": "Building apps for phones.",
+    "synonyms": [
+      "ios",
+      "android",
+      "react native",
+      "flutter",
+      "app development"
+    ],
+    "legacySlugs": [
+      "mobile-app-dev"
+    ]
+  },
+  {
+    "slug": "cloud-and-devops",
+    "label": "Cloud and DevOps",
+    "category": "skills",
+    "subgroup": "Tech",
+    "description": "Running reliable systems in the cloud.",
+    "synonyms": [
+      "aws",
+      "gcp",
+      "azure",
+      "kubernetes",
+      "devops",
+      "infrastructure"
+    ],
+    "legacySlugs": [
+      "cloud-devops"
+    ]
+  },
+  {
+    "slug": "data-science",
+    "label": "Data Science",
+    "category": "skills",
+    "subgroup": "Tech",
+    "description": "Finding answers in data.",
+    "synonyms": [
+      "data analysis",
+      "analytics",
+      "statistics",
+      "sql",
+      "python data",
+      "data analytics"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "cybersecurity",
+    "label": "Cybersecurity",
+    "category": "skills",
+    "subgroup": "Tech",
+    "description": "Keeping systems and people safe online.",
+    "synonyms": [
+      "security",
+      "infosec",
+      "ethical hacking",
+      "privacy"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "learning-to-code",
+    "label": "Learning to Code",
+    "category": "skills",
+    "subgroup": "Tech",
+    "description": "Starting out or switching into programming.",
+    "synonyms": [
+      "beginner programming",
+      "coding bootcamp",
+      "career switch to tech",
+      "learn programming"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "software-engineering",
+    "label": "Software Engineering",
+    "category": "skills",
+    "subgroup": "Tech",
+    "description": "Designing and maintaining software that lasts.",
+    "synonyms": [
+      "programming",
+      "software development",
+      "coding",
+      "engineering"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "python",
+    "label": "Python",
+    "category": "skills",
+    "subgroup": "Tech",
+    "description": "Writing in Python for work and hobbies.",
+    "synonyms": [
+      "python programming",
+      "python scripts"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "java-and-kotlin",
+    "label": "Java and Kotlin",
+    "category": "skills",
+    "subgroup": "Tech",
+    "description": "Writing in the Java and Kotlin ecosystems.",
+    "synonyms": [
+      "java",
+      "kotlin",
+      "jvm",
+      "spring boot"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "c-and-systems-programming",
+    "label": "C and Systems Programming",
+    "category": "skills",
+    "subgroup": "Tech",
+    "description": "Low-level and performance-focused programming.",
+    "synonyms": [
+      "c++",
+      "rust",
+      "systems programming",
+      "embedded c"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "databases",
+    "label": "Databases",
+    "category": "skills",
+    "subgroup": "Tech",
+    "description": "Designing and tuning data stores.",
+    "synonyms": [
+      "sql",
+      "postgres",
+      "mysql",
+      "database design",
+      "dba"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "open-source",
+    "label": "Open Source",
+    "category": "skills",
+    "subgroup": "Tech",
+    "description": "Contributing to shared software.",
+    "synonyms": [
+      "open source contribution",
+      "github",
+      "oss"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "game-development",
+    "label": "Game Development",
+    "category": "skills",
+    "subgroup": "Tech",
+    "description": "Making games for fun or work.",
+    "synonyms": [
+      "unity",
+      "unreal",
+      "game design",
+      "indie games"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "embedded-and-electronics",
+    "label": "Embedded and Electronics",
+    "category": "skills",
+    "subgroup": "Tech",
+    "description": "Building with chips, sensors and circuits.",
+    "synonyms": [
+      "arduino",
+      "raspberry pi",
+      "iot",
+      "electronics",
+      "robotics"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "quality-assurance",
+    "label": "Quality Assurance",
+    "category": "skills",
+    "subgroup": "Tech",
+    "description": "Testing software so it works for people.",
+    "synonyms": [
+      "testing",
+      "qa",
+      "test automation",
+      "software testing"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "technical-writing",
+    "label": "Technical Writing",
+    "category": "skills",
+    "subgroup": "Tech",
+    "description": "Explaining technical things clearly.",
+    "synonyms": [
+      "documentation",
+      "docs writing",
+      "tech writing"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "blockchain",
+    "label": "Blockchain",
+    "category": "skills",
+    "subgroup": "Tech",
+    "description": "Working with distributed ledgers and smart contracts.",
+    "synonyms": [
+      "crypto",
+      "web3",
+      "ethereum",
+      "smart contracts"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "tech-support",
+    "label": "Tech Support",
+    "category": "skills",
+    "subgroup": "Tech",
+    "description": "Helping people fix their devices and software.",
+    "synonyms": [
+      "it support",
+      "helpdesk",
+      "troubleshooting",
+      "sysadmin"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "hardware-and-gadgets",
+    "label": "Hardware and Gadgets",
+    "category": "skills",
+    "subgroup": "Tech",
+    "description": "Understanding and fixing computers and devices.",
+    "synonyms": [
+      "pc building",
+      "electronics repair",
+      "computer hardware"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "spreadsheets-and-automation",
+    "label": "Spreadsheets and Automation",
+    "category": "skills",
+    "subgroup": "Tech",
+    "description": "Saving hours with formulas and scripts.",
+    "synonyms": [
+      "excel",
+      "google sheets",
+      "automation",
+      "no code"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "tech-leadership",
+    "label": "Tech Leadership",
+    "category": "skills",
+    "subgroup": "Tech",
+    "description": "Leading engineers and technical teams.",
+    "synonyms": [
+      "engineering manager",
+      "cto",
+      "tech lead",
+      "team lead"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "digital-accessibility",
+    "label": "Digital Accessibility",
+    "category": "skills",
+    "subgroup": "Tech",
+    "description": "Making technology usable for everyone.",
+    "synonyms": [
+      "accessibility",
+      "a11y",
+      "inclusive design"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "product-management",
+    "label": "Product Management",
+    "category": "skills",
+    "subgroup": "Tech",
+    "description": "Deciding what to build and why.",
+    "synonyms": [
+      "product manager",
+      "product strategy",
+      "roadmap"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "startups",
+    "label": "Startups",
+    "category": "skills",
+    "subgroup": "Business",
+    "description": "Building new companies and products.",
+    "synonyms": [
+      "saas",
+      "entrepreneurship",
+      "founder",
+      "startup",
+      "indie hacking",
+      "bootstrapping"
+    ],
+    "legacySlugs": [
+      "saas-entrepreneurship"
+    ]
+  },
+  {
+    "slug": "small-business",
+    "label": "Small Business",
+    "category": "skills",
+    "subgroup": "Business",
+    "description": "Running a shop, service or family business.",
+    "synonyms": [
+      "family business",
+      "small business owner",
+      "self employed",
+      "local business"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "marketing",
+    "label": "Marketing",
+    "category": "skills",
+    "subgroup": "Business",
+    "description": "Telling people about good things.",
+    "synonyms": [
+      "digital marketing",
+      "social media",
+      "branding",
+      "seo"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "sales",
+    "label": "Sales",
+    "category": "skills",
+    "subgroup": "Business",
+    "description": "Helping people find what they need.",
+    "synonyms": [
+      "selling",
+      "business development",
+      "account management"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "finance-and-accounting",
+    "label": "Finance and Accounting",
+    "category": "skills",
+    "subgroup": "Business",
+    "description": "Keeping books and money in order.",
+    "synonyms": [
+      "accounting",
+      "ca",
+      "chartered accountant",
+      "bookkeeping",
+      "finance"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "investing",
+    "label": "Investing",
+    "category": "skills",
+    "subgroup": "Business",
+    "description": "Growing money with patience and care.",
+    "synonyms": [
+      "stock market",
+      "mutual funds",
+      "sip",
+      "personal finance investing"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "personal-finance",
+    "label": "Personal Finance",
+    "category": "skills",
+    "subgroup": "Business",
+    "description": "Budgeting, saving and giving wisely.",
+    "synonyms": [
+      "budgeting",
+      "money management",
+      "debt free",
+      "saving"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "project-management",
+    "label": "Project Management",
+    "category": "skills",
+    "subgroup": "Business",
+    "description": "Organising people, time and tasks.",
+    "synonyms": [
+      "pmp",
+      "agile",
+      "scrum",
+      "project manager"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "operations-and-logistics",
+    "label": "Operations and Logistics",
+    "category": "skills",
+    "subgroup": "Business",
+    "description": "Making things run smoothly.",
+    "synonyms": [
+      "supply chain",
+      "operations",
+      "logistics"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "nonprofit-leadership",
+    "label": "Nonprofit Leadership",
+    "category": "skills",
+    "subgroup": "Business",
+    "description": "Running charities and ministries well.",
+    "synonyms": [
+      "ngo",
+      "nonprofit",
+      "charity management",
+      "ministry administration"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "law-and-policy",
+    "label": "Law and Policy",
+    "category": "skills",
+    "subgroup": "Business",
+    "description": "Working with law, policy and justice.",
+    "synonyms": [
+      "lawyer",
+      "legal",
+      "advocacy",
+      "public policy"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "product-design",
+    "label": "Product Design",
+    "category": "skills",
+    "subgroup": "Creative Work",
+    "description": "Designing how digital products look and feel.",
+    "synonyms": [
+      "ui design",
+      "ux design",
+      "ui ux",
+      "figma",
+      "design systems",
+      "user research"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "graphic-design",
+    "label": "Graphic Design",
+    "category": "skills",
+    "subgroup": "Creative Work",
+    "description": "Designing brands, posters and layouts.",
+    "synonyms": [
+      "logo design",
+      "branding design",
+      "visual design",
+      "canva"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "video-production",
+    "label": "Video Production",
+    "category": "skills",
+    "subgroup": "Creative Work",
+    "description": "Producing videos for church, work or people.",
+    "synonyms": [
+      "video editing",
+      "camera work",
+      "film production",
+      "editing"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "photography-work",
+    "label": "Photography Work",
+    "category": "skills",
+    "subgroup": "Creative Work",
+    "description": "Taking photos for events, ministries or clients.",
+    "synonyms": [
+      "event photography",
+      "professional photography",
+      "wedding photography"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "writing-and-editing",
+    "label": "Writing and Editing",
+    "category": "skills",
+    "subgroup": "Creative Work",
+    "description": "Writing and shaping words for others.",
+    "synonyms": [
+      "copywriting",
+      "editing",
+      "journalism",
+      "content writing",
+      "editor"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "music-leading",
+    "label": "Music Leading",
+    "category": "skills",
+    "subgroup": "Creative Work",
+    "description": "Leading and arranging music for groups.",
+    "synonyms": [
+      "worship leader",
+      "music director",
+      "choir director",
+      "arranger"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "audio-and-podcasting",
+    "label": "Audio and Podcasting",
+    "category": "skills",
+    "subgroup": "Creative Work",
+    "description": "Recording and producing sound and podcasts.",
+    "synonyms": [
+      "podcast production",
+      "sound engineering",
+      "audio editing"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "illustration",
+    "label": "Illustration",
+    "category": "skills",
+    "subgroup": "Creative Work",
+    "description": "Creating images for books, ads and stories.",
+    "synonyms": [
+      "illustrator",
+      "drawing for work",
+      "character design"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "translation",
+    "label": "Translation",
+    "category": "skills",
+    "subgroup": "Creative Work",
+    "description": "Moving words and ideas between languages.",
+    "synonyms": [
+      "translating",
+      "interpreting",
+      "localisation",
+      "bible translation"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "teaching",
+    "label": "Teaching",
+    "category": "skills",
+    "subgroup": "Care & Teaching",
+    "description": "Helping others learn in classrooms or small groups.",
+    "synonyms": [
+      "teacher",
+      "tutoring",
+      "education",
+      "lecturer",
+      "professor"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "tutoring",
+    "label": "Tutoring",
+    "category": "skills",
+    "subgroup": "Care & Teaching",
+    "description": "One-to-one help with studies.",
+    "synonyms": [
+      "private tutor",
+      "coaching students",
+      "homework help"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "nursing-and-healthcare",
+    "label": "Nursing and Healthcare",
+    "category": "skills",
+    "subgroup": "Care & Teaching",
+    "description": "Caring for the sick and recovering.",
+    "synonyms": [
+      "nurse",
+      "nursing",
+      "medical",
+      "doctor",
+      "healthcare",
+      "physician"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "counselling",
+    "label": "Counselling",
+    "category": "skills",
+    "subgroup": "Care & Teaching",
+    "description": "Helping people through hard times.",
+    "synonyms": [
+      "therapy",
+      "mental health",
+      "psychologist",
+      "social work"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "coaching",
+    "label": "Coaching",
+    "category": "skills",
+    "subgroup": "Care & Teaching",
+    "description": "Helping people reach their goals.",
+    "synonyms": [
+      "life coaching",
+      "career coaching",
+      "mentoring skills"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "childcare",
+    "label": "Childcare",
+    "category": "skills",
+    "subgroup": "Care & Teaching",
+    "description": "Caring for and teaching young children.",
+    "synonyms": [
+      "babysitting",
+      "child minding",
+      "early years",
+      "nursery teaching"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "elder-care",
+    "label": "Elder Care",
+    "category": "skills",
+    "subgroup": "Care & Teaching",
+    "description": "Looking after older people with patience.",
+    "synonyms": [
+      "caring for elders",
+      "geriatric care",
+      "carer"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "public-speaking",
+    "label": "Public Speaking",
+    "category": "skills",
+    "subgroup": "Care & Teaching",
+    "description": "Speaking clearly to groups.",
+    "synonyms": [
+      "speech",
+      "presentation",
+      "toastmasters",
+      "emcee"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "community-organising",
+    "label": "Community Organising",
+    "category": "skills",
+    "subgroup": "Care & Teaching",
+    "description": "Bringing people together to get things done.",
+    "synonyms": [
+      "event planning",
+      "community work",
+      "organising events",
+      "volunteer coordination"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "cooking-professionally",
+    "label": "Cooking Professionally",
+    "category": "skills",
+    "subgroup": "Trades & Practical",
+    "description": "Working as a chef, baker or caterer.",
+    "synonyms": [
+      "chef",
+      "catering",
+      "professional kitchen",
+      "baker",
+      "hospitality work"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "carpentry-and-repairs",
+    "label": "Carpentry and Repairs",
+    "category": "skills",
+    "subgroup": "Trades & Practical",
+    "description": "Fixing and making things around the house.",
+    "synonyms": [
+      "handyman",
+      "home repair",
+      "diy repairs",
+      "fixing things"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "electrical-and-plumbing",
+    "label": "Electrical and Plumbing",
+    "category": "skills",
+    "subgroup": "Trades & Practical",
+    "description": "Practical trade skills in homes and buildings.",
+    "synonyms": [
+      "electrician",
+      "plumbing",
+      "wiring"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "farming",
+    "label": "Farming",
+    "category": "skills",
+    "subgroup": "Trades & Practical",
+    "description": "Growing crops and raising animals.",
+    "synonyms": [
+      "agriculture",
+      "farm work",
+      "organic farming",
+      "dairy"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "driving-and-mechanics",
+    "label": "Driving and Mechanics",
+    "category": "skills",
+    "subgroup": "Trades & Practical",
+    "description": "Driving, vehicles and engine repair.",
+    "synonyms": [
+      "mechanic",
+      "car repair",
+      "bike repair",
+      "driving"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "construction-and-civil-work",
+    "label": "Construction and Civil Work",
+    "category": "skills",
+    "subgroup": "Trades & Practical",
+    "description": "Building homes, roads and structures.",
+    "synonyms": [
+      "civil engineering",
+      "architecture",
+      "building",
+      "site work"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "event-setup",
+    "label": "Event Setup",
+    "category": "skills",
+    "subgroup": "Trades & Practical",
+    "description": "Staging, sound and logistics for gatherings.",
+    "synonyms": [
+      "event management",
+      "stage setup",
+      "decor setup"
+    ],
+    "legacySlugs": []
+  },
+  {
+    "slug": "tailoring",
+    "label": "Tailoring",
+    "category": "skills",
+    "subgroup": "Trades & Practical",
+    "description": "Making and altering clothes as a trade.",
+    "synonyms": [
+      "stitching work",
+      "dressmaking",
+      "seamstress"
+    ],
+    "legacySlugs": []
+  }
+]
