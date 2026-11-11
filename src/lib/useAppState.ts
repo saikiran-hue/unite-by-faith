@@ -4,9 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ComputedDuoMatch,
+  CurrentUser,
+  DuoChat,
   FellowshipPod,
   TaxonomyTag,
-  UserProfile,
 } from '@/types/database';
 
 /**
@@ -14,11 +15,11 @@ import {
  * server-side against the user's saved habits), joins pods and opens 1v1 chats.
  */
 interface StatePayload {
-  currentUser: UserProfile;
-  allProfiles?: UserProfile[];
+  currentUser: CurrentUser;
   taxonomyTags?: TaxonomyTag[];
   pods?: FellowshipPod[];
   duoMatches?: ComputedDuoMatch[];
+  duoChats?: DuoChat[];
 }
 
 /** Fetches /api/state (matches scored against saved habits); null on failure. */
@@ -40,11 +41,11 @@ export function useAppState() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  const [allProfiles, setAllProfiles] = useState<UserProfile[]>([]);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [taxonomyTags, setTaxonomyTags] = useState<TaxonomyTag[]>([]);
   const [pods, setPods] = useState<FellowshipPod[]>([]);
   const [duoMatches, setDuoMatches] = useState<ComputedDuoMatch[]>([]);
+  const [duoChats, setDuoChats] = useState<DuoChat[]>([]);
 
   const [startingDuoId, setStartingDuoId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -53,10 +54,10 @@ export function useAppState() {
   const apply = useCallback((data: StatePayload | null): boolean => {
     if (data) {
       setCurrentUser(data.currentUser);
-      setAllProfiles(data.allProfiles || []);
       setTaxonomyTags(data.taxonomyTags || []);
       setPods(data.pods || []);
       setDuoMatches(data.duoMatches || []);
+      setDuoChats(data.duoChats || []);
     }
     setLoading(false);
     return Boolean(data);
@@ -121,10 +122,10 @@ export function useAppState() {
   return {
     loading,
     currentUser,
-    allProfiles,
     taxonomyTags,
     pods,
     duoMatches,
+    duoChats,
     tagMap,
     userTagSet,
     startingDuoId,

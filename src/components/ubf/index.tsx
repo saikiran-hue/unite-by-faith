@@ -8,7 +8,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { ICON_PATHS, type IconName } from './icon-paths';
-import type { TaxonomyTag } from '@/types/database';
+import type { Level, TaxonomyTag } from '@/types/database';
 import { CAT_BY_KEY, CATS, type Cat } from '@/lib/cats';
 import { THEME_KEY } from './theme-script';
 
@@ -193,7 +193,19 @@ export function CatHead({ cat, extra }: { cat: Cat; extra?: React.ReactNode }) {
 }
 
 /** Read-only habit chip with its category icon and an optional star. */
-export function HabitChip({ slug, tagMap, starred }: { slug: string; tagMap: Map<string, TaxonomyTag>; starred?: boolean }) {
+export const LEVEL_NAMES = { 1: 'casual', 2: 'regular', 3: 'passionate' } as const;
+
+export function HabitChip({
+  slug,
+  tagMap,
+  starred,
+  level,
+}: {
+  slug: string;
+  tagMap: Map<string, TaxonomyTag>;
+  starred?: boolean;
+  level?: Level;
+}) {
   const tag = tagMap.get(slug);
   const cat = tag ? CAT_BY_KEY[tag.category] : CATS[0];
   return (
@@ -201,6 +213,16 @@ export function HabitChip({ slug, tagMap, starred }: { slug: string; tagMap: Map
       <Icon name={cat.icon} />
       <span className="sr">{cat.short}: </span>
       {tag?.label ?? slug}
+      {level && (
+        <>
+          <span className={`lv lv${level}`} aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </span>
+          <span className="sr"> ({LEVEL_NAMES[level]})</span>
+        </>
+      )}
       {starred && (
         <>
           <Icon name="star" className="fill star" />
@@ -215,18 +237,20 @@ export function HabitChips({
   slugs,
   tagMap,
   starred,
+  levels,
   max,
 }: {
   slugs: string[];
   tagMap: Map<string, TaxonomyTag>;
   starred?: Set<string>;
+  levels?: Map<string, Level>;
   max?: number;
 }) {
   const shown = max ? slugs.slice(0, max) : slugs;
   return (
     <ul className="chips">
       {shown.map((s) => (
-        <HabitChip key={s} slug={s} tagMap={tagMap} starred={starred?.has(s)} />
+        <HabitChip key={s} slug={s} tagMap={tagMap} starred={starred?.has(s)} level={levels?.get(s)} />
       ))}
       {max && slugs.length > max && <li className="chip more">+{slugs.length - max} more</li>}
     </ul>

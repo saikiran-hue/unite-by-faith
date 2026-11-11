@@ -68,6 +68,26 @@ export interface UserProfile {
   tags: UserTag[];
 }
 
+export interface ProfilePrivate {
+  user_id: string;
+  birth_date: string | null;
+  gender: 'man' | 'woman' | null;
+  age_min: number | null;
+  age_max: number | null;
+  max_distance_km: number;
+  only_my_tradition: boolean;
+}
+
+/** The signed-in viewer: their public profile plus their own private row (or null). */
+export interface CurrentUser extends UserProfile {
+  private: ProfilePrivate | null;
+}
+
+export interface DuoChat {
+  partner: UserProfile;
+  chat_room_id: string;
+}
+
 export interface PodMemberProfile {
   pod_id: string;
   user_id: string;

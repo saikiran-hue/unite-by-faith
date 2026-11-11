@@ -1,12 +1,50 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { TaxonomyTag, UserProfile } from '@/types/database';
+import { Level, TaxonomyTag, UserProfile } from '@/types/database';
 import { CATS } from '@/lib/cats';
 import { AlertBox, Btn, CatHead, Empty, HabitChips, Icon, Note, sortHabits } from '@/components/ubf';
+import { TagSearch } from '@/components/TagSearch';
 
 const MIN_HABITS = 3;
 const MAX_STARRED = 3;
+const TOP_N = 12;
+const DEFAULT_LEVEL: Level = 2;
+const LEVELS: { value: Level; label: string }[] = [
+  { value: 1, label: 'Casual' },
+  { value: 2, label: 'Regular' },
+  { value: 3, label: 'Passionate' },
+];
+
+/** Three-step radiogroup; arrow keys move the choice (roving tabindex). */
+function LevelControl({ label, value, onChange }: { label: string; value: Level; onChange: (v: Level) => void }) {
+  function onKey(e: React.KeyboardEvent<HTMLButtonElement>) {
+    const dir = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+    if (!dir) return;
+    e.preventDefault();
+    const next = (((value - 1 + dir + 3) % 3) + 1) as Level;
+    onChange(next);
+    const buttons = e.currentTarget.parentElement?.querySelectorAll('button');
+    buttons?.[next - 1]?.focus();
+  }
+  return (
+    <div className="lvl" role="radiogroup" aria-label={`How much: Casual / Regular / Passionate, ${label}`}>
+      {LEVELS.map((l) => (
+        <button
+          key={l.value}
+          type="button"
+          role="radio"
+          aria-checked={value === l.value}
+          tabIndex={value === l.value ? 0 : -1}
+          onClick={() => onChange(l.value)}
+          onKeyDown={onKey}
+        >
+          {l.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 interface HabitsPanelProps {
   user: UserProfile;
@@ -24,6 +62,8 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
   const [editing, setEditing] = useState(false);
   const [picked, setPicked] = useState<string[]>([]);
   const [starred, setStarred] = useState<string[]>([]);
+  const [levels, setLevels] = useState<Record<string, Level>>({});
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [starHint, setStarHint] = useState(false);
   const [error, setError] = useState<[string, string] | null>(null);
@@ -42,23 +82,23 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
   const [seenSignal, setSeenSignal] = useState(editSignal);
   if (editSignal !== seenSignal) {
     setSeenSignal(editSignal);
-    setPicked(user.tags.map((t) => t.tag_slug));
-    setStarred(user.tags.filter((t) => t.is_priority).map((t) => t.tag_slug));
-    setError(null);
-    setStarHint(false);
-    setEditing(true);
+    openEditor();
   }
 
   const savedPicked = user.tags.map((t) => t.tag_slug);
   const savedStarred = new Set(user.tags.filter((t) => t.is_priority).map((t) => t.tag_slug));
+  const savedLevels = new Map(user.tags.map((t) => [t.tag_slug, (t.level ?? DEFAULT_LEVEL) as Level]));
 
-  function startEditing() {
+  function openEditor() {
     setPicked(savedPicked);
     setStarred([...savedStarred]);
+    setLevels(Object.fromEntries(savedLevels));
+    setExpanded({});
     setError(null);
     setStarHint(false);
     setEditing(true);
   }
+  const startEditing = openEditor;
 
   function cancel() {
     setError(null);
@@ -71,6 +111,7 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
       setStarred(starred.filter((s) => s !== slug));
     } else {
       setPicked([...picked, slug]);
+      setLevels((l) => ({ ...l, [slug]: l[slug] ?? DEFAULT_LEVEL }));
     }
     setError(null);
     setStarHint(false);
@@ -103,7 +144,6 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
       'Your picks are still here. Check your connection and tap Save Habits again.',
     ];
     try {
-      const levels = new Map(user.tags.map((t) => [t.tag_slug, t.level ?? 2]));
       const res = await fetch('/api/onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -111,13 +151,15 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
           tags: picked.map((slug) => ({
             slug,
             category: tagMap.get(slug)?.category ?? 'faith',
-            level: levels.get(slug) ?? 2,
+            level: levels[slug] ?? DEFAULT_LEVEL,
             isPriority: starred.includes(slug),
           })),
         }),
       });
       if (!res.ok) {
-        setError(failed);
+        const body = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
+        const message = res.status < 500 ? body?.error?.message : undefined;
+        setError(message ? ['We couldn’t save your habits.', message] : failed);
         return;
       }
       await onSaved();
@@ -132,6 +174,39 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
   /* ---------------- Edit ---------------- */
   if (editing) {
     const starFull = starred.length >= MAX_STARRED;
+    const renderTag = (t: TaxonomyTag) => {
+      const on = picked.includes(t.slug);
+      const st = starred.includes(t.slug);
+      return (
+        <span key={t.slug} className="tpick">
+          <span className={`tchip${on ? ' on' : ''}`}>
+            <button type="button" className="t-main" aria-pressed={on} onClick={() => toggle(t.slug)}>
+              <Icon name={on ? 'check' : 'plus'} />
+              {t.label}
+            </button>
+            {on && (
+              <button
+                type="button"
+                className="t-star"
+                aria-pressed={st}
+                aria-disabled={!st && starFull ? true : undefined}
+                aria-label={st ? `Remove star from ${t.label}` : `Star ${t.label} as most important`}
+                onClick={() => star(t.slug)}
+              >
+                <Icon name="star" className={st ? 'fill' : undefined} />
+              </button>
+            )}
+          </span>
+          {on && (
+            <LevelControl
+              label={t.label}
+              value={levels[t.slug] ?? DEFAULT_LEVEL}
+              onChange={(v) => setLevels({ ...levels, [t.slug]: v })}
+            />
+          )}
+        </span>
+      );
+    };
     return (
       <section className="card pad" aria-labelledby="hab-h">
         <h2 className="h2" id="hab-h" ref={headingRef} tabIndex={-1}>
@@ -140,40 +215,53 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
         <p className="sub">
           Tap a habit to pick it. Tap its star to mark up to 3 as most important. Starred habits count double.
         </p>
+        <TagSearch picked={picked} onPick={toggle} />
         <div className="cats" style={{ marginTop: 16 }}>
-          {CATS.map((c) => (
-            <div key={c.key} className={`cat cat-${c.key}`} role="group" aria-label={c.name}>
-              <CatHead cat={c} />
-              <div className="tchips">
-                {taxonomyTags
-                  .filter((t) => t.category === c.key)
-                  .map((t) => {
-                    const on = picked.includes(t.slug);
-                    const st = starred.includes(t.slug);
-                    return (
-                      <span key={t.slug} className={`tchip${on ? ' on' : ''}`}>
-                        <button type="button" className="t-main" aria-pressed={on} onClick={() => toggle(t.slug)}>
-                          <Icon name={on ? 'check' : 'plus'} />
-                          {t.label}
-                        </button>
-                        {on && (
-                          <button
-                            type="button"
-                            className="t-star"
-                            aria-pressed={st}
-                            aria-disabled={!st && starFull ? true : undefined}
-                            aria-label={st ? `Remove star from ${t.label}` : `Star ${t.label} as most important`}
-                            onClick={() => star(t.slug)}
-                          >
-                            <Icon name="star" className={st ? 'fill' : undefined} />
-                          </button>
-                        )}
-                      </span>
-                    );
-                  })}
+          {CATS.map((c) => {
+            const inCat = taxonomyTags.filter((t) => t.category === c.key);
+            const active = inCat.filter((t) => t.is_active !== false);
+            const open = expanded[c.key];
+            const top = [...active]
+              .sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0) || a.sort_order - b.sort_order)
+              .slice(0, TOP_N);
+            const shown = new Set(top.map((t) => t.slug));
+            // Picks outside the top list (searched, or since retired) stay visible so they can be changed.
+            const extra = inCat.filter((t) => picked.includes(t.slug) && !shown.has(t.slug));
+            const groups = new Map<string, TaxonomyTag[]>();
+            if (open) {
+              for (const t of [...active, ...extra.filter((t) => t.is_active === false)].sort(
+                (a, b) => a.sort_order - b.sort_order
+              )) {
+                const g = t.subgroup ?? '';
+                groups.set(g, [...(groups.get(g) ?? []), t]);
+              }
+            }
+            return (
+              <div key={c.key} className={`cat cat-${c.key}`} role="group" aria-label={c.name}>
+                <CatHead cat={c} />
+                {open ? (
+                  [...groups].map(([name, tags]) => (
+                    <div key={name}>
+                      {name && <h4 className="subgroup">{name}</h4>}
+                      <div className="tchips">{tags.map(renderTag)}</div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="tchips">{[...top, ...extra].map(renderTag)}</div>
+                )}
+                {active.length > TOP_N && (
+                  <Btn
+                    variant="btn-quiet"
+                    className="more-btn"
+                    aria-expanded={!!open}
+                    onClick={() => setExpanded({ ...expanded, [c.key]: !open })}
+                  >
+                    {open ? 'Show fewer' : `Show all ${active.length}`}
+                  </Btn>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         {error && (
           <div style={{ marginTop: 16 }}>
@@ -252,7 +340,7 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
             <div key={c.key} className={`cat spot cat-${c.key}`}>
               <CatHead cat={c} />
               {mine.length ? (
-                <HabitChips slugs={mine} tagMap={tagMap} starred={savedStarred} />
+                <HabitChips slugs={mine} tagMap={tagMap} starred={savedStarred} levels={savedLevels} />
               ) : (
                 <p className="small">None picked yet.</p>
               )}

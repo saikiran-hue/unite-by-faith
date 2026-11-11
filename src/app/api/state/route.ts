@@ -3,11 +3,17 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { requireUserId } from '@/lib/session';
 import { computeDuoMatches, scoreAndRankPods } from '@/lib/matching/engine';
 import {
+  CurrentUser,
   PodMemberProfile,
+  ProfilePrivate,
   TaxonomyTag,
   UserProfile,
   UserTag,
 } from '@/types/database';
+
+// Explicit columns: never select the 384-d embedding.
+const TAXONOMY_COLUMNS =
+  'slug, label, category, description, icon_name, sort_order, subgroup, synonyms, popularity, is_active';
 
 export async function GET() {
   try {
@@ -23,10 +29,11 @@ export async function GET() {
       { data: podRows, error: podError },
       { data: podMemberRows, error: pmError },
       { data: duoRows, error: duoError },
+      { data: privateRow, error: privError },
     ] = await Promise.all([
       admin
         .from('taxonomy_tags')
-        .select('*')
+        .select(TAXONOMY_COLUMNS)
         .order('sort_order', { ascending: true }),
       admin
         .from('profiles')
@@ -39,9 +46,16 @@ export async function GET() {
         .select('*')
         .order('joined_at', { ascending: true }),
       admin.from('duo_matches').select('*'),
+      admin
+        .from('profile_private')
+        .select(
+          'user_id, birth_date, gender, age_min, age_max, max_distance_km, only_my_tradition'
+        )
+        .eq('user_id', userId)
+        .maybeSingle(),
     ]);
 
-    if (taxError || profError || tagError || podError || pmError || duoError) {
+    if (taxError || profError || tagError || podError || pmError || duoError || privError) {
       return NextResponse.json(
         {
           error:
@@ -50,7 +64,8 @@ export async function GET() {
             tagError?.message ||
             podError?.message ||
             pmError?.message ||
-            duoError?.message,
+            duoError?.message ||
+            privError?.message,
         },
         { status: 500 }
       );
@@ -72,14 +87,19 @@ export async function GET() {
 
     const profileMap = new Map(allProfiles.map((p) => [p.id, p]));
 
-    const currentUser = profileMap.get(userId);
+    const profile = profileMap.get(userId);
 
-    if (!currentUser) {
+    if (!profile) {
       return NextResponse.json(
         { error: 'No profile found for this account' },
         { status: 404 }
       );
     }
+
+    const currentUser: CurrentUser = {
+      ...profile,
+      private: (privateRow as ProfilePrivate | null) ?? null,
+    };
 
     // Hydrate pod members
     const membersByPod = new Map<string, PodMemberProfile[]>();
@@ -104,6 +124,7 @@ export async function GET() {
 
     // Map existing 1v1 chat rooms for currentUser
     const existingDuoRoomsByPartnerId = new Map<string, string>();
+    const duoChats: { partner: UserProfile; chat_room_id: string }[] = [];
     for (const dm of duoRows || []) {
       if (!dm.chat_room_id) continue;
       if (dm.user_a_id === currentUser.id) {
@@ -111,6 +132,10 @@ export async function GET() {
       } else if (dm.user_b_id === currentUser.id) {
         existingDuoRoomsByPartnerId.set(dm.user_a_id, dm.chat_room_id);
       }
+    }
+    for (const [partnerId, chat_room_id] of existingDuoRoomsByPartnerId) {
+      const partner = profileMap.get(partnerId);
+      if (partner) duoChats.push({ partner, chat_room_id });
     }
 
     const rankedPods = scoreAndRankPods(
@@ -127,10 +152,10 @@ export async function GET() {
 
     return NextResponse.json({
       currentUser,
-      allProfiles,
       taxonomyTags,
       pods: rankedPods,
       duoMatches,
+      duoChats,
     });
   } catch (err) {
     return NextResponse.json(
