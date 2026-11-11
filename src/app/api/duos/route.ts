@@ -4,16 +4,21 @@ import { requireUserId } from '@/lib/session';
 import { recordOutcome } from '@/lib/matching/outcomes';
 import { loadPeople, loadScoreContext } from '@/lib/matching/load';
 import { scorePair } from '@/lib/matching/score';
+import { isUuid, readJsonObject } from '@/lib/request';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
     const admin = createSupabaseAdminClient();
     const auth = await requireUserId();
     if ('response' in auth) return auth.response;
     const { userId } = auth;
+    const body = await readJsonObject(req);
+    if (!body) {
+      return NextResponse.json({ error: 'Request body must be a JSON object' }, { status: 400 });
+    }
 
-    const partnerId = String(body.partnerId || '');
+    // Lower case so the a < b pair ordering matches how Postgres compares uuids.
+    const partnerId = String(body.partnerId || '').toLowerCase();
     const sharedTags: string[] = Array.isArray(body.sharedTags)
       ? body.sharedTags
       : [];
@@ -23,6 +28,9 @@ export async function POST(req: NextRequest) {
         { error: 'partnerId is required' },
         { status: 400 }
       );
+    }
+    if (!isUuid(partnerId)) {
+      return NextResponse.json({ error: 'partnerId must be a uuid' }, { status: 400 });
     }
     if (partnerId === userId) {
       return NextResponse.json(

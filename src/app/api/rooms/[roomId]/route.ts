@@ -4,6 +4,7 @@ import { requireUserId } from '@/lib/session';
 import { recordMessageOutcomes } from '@/lib/matching/outcomes';
 import { isRoomMember } from '@/lib/rooms';
 import { PUBLIC_CARD_COLUMNS, TAXONOMY_COLUMNS } from '@/lib/taxonomy';
+import { readJsonObject } from '@/lib/request';
 import { buildContextualIcebreakers } from '@/lib/matching/engine';
 import {
   ChatMessage,
@@ -14,6 +15,7 @@ import {
 } from '@/types/database';
 
 const MESSAGE_LIMIT = 200;
+const SENDABLE_TYPES = ['text', 'prayer_request', 'icebreaker'];
 
 type Card = Pick<UserProfile, 'id' | 'full_name' | 'display_handle' | 'avatar_url' | 'headline'>;
 
@@ -189,12 +191,15 @@ export async function POST(
 ) {
   try {
     const { roomId } = await context.params;
-    const body = await req.json();
     const admin = createSupabaseAdminClient();
     const auth = await requireUserId();
     if ('response' in auth) return auth.response;
     const { userId } = auth;
     const senderId = userId;
+    const body = await readJsonObject(req);
+    if (!body) {
+      return NextResponse.json({ error: 'Request body must be a JSON object' }, { status: 400 });
+    }
 
     const { data: room } = await admin
       .from('chat_rooms')
@@ -210,12 +215,12 @@ export async function POST(
 
     if (body.action === 'message') {
       const content = String(body.content || '').trim();
-      const messageType =
-        body.messageType === 'icebreaker' ||
-        body.messageType === 'prayer_request' ||
-        body.messageType === 'milestone'
-          ? body.messageType
-          : 'text';
+      // People post text, prayer requests and (from a Conversation Starter) icebreakers.
+      // Milestones are written by the app only.
+      const messageType = String(body.messageType ?? 'text');
+      if (!SENDABLE_TYPES.includes(messageType)) {
+        return NextResponse.json({ error: 'Invalid messageType' }, { status: 400 });
+      }
 
       if (!content) {
         return NextResponse.json(

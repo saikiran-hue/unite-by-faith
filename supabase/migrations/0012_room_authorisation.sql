@@ -2,7 +2,7 @@
 -- 0001 let anon read every chat, any user update any pin, add themselves to any pod and call
 -- the seat/duo RPCs for someone else. All app writes go through the server (service role), so
 -- the browser keeps only what it uses: member-scoped SELECT on chat_messages and room_pins for
--- the Realtime subscription on the room page. Re-runnable.
+-- the Realtime subscription on the room page. No browser write policies remain. Re-runnable.
 
 -- Membership helper ----------------------------------------------------------------------
 -- Security definer so policies do not recurse into pod_members / duo_matches RLS.
@@ -43,12 +43,9 @@ create policy "chat_messages_select_member"
   to authenticated
   using (public.is_room_member(room_id));
 
+-- No browser writes: messages are posted through the API (service role).
 drop policy if exists "chat_messages_insert_own" on public.chat_messages;
 drop policy if exists "chat_messages_insert_member" on public.chat_messages;
-create policy "chat_messages_insert_member"
-  on public.chat_messages for insert
-  to authenticated
-  with check (sender_id = (select auth.uid()) and public.is_room_member(room_id));
 
 -- room_pins --------------------------------------------------------------------------------
 drop policy if exists "room_pins_select_all" on public.room_pins;
@@ -58,23 +55,14 @@ create policy "room_pins_select_member"
   to authenticated
   using (public.is_room_member(room_id));
 
+-- No browser writes: pins are created, amened and answered through the API.
 drop policy if exists "room_pins_insert_own" on public.room_pins;
 drop policy if exists "room_pins_insert_member" on public.room_pins;
-create policy "room_pins_insert_member"
-  on public.room_pins for insert
-  to authenticated
-  with check (author_id = (select auth.uid()) and public.is_room_member(room_id));
-
 drop policy if exists "room_pins_update_authenticated" on public.room_pins;
 drop policy if exists "room_pins_update_member" on public.room_pins;
-create policy "room_pins_update_member"
-  on public.room_pins for update
-  to authenticated
-  using (public.is_room_member(room_id))
-  with check (public.is_room_member(room_id));
 
 -- chat_rooms -------------------------------------------------------------------------------
--- Rooms are created by the server and the duo RPC only.
+-- Rooms are created and updated by the server and the duo RPC only.
 drop policy if exists "chat_rooms_select_all" on public.chat_rooms;
 drop policy if exists "chat_rooms_select_member" on public.chat_rooms;
 create policy "chat_rooms_select_member"
@@ -86,11 +74,6 @@ drop policy if exists "chat_rooms_insert_authenticated" on public.chat_rooms;
 
 drop policy if exists "chat_rooms_update_authenticated" on public.chat_rooms;
 drop policy if exists "chat_rooms_update_member" on public.chat_rooms;
-create policy "chat_rooms_update_member"
-  on public.chat_rooms for update
-  to authenticated
-  using (public.is_room_member(id))
-  with check (public.is_room_member(id));
 
 -- duo_matches ------------------------------------------------------------------------------
 -- Writes would let a user point a duo row at someone else's room and pass is_room_member.

@@ -2,14 +2,18 @@ import { after, NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { requireUserId } from '@/lib/session';
 import { recordOutcome } from '@/lib/matching/outcomes';
+import { isUuid, readJsonObject } from '@/lib/request';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
     const admin = createSupabaseAdminClient();
     const auth = await requireUserId();
     if ('response' in auth) return auth.response;
     const { userId } = auth;
+    const body = await readJsonObject(req);
+    if (!body) {
+      return NextResponse.json({ error: 'Request body must be a JSON object' }, { status: 400 });
+    }
 
     if (body.action === 'join') {
       const podId = String(body.podId || '');
@@ -18,6 +22,9 @@ export async function POST(req: NextRequest) {
           { error: 'podId is required' },
           { status: 400 }
         );
+      }
+      if (!isUuid(podId)) {
+        return NextResponse.json({ error: 'podId must be a uuid' }, { status: 400 });
       }
 
       // A member re-joining gets join_pod_atomic's already_member reply; anyone else must pass the pod rule.

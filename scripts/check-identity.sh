@@ -160,4 +160,28 @@ VEC_JSON="$(printf '{"q":"%s","k":1}' "$VEC")"
 out="$(rest "$ANON" POST rpc/search_tags_vector "$VEC_JSON")"; check "anon rpc search_tags_vector denied" 401 "${out##* }"
 out="$(rest "$TOKEN" POST rpc/search_tags_vector "$VEC_JSON")"; check "authenticated rpc search_tags_vector allowed" 200 "${out##* }"
 
+# --- a member's own token writes nothing directly (0012 has no browser write policies) ---
+out="$(api "$JAR" pods '{"action":"create","title":"Member write check","description":"made by check-identity"}')"
+check "new user creates a group (becomes a member)" 200 "${out##* }"
+MY_ROOM="$(echo "$out" | sed -n 's/.*"chat_room_id":"\([^"]*\)".*/\1/p')"
+out="$(api "$JAR" "rooms/$MY_ROOM" '{"action":"create_pin","title":"member pin"}')"; check "member creates a pin via the API" 200 "${out##* }"
+MY_PIN="$(echo "$out" | sed -n 's/.*"pin":{"id":"\([^"]*\)".*/\1/p')"
+out="$(rest "$TOKEN" GET "chat_messages?select=id&room_id=eq.$MY_ROOM")"
+case "$out" in '[] 200') echo "FAIL member reads own room messages via REST: $out"; fail=1;; *' 200') echo "PASS member reads own room messages via REST";; *) echo "FAIL member REST read: $out"; fail=1;; esac
+out="$(rest "$TOKEN" POST chat_messages "$(printf '{"room_id":"%s","sender_id":"%s","content":"direct"}' "$MY_ROOM" "$NEW_ID")")"
+check "member direct chat_messages insert denied" 403 "${out##* }"
+out="$(rest "$TOKEN" POST room_pins "$(printf '{"room_id":"%s","author_id":"%s","title":"direct"}' "$MY_ROOM" "$NEW_ID")")"
+check "member direct room_pins insert denied" 403 "${out##* }"
+check "member direct pin update changes nothing" "[] 200" "$(rest "$TOKEN" PATCH "room_pins?id=eq.$MY_PIN&select=id" '{"amen_count":999}')"
+check "member direct chat_rooms update changes nothing" "[] 200" "$(rest "$TOKEN" PATCH "chat_rooms?id=eq.$MY_ROOM&select=id" '{"title":"hijacked"}')"
+
+# --- request validation ---
+out="$(api "$JAR" "rooms/$MY_ROOM" '{"action":"message","content":"x","messageType":"milestone"}')"; check "client milestone message rejected" 400 "${out##* }"
+out="$(api "$JAR" "rooms/$MY_ROOM" '{"action":"message","content":"x","messageType":"icebreaker"}')"; check "composer icebreaker message accepted" 200 "${out##* }"
+out="$(api "$JAR" duos '{"partnerId":"not-a-uuid"}')"; check "duos partnerId not a uuid" 400 "${out##* }"
+out="$(api "$JAR" pods '{"action":"join","podId":"not-a-uuid"}')"; check "pods podId not a uuid" 400 "${out##* }"
+for r in duos pods "rooms/$MY_ROOM"; do
+  out="$(api "$JAR" "$r" '{bad json')"; check "POST /api/$r bad JSON" 400 "${out##* }"
+done
+
 exit $fail
