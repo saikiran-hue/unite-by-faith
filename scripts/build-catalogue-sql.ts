@@ -111,12 +111,13 @@ ${rewriteArray('pods', 'anchor_tags')}
 ${rewriteArray('chat_rooms', 'shared_tags')}
 ${rewriteArray('duo_matches', 'shared_tags')}
 
-drop table pg_temp._legacy_map;
-
--- 4. Anything not in the catalogue is retired, never deleted (expected: nothing but replaced legacy slugs).
+-- 4. Replaced legacy slugs are retired, never deleted. Only slugs from the legacy map are touched,
+-- so tags added outside this file survive a re-run.
 update public.taxonomy_tags
 set is_active = false
-where is_active and slug <> all (array[${ordered.map((t) => lit(t.slug)).join(', ')}]::text[]);
+where slug in (select old_slug from pg_temp._legacy_map);
+
+drop table pg_temp._legacy_map;
 
 -- 5. Cities -------------------------------------------------------------------
 ${citiesSql}`;

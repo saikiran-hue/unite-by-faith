@@ -419,7 +419,6 @@
     "subgroup": "Worship",
     "description": "Singing hymns and songs together as a church.",
     "synonyms": [
-      "hymns",
       "church singing",
       "hymn singing"
     ],
@@ -434,7 +433,9 @@
     "synonyms": [
       "church choir",
       "sing in choir",
-      "choral"
+      "choral",
+      "gospel choir",
+      "gospel singing"
     ],
     "legacySlugs": []
   },
@@ -541,19 +542,6 @@
     "legacySlugs": []
   },
   {
-    "slug": "gospel-choir",
-    "label": "Gospel Choir",
-    "category": "faith",
-    "subgroup": "Worship",
-    "description": "Joyful gospel singing in harmony.",
-    "synonyms": [
-      "gospel singing",
-      "black gospel",
-      "gospel music"
-    ],
-    "legacySlugs": []
-  },
-  {
     "slug": "hymn-playing",
     "label": "Hymn Playing",
     "category": "faith",
@@ -641,8 +629,7 @@
     "description": "Sharing the gospel with people in public places.",
     "synonyms": [
       "street outreach",
-      "open air",
-      "evangelism"
+      "open air"
     ],
     "legacySlugs": []
   },
@@ -805,19 +792,6 @@
     "legacySlugs": []
   },
   {
-    "slug": "campus-ministry",
-    "label": "Campus Ministry",
-    "category": "faith",
-    "subgroup": "Serving",
-    "description": "Serving and leading faith groups on campus.",
-    "synonyms": [
-      "college ministry",
-      "student ministry",
-      "campus fellowship"
-    ],
-    "legacySlugs": []
-  },
-  {
     "slug": "small-group",
     "label": "Small Group",
     "category": "faith",
@@ -958,11 +932,14 @@
     "label": "Student Fellowship",
     "category": "faith",
     "subgroup": "Community",
-    "description": "Fellowship with other Christian students.",
+    "description": "Fellowship with Christian students, and leading groups on campus.",
     "synonyms": [
       "christian union",
       "campus fellowship",
-      "student group"
+      "student group",
+      "campus ministry",
+      "college ministry",
+      "student ministry"
     ],
     "legacySlugs": []
   },
@@ -1128,15 +1105,17 @@
     "legacySlugs": []
   },
   {
-    "slug": "hindu-and-muslim-neighbours",
-    "label": "Hindu and Muslim Neighbours",
+    "slug": "interfaith-friendship",
+    "label": "Interfaith Friendship",
     "category": "faith",
     "subgroup": "Learning",
-    "description": "Sharing life and faith with Hindu and Muslim friends.",
+    "description": "Building friendships and sharing life with neighbours of other faiths.",
     "synonyms": [
-      "hindu background",
-      "muslim background",
-      "neighbour faiths"
+      "hindu friends",
+      "muslim friends",
+      "neighbour faiths",
+      "friends of other faiths",
+      "multi-faith neighbours"
     ],
     "legacySlugs": []
   },
@@ -1669,7 +1648,6 @@
     "description": "Shooting and editing short films and videos.",
     "synonyms": [
       "videography",
-      "video editing",
       "short films",
       "cinematography"
     ],
@@ -1683,8 +1661,7 @@
     "description": "Sketching with pencil, pen or tablet.",
     "synonyms": [
       "sketching",
-      "pencil drawing",
-      "illustration"
+      "pencil drawing"
     ],
     "legacySlugs": []
   },
@@ -1750,7 +1727,6 @@
     "subgroup": "Creative",
     "description": "Making and mending clothes by hand or machine.",
     "synonyms": [
-      "tailoring",
       "stitching",
       "fashion design"
     ],
@@ -1790,9 +1766,7 @@
     "synonyms": [
       "writing",
       "fiction writing",
-      "poetry",
-      "short stories",
-      "journaling"
+      "short stories"
     ],
     "legacySlugs": []
   },
@@ -1949,7 +1923,7 @@
     "label": "Carnatic Music",
     "category": "hobbies",
     "subgroup": "Music",
-    "description": "Learning or listening to South Indian classical music.",
+    "description": "Learning, playing or listening to South Indian classical music.",
     "synonyms": [
       "carnatic",
       "south indian classical",
@@ -1962,11 +1936,15 @@
     "label": "Hindustani Music",
     "category": "hobbies",
     "subgroup": "Music",
-    "description": "Learning or listening to North Indian classical music.",
+    "description": "Learning, playing or listening to North Indian classical music.",
     "synonyms": [
       "hindustani",
       "north indian classical",
-      "raga"
+      "raga",
+      "carnatic and hindustani listening",
+      "indian classical",
+      "carnatic concerts",
+      "classical indian"
     ],
     "legacySlugs": []
   },
@@ -2236,7 +2214,6 @@
     "synonyms": [
       "kerala cooking",
       "south indian cooking",
-      "biryani",
       "sadya"
     ],
     "legacySlugs": []
@@ -2251,19 +2228,6 @@
       "bbq",
       "grilling",
       "barbeque"
-    ],
-    "legacySlugs": []
-  },
-  {
-    "slug": "street-food-hunting",
-    "label": "Street Food Hunting",
-    "category": "hobbies",
-    "subgroup": "Food",
-    "description": "Seeking out the best street stalls.",
-    "synonyms": [
-      "street food",
-      "chaat",
-      "food stalls"
     ],
     "legacySlugs": []
   },
@@ -2360,33 +2324,6 @@
     "legacySlugs": [
       "reading-books"
     ]
-  },
-  {
-    "slug": "reading-fiction",
-    "label": "Reading Fiction",
-    "category": "hobbies",
-    "subgroup": "Reading",
-    "description": "Novels, short stories and long evenings with a story.",
-    "synonyms": [
-      "novels",
-      "fiction",
-      "story reading"
-    ],
-    "legacySlugs": []
-  },
-  {
-    "slug": "reading-non-fiction",
-    "label": "Reading Non-Fiction",
-    "category": "hobbies",
-    "subgroup": "Reading",
-    "description": "Biographies, history and ideas.",
-    "synonyms": [
-      "non fiction",
-      "biographies",
-      "memoirs",
-      "history reading"
-    ],
-    "legacySlugs": []
   },
   {
     "slug": "classic-literature",
@@ -2601,7 +2538,9 @@
     "synonyms": [
       "chaat",
       "pani puri",
-      "roadside food"
+      "roadside food",
+      "street food hunting",
+      "food stalls"
     ],
     "legacySlugs": []
   },
@@ -2946,12 +2885,15 @@
     "label": "Biography and Memoir",
     "category": "tastes",
     "subgroup": "Books",
-    "description": "The life stories of ordinary and remarkable people.",
+    "description": "Life stories, biographies and memoirs of ordinary and remarkable people.",
     "synonyms": [
       "biographies",
       "autobiographies",
       "life stories",
-      "memoirs"
+      "memoirs",
+      "reading non-fiction",
+      "non fiction",
+      "history reading"
     ],
     "legacySlugs": []
   },
@@ -3003,7 +2945,9 @@
     "synonyms": [
       "novels",
       "literary fiction",
-      "story books"
+      "story books",
+      "reading fiction",
+      "story reading"
     ],
     "legacySlugs": []
   },
@@ -3093,8 +3037,7 @@
     "synonyms": [
       "bibleproject",
       "sermon podcasts",
-      "bible podcasts",
-      "sermons"
+      "bible podcasts"
     ],
     "legacySlugs": []
   },
@@ -3211,20 +3154,6 @@
     "legacySlugs": []
   },
   {
-    "slug": "carnatic-and-hindustani-listening",
-    "label": "Carnatic and Hindustani Listening",
-    "category": "tastes",
-    "subgroup": "Music",
-    "description": "Enjoying Indian classical music.",
-    "synonyms": [
-      "indian classical",
-      "raga",
-      "carnatic concerts",
-      "classical indian"
-    ],
-    "legacySlugs": []
-  },
-  {
     "slug": "film-songs",
     "label": "Film Songs",
     "category": "tastes",
@@ -3233,8 +3162,7 @@
     "synonyms": [
       "bollywood songs",
       "filmy songs",
-      "movie songs",
-      "malayalam songs"
+      "movie songs"
     ],
     "legacySlugs": []
   },
@@ -3788,7 +3716,6 @@
       "data analysis",
       "analytics",
       "statistics",
-      "sql",
       "python data",
       "data analytics"
     ],
@@ -4249,10 +4176,8 @@
     "subgroup": "Creative Work",
     "description": "Producing videos for church, work or people.",
     "synonyms": [
-      "video editing",
       "camera work",
-      "film production",
-      "editing"
+      "film production"
     ],
     "legacySlugs": []
   },
@@ -4349,17 +4274,7 @@
       "tutoring",
       "education",
       "lecturer",
-      "professor"
-    ],
-    "legacySlugs": []
-  },
-  {
-    "slug": "tutoring",
-    "label": "Tutoring",
-    "category": "skills",
-    "subgroup": "Care & Teaching",
-    "description": "One-to-one help with studies.",
-    "synonyms": [
+      "professor",
       "private tutor",
       "coaching students",
       "homework help"

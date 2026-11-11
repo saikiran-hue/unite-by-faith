@@ -124,6 +124,17 @@ describe('catalogue.json', () => {
     }
   });
 
+  it('has no synonym that equals another tag label or another tag synonym', () => {
+    const owners = new Map<string, string[]>();
+    const add = (key: string, owner: string) => owners.set(key, [...(owners.get(key) ?? []), owner]);
+    for (const t of tags) {
+      add(t.label.toLowerCase(), `${t.slug} (label)`);
+      for (const s of t.synonyms) add(s, `${t.slug} (synonym)`);
+    }
+    const clashes = [...owners.entries()].filter(([, o]) => o.length > 1).map(([k, o]) => `"${k}": ${o.join(' + ')}`);
+    expect(clashes).toEqual([]);
+  });
+
   it('has plain labels, one-sentence descriptions and no emoji', () => {
     const emoji = /\p{Extended_Pictographic}/u;
     for (const t of tags) {
