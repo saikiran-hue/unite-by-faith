@@ -79,13 +79,6 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
     wasEditing.current = editing;
   }, [editing]);
 
-  // Open the editor when the parent asks (adjusting state during render, per React docs).
-  const [seenSignal, setSeenSignal] = useState(editSignal);
-  if (editSignal !== seenSignal) {
-    setSeenSignal(editSignal);
-    openEditor();
-  }
-
   const savedPicked = user.tags.map((t) => t.tag_slug);
   const savedStarred = new Set(user.tags.filter((t) => t.is_priority).map((t) => t.tag_slug));
   const savedLevels = new Map(user.tags.map((t) => [t.tag_slug, (t.level ?? DEFAULT_LEVEL) as Level]));
@@ -100,6 +93,13 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
     setError(null);
     setStarHint(false);
     setEditing(true);
+  }
+
+  // Open the editor when the parent asks (adjusting state during render, per React docs).
+  const [seenSignal, setSeenSignal] = useState(editSignal);
+  if (editSignal !== seenSignal) {
+    setSeenSignal(editSignal);
+    openEditor();
   }
 
   function cancel() {
