@@ -21,7 +21,7 @@ export interface DuoResult {
 }
 
 /** One group result from GET /api/match?kind=pods. */
-export type PodResult = Omit<FellowshipPod, 'created_by' | 'members' | 'affinity_score' | 'overlapping_tags' | 'members'> & {
+export type PodResult = Omit<FellowshipPod, 'created_by' | 'members' | 'affinity_score' | 'overlapping_tags'> & {
   members: { user_id: string; profile: { full_name: string; avatar_url: string } }[];
   score: number;
 };

@@ -6,15 +6,17 @@ stable
 security invoker
 set search_path = ''
 as $$
+  with p as (select left(q, 60) as q)
   select c.id, c.name, c.country_code::text,
          greatest(
-           extensions.similarity(lower(c.name), lower(q)),
-           case when lower(c.name) like replace(replace(replace(lower(q), '\', '\\'), '%', '\%'), '_', '\_') || '%' then 0.9 else 0 end
+           extensions.similarity(lower(c.name), lower(p.q)),
+           case when lower(c.name) like replace(replace(replace(lower(p.q), '\', '\\'), '%', '\%'), '_', '\_') || '%' then 0.9 else 0 end
          )::real as score
-  from public.cities c
-  where c.name operator(extensions.%) q
-     or lower(c.name) like replace(replace(replace(lower(q), '\', '\\'), '%', '\%'), '_', '\_') || '%'
+  from public.cities c, p
+  where c.name operator(extensions.%) p.q
+     or lower(c.name) like replace(replace(replace(lower(p.q), '\', '\\'), '%', '\%'), '_', '\_') || '%'
   order by score desc, c.population desc, c.id
   limit 8
 $$;
 grant execute on function public.search_cities(text) to authenticated, service_role;
+revoke execute on function public.search_cities(text) from public, anon;

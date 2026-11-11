@@ -155,6 +155,10 @@ export default function OnboardingPage() {
   }
 
   const first = !currentUser?.onboarding_completed;
+  const savedTags = new Map((currentUser?.tags ?? []).map((t) => [t.tag_slug, t]));
+  const tagsChanged =
+    picked.length !== savedTags.size ||
+    picked.some((slug) => !savedTags.has(slug) || savedTags.get(slug)?.is_priority !== starred.includes(slug));
   const finishLabel = first ? 'Finish Setup' : 'Save Profile';
 
   async function finish() {
@@ -204,11 +208,17 @@ export default function OnboardingPage() {
           fellowshipMode,
           onboardingCompleted: true,
           ...(currentUser?.avatar_url ? { avatarUrl: currentUser.avatar_url } : {}),
-          selectedTags: picked.map((slug) => ({
-            slug,
-            category: tagMap.get(slug)?.category ?? 'faith',
-            isPriority: starred.includes(slug),
-          })),
+          // Returning users: send habits only when changed here, keeping each saved level.
+          ...(first || tagsChanged
+            ? {
+                tags: picked.map((slug) => ({
+                  slug,
+                  category: tagMap.get(slug)?.category ?? 'faith',
+                  level: savedTags.get(slug)?.level ?? 2,
+                  isPriority: starred.includes(slug),
+                })),
+              }
+            : {}),
         }),
       });
       if (!res.ok) {
@@ -479,9 +489,16 @@ export default function OnboardingPage() {
                 <span />
               )}
               {step < STEPS.length ? (
-                <Btn variant="btn-amber" onClick={() => goStep(step + 1)}>
-                  Next: {STEPS[step]}
-                </Btn>
+                <div className="foot-btns">
+                  {!first && (
+                    <Btn variant="btn-outline" icon="check" busy={saving} busyLabel="Saving…" onClick={finish}>
+                      {finishLabel}
+                    </Btn>
+                  )}
+                  <Btn variant="btn-amber" onClick={() => goStep(step + 1)}>
+                    Next: {STEPS[step]}
+                  </Btn>
+                </div>
               ) : (
                 <Btn variant="btn-amber" icon="check" busy={saving} busyLabel="Saving…" onClick={finish}>
                   {finishLabel}

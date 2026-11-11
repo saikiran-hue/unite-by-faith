@@ -69,8 +69,8 @@ export default function Home() {
     setToast(null);
     setSaved(false);
     setJoinFailedId(null);
-    // Re-score against the habits saved right now.
-    const [ok, found] = await Promise.all([refresh(), fetchMatch(kind)]);
+    // The chats lists refresh alongside; a failure there must not hide good match results.
+    const [, found] = await Promise.all([refresh(), fetchMatch(kind)]);
     if (seq !== searchSeq.current) return;
     if (!found.ok && found.reason === 'signed_out') {
       router.replace('/auth');
@@ -83,7 +83,7 @@ export default function Home() {
     }
     setSearch({
       kind,
-      status: found.ok ? (ok ? 'done' : 'error') : found.reason === 'incomplete' ? 'incomplete' : 'error',
+      status: found.ok ? 'done' : found.reason === 'incomplete' ? 'incomplete' : 'error',
     });
     setSearchId((n) => n + 1);
     requestAnimationFrame(() => resultsHeadingRef.current?.focus({ preventScroll: false }));

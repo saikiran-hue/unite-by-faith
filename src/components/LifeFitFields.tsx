@@ -16,6 +16,8 @@ import {
 } from '@/lib/life-fit';
 import type { City, Slot, Tradition } from '@/types/database';
 
+const GENDERS = [['man', 'Man'], ['woman', 'Woman']] as const;
+
 const LANGUAGES = [
   'en', 'es', 'fr', 'de', 'pt', 'it', 'nl', 'ru', 'uk', 'pl', 'ar', 'he', 'fa', 'tr', 'hi', 'bn', 'ta', 'te', 'ml',
   'kn', 'mr', 'gu', 'pa', 'ur', 'ne', 'si', 'zh', 'ja', 'ko', 'th', 'vi', 'id', 'tl', 'sw', 'am',
@@ -64,8 +66,8 @@ export function LifeFitFields({ value: v, onChange, errors, clearError, traditio
         {errors[id]}
       </span>
     ) : null;
-  const desc = (id: LifeFitId, hint?: string) =>
-    [errors[id] ? `pf-${id}-err` : null, hint ? `pf-${id}-hint` : null].filter(Boolean).join(' ') || undefined;
+  const desc = (id: LifeFitId, hasHint = false) =>
+    [errors[id] ? `pf-${id}-err` : null, hasHint ? `pf-${id}-hint` : null].filter(Boolean).join(' ') || undefined;
 
   const families = useMemo(() => {
     const m = new Map<string, Tradition[]>();
@@ -118,12 +120,12 @@ export function LifeFitFields({ value: v, onChange, errors, clearError, traditio
         {err('lifestage')}
       </div>
 
-      <CityField value={v} set={set} error={errors.city} describedBy={desc('city', 'x')} err={err('city')} />
+      <CityField value={v} set={set} error={errors.city} describedBy={desc('city', true)} err={err('city')} />
 
       <Radios
         id="meet"
         label="How you’d like to meet"
-        options={MEET_MODES.map(([k, l]) => [k, l])}
+        options={MEET_MODES}
         value={v.meetMode}
         onPick={(k) => set({ meetMode: k as LifeFitValue['meetMode'] }, 'meet')}
         error={err('meet')}
@@ -138,10 +140,10 @@ export function LifeFitFields({ value: v, onChange, errors, clearError, traditio
         value={String(v.maxDistanceKm)}
         onPick={(k) => set({ maxDistanceKm: Number(k) }, 'distance')}
         error={err('distance')}
-        describedBy={desc('distance', 'x')}
+        describedBy={desc('distance', true)}
       />
 
-      <div className="field" role="group" aria-labelledby="pf-slots-l" id="pf-slots" tabIndex={-1}>
+      <div className="field" role="group" aria-labelledby="pf-slots-l" id="pf-slots" tabIndex={-1} aria-describedby={desc('slots')}>
         <span className="legend" id="pf-slots-l">
           When you’re usually free
         </span>
@@ -174,12 +176,13 @@ export function LifeFitFields({ value: v, onChange, errors, clearError, traditio
         {err('slots')}
       </div>
 
-      <div className="field" role="group" aria-labelledby="pf-languages-l" id="pf-languages" tabIndex={-1}>
+      <div className="field" role="group" aria-labelledby="pf-languages-l" id="pf-languages" tabIndex={-1} aria-describedby={desc('languages', true)}>
         <span className="legend" id="pf-languages-l">
           Languages
         </span>
         <span className="hint" id="pf-languages-hint">
           Required. Pick 1 to {MAX_LANGUAGES}. {v.languages.length} picked.
+          {langFull && ' That is the limit. Remove one to add another.'}
         </span>
         <div className="tchips">
           {langs.map((code) => {
@@ -240,11 +243,11 @@ export function LifeFitFields({ value: v, onChange, errors, clearError, traditio
         id="faith"
         label="Where you are in your faith"
         required
-        options={FAITH_STAGES.map(([k, l]) => [k, l])}
+        options={FAITH_STAGES}
         value={v.faithStage}
         onPick={(k) => set({ faithStage: k as LifeFitValue['faithStage'] }, 'faith')}
         error={err('faith')}
-        describedBy={desc('faith')}
+        describedBy={desc('faith', true)}
       />
 
       <Radios
@@ -252,11 +255,11 @@ export function LifeFitFields({ value: v, onChange, errors, clearError, traditio
         label="Gender"
         hint="Used only so 1v1 matches are same-gender. Never shown. Only you can see this."
         required
-        options={[['man', 'Man'], ['woman', 'Woman']]}
+        options={GENDERS}
         value={v.gender}
         onPick={(k) => set({ gender: k as LifeFitValue['gender'] }, 'gender')}
         error={err('gender')}
-        describedBy={desc('gender', 'x')}
+        describedBy={desc('gender', true)}
       />
 
       <div className="field" role="group" aria-labelledby="pf-age-l">
@@ -279,7 +282,10 @@ export function LifeFitFields({ value: v, onChange, errors, clearError, traditio
               value={v.ageMin}
               aria-invalid={errors.agemin ? true : undefined}
               aria-describedby={[desc('agemin'), 'pf-age-hint'].filter(Boolean).join(' ')}
-              onChange={(e) => set({ ageMin: e.target.value }, 'agemin')}
+              onChange={(e) => {
+                set({ ageMin: e.target.value }, 'agemin');
+                clearError('agemax');
+              }}
             />
             {err('agemin')}
           </div>
@@ -295,7 +301,10 @@ export function LifeFitFields({ value: v, onChange, errors, clearError, traditio
               value={v.ageMax}
               aria-invalid={errors.agemax ? true : undefined}
               aria-describedby={[desc('agemax'), 'pf-age-hint'].filter(Boolean).join(' ')}
-              onChange={(e) => set({ ageMax: e.target.value }, 'agemax')}
+              onChange={(e) => {
+                set({ ageMax: e.target.value }, 'agemax');
+                clearError('agemin');
+              }}
             />
             {err('agemax')}
           </div>
@@ -323,7 +332,7 @@ function Radios({
   label: string;
   hint?: string;
   required?: boolean;
-  options: string[][];
+  options: readonly (readonly [string, string])[];
   value: string;
   onPick: (key: string) => void;
   error: React.ReactNode;
@@ -405,6 +414,9 @@ function CityField({
   const [open, setOpen] = useState(false);
   const [cursor, setCursor] = useState(-1);
 
+  const blurTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(blurTimer.current), []);
+
   const q = text.trim();
   const searching = v.cityId === null && q.length >= 2;
   const current = searching && found?.q === q ? found : null;
@@ -480,7 +492,7 @@ function CityField({
           role="combobox"
           aria-autocomplete="list"
           aria-expanded={listOpen}
-          aria-controls="pf-city-list"
+          aria-controls={listOpen ? 'pf-city-list' : undefined}
           aria-activedescendant={listOpen && cursor >= 0 ? `pf-city-o${cursor}` : undefined}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
@@ -494,7 +506,9 @@ function CityField({
             set({ cityId: null }, 'city');
           }}
           onFocus={() => setOpen(true)}
-          onBlur={() => setTimeout(() => setOpen(false), 120)}
+          onBlur={() => {
+            blurTimer.current = setTimeout(() => setOpen(false), 120);
+          }}
           onKeyDown={onKey}
         />
         {listOpen && (
