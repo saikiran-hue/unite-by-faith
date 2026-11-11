@@ -1,6 +1,10 @@
 import type { PillarCategory } from '@/types/database';
 
-/** Minimum centred cosine for a related tag; calibrated in task-7-report.md. Keep in step with neighborMin in match_weights v1. */
+/**
+ * embedding column = raw normalised gte-small vectors, used only for query->tag retrieval with its own raw-cosine
+ * threshold (calibrated in the tag-search task); tag_neighbors.sim = per-category mean-centred cosine, compared
+ * only with neighborMin.
+ * Minimum centred cosine for a related tag; calibrated in task-7-report.md. Keep in step with neighborMin in match_weights v1. */
 export const NEIGHBOR_MIN = 0.25;
 
 export function tagEmbeddingText(t: { label: string; description: string; synonyms: string[] }): string {

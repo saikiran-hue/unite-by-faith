@@ -11,7 +11,11 @@ function load(): Promise<FeatureExtractionPipeline> {
   return extractor;
 }
 
-/** 384-dim gte-small embeddings, mean-pooled and L2-normalised. Server-side only. */
+/**
+ * 384-dim gte-small embeddings, mean-pooled and L2-normalised. Server-side only.
+ * These RAW vectors are what taxonomy_tags.embedding stores and what query->tag retrieval compares against
+ * (raw cosine, own threshold). They are never mean-centred; centring is used only to build tag_neighbors.
+ */
 export async function embed(texts: string[]): Promise<Float32Array[]> {
   const run = await load();
   const out = await run(texts, { pooling: 'mean', normalize: true });

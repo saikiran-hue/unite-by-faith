@@ -40,6 +40,14 @@ describe('computeNeighbors', () => {
     expect(out.map((r) => `${r.a}>${r.b}`).sort()).toEqual(['a>b', 'b>a']);
     expect(out[0].sim).toBeCloseTo(0.8, 5);
   });
+  it('applies the default cutoff: keeps 0.26, drops 0.24', () => {
+    const pair = (c: number) => computeNeighbors([
+      { slug: 'a', category: 'hobbies', vec: v(1, 0) },
+      { slug: 'b', category: 'hobbies', vec: at(c) },
+    ]);
+    expect(pair(0.26)).toHaveLength(2);
+    expect(pair(0.24)).toEqual([]);
+  });
   it('caps neighbours per tag at k', () => {
     const items = [
       { slug: 'a', category: 'hobbies' as const, vec: v(1, 0) },
