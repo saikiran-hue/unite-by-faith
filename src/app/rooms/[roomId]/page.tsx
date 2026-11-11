@@ -134,8 +134,10 @@ function FellowshipRoomContent() {
     // First load runs after the effect, so no state is set synchronously in it.
     void Promise.resolve().then(() => fetchRoomData(false));
 
-    // Subscribe to Supabase Realtime postgres_changes on chat_messages and room_pins
+    // Subscribe to Supabase Realtime postgres_changes on chat_messages and room_pins.
+    // Only room members can read these rows (RLS), so the socket must carry the user's JWT.
     const supabase = createSupabaseBrowserClient();
+    let closed = false;
     const channel = supabase
       .channel(`fellowship_room_${roomId}`)
       .on(
@@ -161,10 +163,15 @@ function FellowshipRoomContent() {
         () => {
           fetchRoomData(true);
         }
-      )
-      .subscribe();
+      );
+    void supabase.auth.getSession().then(async ({ data }) => {
+      if (closed) return;
+      await supabase.realtime.setAuth(data.session?.access_token ?? null);
+      if (!closed) channel.subscribe();
+    });
 
     return () => {
+      closed = true;
       supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

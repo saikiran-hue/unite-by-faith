@@ -103,4 +103,35 @@ TOGGLE_JSON="$(printf '{"action":"toggle_answered","pinId":"%s"}' "$PIN_OUT")"
 check "amen_pin on a pin from another room" 404 "$(room "$JAR2" POST "$ROOM_IN" "$AMEN_JSON")"
 check "toggle_answered on a pin from another room" 404 "$(room "$JAR2" POST "$ROOM_IN" "$TOGGLE_JSON")"
 
+# --- PostgREST direct (0012): anon reads nothing, seat/duo RPCs are server-only ---
+SB_URL="${SB_URL:-http://127.0.0.1:54321}"
+ANON="${ANON_KEY:-$(npx supabase status -o env 2>/dev/null | sed -n 's/^ANON_KEY="\(.*\)"$/\1/p')}"
+rest() { # token method path [json] -> "<body> <status>"
+  curl -s -w ' %{http_code}' -X "$2" -H "apikey: $ANON" -H "Authorization: Bearer $1" \
+    -H 'Content-Type: application/json' -H 'Prefer: return=representation' ${4:+-d "$4"} "$SB_URL/rest/v1/$3"
+}
+for t in chat_messages room_pins chat_rooms duo_matches; do
+  check "anon GET /rest/v1/$t returns no rows" "[] 200" "$(rest "$ANON" GET "$t?select=*")"
+done
+POD_IN="33333333-3333-4333-8333-333333333302"   # a pod the new user is not in
+JOIN_JSON="$(printf '{"p_pod_id":"%s","p_user_id":"%s"}' "$POD_IN" "$CALEB")"
+DUO_JSON="$(printf '{"p_user_id":"%s","p_partner_id":"%s"}' "$CALEB" "$NEW_ID")"
+out="$(rest "$ANON" POST rpc/join_pod_atomic "$JOIN_JSON")"; check "anon rpc join_pod_atomic denied" 401 "${out##* }"
+out="$(rest "$ANON" POST rpc/start_or_get_duo_chat "$DUO_JSON")"; check "anon rpc start_or_get_duo_chat denied" 401 "${out##* }"
+TOKEN="$(curl -s -X POST -H "apikey: $ANON" -H 'Content-Type: application/json' \
+  -d "$(printf '{"email":"%s","password":"secret12"}' "$EMAIL")" "$SB_URL/auth/v1/token?grant_type=password" \
+  | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')"
+[ -n "$TOKEN" ] && echo "PASS got a user access token" || { echo "FAIL no user access token"; fail=1; }
+out="$(rest "$TOKEN" POST rpc/join_pod_atomic "$JOIN_JSON")"; check "authenticated rpc join_pod_atomic denied" 403 "${out##* }"
+out="$(rest "$TOKEN" POST rpc/start_or_get_duo_chat "$DUO_JSON")"; check "authenticated rpc start_or_get_duo_chat denied" 403 "${out##* }"
+check "authenticated non-member reads no chat_messages" "[] 200" "$(rest "$TOKEN" GET "chat_messages?select=id&room_id=eq.$ROOM_IN")"
+check "authenticated non-member reads no room_pins" "[] 200" "$(rest "$TOKEN" GET "room_pins?select=id&room_id=eq.$ROOM_IN")"
+out="$(rest "$TOKEN" POST pod_members "$(printf '{"pod_id":"%s","user_id":"%s"}' "$POD_IN" "$NEW_ID")")"
+check "authenticated direct pod_members insert denied" 403 "${out##* }"
+out="$(rest "$TOKEN" POST duo_matches "$(printf '{"user_a_id":"%s","user_b_id":"%s","chat_room_id":"%s"}' "$CALEB" "$NEW_ID" "$ROOM_IN")")"
+check "authenticated direct duo_matches insert denied" 403 "${out##* }"
+out="$(rest "$TOKEN" POST chat_messages "$(printf '{"room_id":"%s","sender_id":"%s","content":"intruder"}' "$ROOM_IN" "$NEW_ID")")"
+check "authenticated non-member chat_messages insert denied" 403 "${out##* }"
+check "authenticated non-member pin update changes nothing" "[] 200" "$(rest "$TOKEN" PATCH "room_pins?id=eq.$PIN_OUT&select=id" '{"is_answered":true}')"
+
 exit $fail
