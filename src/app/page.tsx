@@ -83,6 +83,19 @@ export default function Home() {
   const [createKey, setCreateKey] = useState(0);
   const [editSignal, setEditSignal] = useState(0);
   const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
+
+  // The home page can stay mounted (hidden) across sign-out and sign-in, so drop the previous
+  // viewer's match results when the signed-in user changes.
+  const viewerId = currentUser?.id ?? null;
+  const [resultsViewerId, setResultsViewerId] = useState(viewerId);
+  if (viewerId !== resultsViewerId) {
+    setResultsViewerId(viewerId);
+    setSearch(null);
+    setDuoRes([]);
+    setPodRes([]);
+    setLabels({});
+    setEmptyRule(null);
+  }
   const searchSeq = useRef(0);
 
   async function runSearch(kind: Kind) {

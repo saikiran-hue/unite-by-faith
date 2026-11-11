@@ -361,7 +361,7 @@ export default function OnboardingPage() {
               <CatHead cat={c} />
               <div className="tchips">
                 {taxonomyTags
-                  .filter((t) => t.category === c.key)
+                  .filter((t) => t.category === c.key && t.is_active !== false)
                   .map((t) => {
                     const on = picked.includes(t.slug);
                     const st = starred.includes(t.slug);
