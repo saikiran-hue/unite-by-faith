@@ -292,7 +292,7 @@ export async function POST(
       }
 
       // Also broadcast a prayer/goal message into the room stream
-      await admin.from('chat_messages').insert({
+      const { data: broadcast } = await admin.from('chat_messages').insert({
         room_id: roomId,
         sender_id: senderId,
         message_type: pinType === 'prayer' ? 'prayer_request' : 'milestone',
@@ -301,7 +301,14 @@ export async function POST(
             ? `🙏 Shared Prayer Request: "${title}"${pinBody ? ` — ${pinBody}` : ''}`
             : `🎯 Shared Fellowship Goal: "${title}"${pinBody ? ` — ${pinBody}` : ''}`,
         metadata: { pin_id: pin.id, pin_type: pinType },
-      });
+      }).select('id, message_type').single();
+
+      // A prayer request is a person's message, so it can earn replied / active_7d.
+      if (broadcast) {
+        after(() =>
+          recordMessageOutcomes(admin, roomId, broadcast.id, senderId, broadcast.message_type, new Date())
+        );
+      }
 
       return NextResponse.json({ pin });
     }
