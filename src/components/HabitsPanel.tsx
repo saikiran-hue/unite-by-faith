@@ -103,24 +103,15 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
       'Your picks are still here. Check your connection and tap Save Habits again.',
     ];
     try {
-      // The profile endpoint replaces every field it is sent, so send the
-      // current profile unchanged alongside the new habits.
+      const levels = new Map(user.tags.map((t) => [t.tag_slug, t.level ?? 2]));
       const res = await fetch('/api/onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fullName: user.full_name,
-          headline: user.headline,
-          bio: user.bio,
-          denomination: user.denomination_or_tradition,
-          church: user.church_or_fellowship,
-          locationCity: user.location_city,
-          yearsInFaith: user.years_in_faith,
-          fellowshipMode: user.fellowship_mode,
-          avatarUrl: user.avatar_url,
-          selectedTags: picked.map((slug) => ({
+          tags: picked.map((slug) => ({
             slug,
             category: tagMap.get(slug)?.category ?? 'faith',
+            level: levels.get(slug) ?? 2,
             isPriority: starred.includes(slug),
           })),
         }),

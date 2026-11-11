@@ -163,7 +163,7 @@ export default function OnboardingPage() {
           locationCity,
           yearsInFaith,
           fellowshipMode,
-          // Without this the server resets the photo to its default.
+          onboardingCompleted: true,
           avatarUrl: currentUser?.avatar_url,
           selectedTags: picked.map((slug) => ({
             slug,
