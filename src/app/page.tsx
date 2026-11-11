@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { TaxonomyTag } from '@/types/database';
@@ -96,17 +96,22 @@ export default function Home() {
     setLabels({});
     setEmptyRule(null);
   }
+  const viewerRef = useRef(viewerId);
+  useEffect(() => {
+    viewerRef.current = viewerId;
+  }, [viewerId]);
   const searchSeq = useRef(0);
 
   async function runSearch(kind: Kind) {
     const seq = ++searchSeq.current;
+    const startedFor = viewerRef.current;
     setSearch({ kind, status: 'loading' });
     setToast(null);
     setSaved(false);
     setJoinFailedId(null);
     // The chats lists refresh alongside; a failure there must not hide good match results.
     const [, found] = await Promise.all([refresh(), fetchMatch(kind)]);
-    if (seq !== searchSeq.current) return;
+    if (seq !== searchSeq.current || startedFor !== viewerRef.current) return;
     if (!found.ok && found.reason === 'signed_out') {
       router.replace('/auth');
       return;

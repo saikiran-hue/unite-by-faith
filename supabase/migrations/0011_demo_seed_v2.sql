@@ -20,7 +20,7 @@ begin
     onboarding_completed = true,
     languages = v.languages,
     location_city_id = v.city_id,
-    location_city = coalesce(v.city_label, p.location_city),
+    location_city = v.city_label,
     meet_mode = v.meet_mode,
     life_stage = v.life_stage,
     availability = v.availability,
@@ -28,14 +28,14 @@ begin
     faith_stage = v.faith_stage
   from (values
     -- id, languages, city_id, city_label, meet_mode, life_stage, availability, tradition, faith_stage
-    (ids[1], array['en','ml'], 1277333, null, 'both',      'established_career', array['weekday_evening','weekend_morning'],                 'non-denominational', 'mature'),
+    (ids[1], array['en','ml'], 1277333, 'Bengaluru, IN', 'both',      'established_career', array['weekday_evening','weekend_morning'],                 'non-denominational', 'mature'),
     (ids[2], array['en','te'], 1277333, 'Bengaluru, IN', 'both', 'established_career', array['weekday_evening','weekend_morning','weekend_afternoon'], 'reformed', 'mature'),
-    (ids[3], array['en','ta'], 1264527, null, 'both',      'early_career',       array['weekday_evening','weekend_afternoon'],               'non-denominational', 'growing'),
+    (ids[3], array['en','ta'], 1264527, 'Chennai, IN', 'both',      'early_career',       array['weekday_evening','weekend_afternoon'],               'non-denominational', 'growing'),
     (ids[4], array['en','hi'], 1259229, 'Pune, IN',      'both', 'early_career', array['weekday_evening','weekend_morning'],                 'baptist', 'growing'),
-    (ids[5], array['en','hi'], 1259229, null, 'both',      'married_no_kids',    array['weekday_morning','weekend_morning','weekend_afternoon'], 'charismatic', 'mature'),
-    (ids[6], array['en','ml'], 1277333, null, 'both',      'established_career', array['weekday_evening','weekend_afternoon'],               'anglican', 'mature'),
-    (ids[7], array['en','ml'], 1273874, null, 'both',      'early_career',       array['weekday_morning','weekend_morning'],                 'non-denominational', 'growing'),
-    (ids[8], array['en','hi'], 1261481, null, 'both',      'early_career',       array['weekday_evening','weekend_morning'],                 'csi', 'growing')
+    (ids[5], array['en','hi'], 1259229, 'Pune, IN', 'both',      'married_no_kids',    array['weekday_morning','weekend_morning','weekend_afternoon'], 'charismatic', 'mature'),
+    (ids[6], array['en','ml'], 1277333, 'Bengaluru, IN', 'both',      'established_career', array['weekday_evening','weekend_afternoon'],               'anglican', 'mature'),
+    (ids[7], array['en','ml'], 1273874, 'Kochi, IN', 'both',      'early_career',       array['weekday_morning','weekend_morning'],                 'non-denominational', 'growing'),
+    (ids[8], array['en','hi'], 1261481, 'New Delhi, IN', 'both',      'early_career',       array['weekday_evening','weekend_morning'],                 'csi', 'growing')
   ) as v(id, languages, city_id, city_label, meet_mode, life_stage, availability, tradition_id, faith_stage)
   where p.id = v.id;
 
@@ -84,4 +84,8 @@ set confirmation_token = coalesce(confirmation_token, ''),
     recovery_token = coalesce(recovery_token, ''),
     email_change = coalesce(email_change, ''),
     email_change_token_new = coalesce(email_change_token_new, '')
-where email like '%@unitebyfaith.org';
+where email like '%@unitebyfaith.org'
+  and id in ('11111111-1111-4111-8111-111111111101', '11111111-1111-4111-8111-111111111102',
+             '11111111-1111-4111-8111-111111111103', '11111111-1111-4111-8111-111111111104',
+             '11111111-1111-4111-8111-111111111105', '11111111-1111-4111-8111-111111111106',
+             '11111111-1111-4111-8111-111111111107', '11111111-1111-4111-8111-111111111108');

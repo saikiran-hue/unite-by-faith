@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
-import { AlertBox, Btn, CatHead, HabitChips, Icon, sortHabits, type IconName } from '@/components/ubf';
+import { AlertBox, Btn, CatHead, HabitChips, Icon, Note, sortHabits, type IconName } from '@/components/ubf';
 import { CATS } from '@/lib/cats';
 import { LifeFitFields } from '@/components/LifeFitFields';
 import {
@@ -49,6 +49,7 @@ export default function OnboardingPage() {
   const [fellowshipMode, setFellowshipMode] = useState<FellowshipMode>('both');
   const [picked, setPicked] = useState<string[]>([]);
   const [starred, setStarred] = useState<string[]>([]);
+  const [retiredDropped, setRetiredDropped] = useState(false);
 
   const [fieldErr, setFieldErr] = useState<{ id: 'name' | 'headline'; message: string } | null>(null);
 
@@ -56,7 +57,7 @@ export default function OnboardingPage() {
   const focusHeading = useRef(false);
   const focusField = useRef<string | null>(null);
 
-  function fillFrom(u: CurrentUser | null, city: City | null) {
+  function fillFrom(u: CurrentUser | null, city: City | null, retiredSlugs: Set<string> = new Set()) {
     setFullName(u?.full_name ?? '');
     setHeadline(u?.headline ?? '');
     setBio(u?.bio ?? '');
@@ -64,8 +65,10 @@ export default function OnboardingPage() {
     setLifeFit(lifeFitFrom(u, city));
     setLfErr({});
     setFellowshipMode(u?.fellowship_mode || 'both');
-    setPicked(u?.tags.map((t) => t.tag_slug) ?? []);
-    setStarred(u?.tags.filter((t) => t.is_priority).map((t) => t.tag_slug) ?? []);
+    const kept = (u?.tags ?? []).filter((t) => !retiredSlugs.has(t.tag_slug));
+    setRetiredDropped(kept.length !== (u?.tags.length ?? 0));
+    setPicked(kept.map((t) => t.tag_slug));
+    setStarred(kept.filter((t) => t.is_priority).map((t) => t.tag_slug));
   }
 
   const loadInitialState = useCallback(async () => {
@@ -76,9 +79,10 @@ export default function OnboardingPage() {
         const u: CurrentUser = data.currentUser;
         setCurrentUser(u);
         setTraditions((data.traditions || []) as Tradition[]);
-        setTaxonomyTags(
-          [...((data.taxonomyTags || []) as TaxonomyTag[])].sort((a, b) => a.sort_order - b.sort_order)
-        );
+        const tags = [...((data.taxonomyTags || []) as TaxonomyTag[])].sort((a, b) => a.sort_order - b.sort_order);
+        setTaxonomyTags(tags);
+        // Retired habits are no longer offered, so drop them from the picks (saving removes them).
+        const retiredSlugs = new Set(tags.filter((t) => t.is_active === false).map((t) => t.slug));
         // #life-fit opens the step; #life-fit-<field> (e.g. #life-fit-distance) also focuses that field.
         const hash = window.location.hash.slice(1);
         const toLifeFit = hash === LIFE_ANCHOR || hash.startsWith(`${LIFE_ANCHOR}-`);
@@ -89,7 +93,7 @@ export default function OnboardingPage() {
         }
         setStep(toLifeFit ? LIFE_STEP : 1);
         setError(null);
-        fillFrom(u, (data.city as City | null) ?? null);
+        fillFrom(u, (data.city as City | null) ?? null, retiredSlugs);
       }
     } finally {
       setLoading(false);
@@ -481,6 +485,9 @@ export default function OnboardingPage() {
               {STEPS[step - 1]}
             </h2>
             {body}
+            {retiredDropped && (
+              <Note style={{ marginTop: 16 }}>A habit you picked is no longer offered and was removed.</Note>
+            )}
             {error && (
               <div style={{ marginTop: 16 }}>
                 <AlertBox title={error[0]} text={error[1]} action={error[2]} />
