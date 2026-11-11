@@ -2,6 +2,24 @@ export type PillarCategory = 'faith' | 'skills' | 'hobbies' | 'tastes';
 
 export type FellowshipMode = 'both' | 'group_only' | 'duo_only';
 
+export type Level = 1 | 2 | 3;
+export type MeetMode = 'in_person' | 'online' | 'both';
+export type LifeStage =
+  | 'student'
+  | 'early_career'
+  | 'established_career'
+  | 'married_no_kids'
+  | 'parent_young_kids'
+  | 'parent_older_kids';
+export type FaithStage = 'exploring' | 'new_believer' | 'growing' | 'mature';
+export type Slot =
+  | 'weekday_morning'
+  | 'weekday_afternoon'
+  | 'weekday_evening'
+  | 'weekend_morning'
+  | 'weekend_afternoon'
+  | 'weekend_evening';
+
 export interface TaxonomyTag {
   slug: string;
   label: string;
@@ -9,6 +27,10 @@ export interface TaxonomyTag {
   description: string;
   icon_name: string;
   sort_order: number;
+  subgroup?: string;
+  synonyms?: string[];
+  popularity?: number;
+  is_active?: boolean;
 }
 
 export interface UserTag {
@@ -16,6 +38,7 @@ export interface UserTag {
   tag_slug: string;
   category: PillarCategory;
   is_priority: boolean;
+  level?: Level;
 }
 
 export interface UserProfile {
@@ -31,6 +54,13 @@ export interface UserProfile {
   location_timezone: string;
   years_in_faith: string;
   fellowship_mode: FellowshipMode;
+  languages?: string[];
+  location_city_id?: number | null;
+  meet_mode?: MeetMode;
+  life_stage?: LifeStage | null;
+  availability?: Slot[];
+  tradition_id?: string | null;
+  faith_stage?: FaithStage | null;
   onboarding_completed: boolean;
   is_demo_account: boolean;
   last_active_at: string;
