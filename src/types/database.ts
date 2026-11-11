@@ -97,7 +97,7 @@ export interface CurrentUser extends UserProfile {
 }
 
 export interface DuoChat {
-  partner: UserProfile;
+  partner: Pick<UserProfile, 'id' | 'full_name' | 'display_handle' | 'avatar_url' | 'headline'>;
   chat_room_id: string;
 }
 

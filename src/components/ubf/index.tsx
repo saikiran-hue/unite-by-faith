@@ -323,7 +323,7 @@ export function ScoreBars({ breakdown }: { breakdown: { faith: number; interests
       {rows.map(([name, n]) => (
         <div className="bar" key={name}>
           <span aria-hidden="true">{name}</span>
-          <span className="track" role="meter" aria-label={`${name} match`} aria-valuenow={n} aria-valuemin={0} aria-valuemax={100}>
+          <span className="track" role="meter" aria-label={name} aria-valuenow={n} aria-valuemin={0} aria-valuemax={100}>
             <i style={{ width: `${Math.max(0, Math.min(100, n))}%` }} />
           </span>
           <span className="num" aria-hidden="true">
@@ -382,7 +382,7 @@ export function reasonText(r: Reason, tagMap: Map<string, TaxonomyTag>, names?: 
       const v = r.value ?? '';
       if (r.detail === 'same_stage') return `Both ${LIFE_STAGES.find(([k]) => k === v)?.[1] ?? humanize(v)}`;
       if (r.detail === 'availability') {
-        return `Both free ${v.split(',').filter(Boolean).map((k) => k.replace('_', ' ')).join(' and ')}`;
+        return `Both free ${v.split(',').filter(Boolean).map((k) => k.replaceAll('_', ' ')).join(' and ')}`;
       }
       if (r.detail === 'same_city') return `Both in ${v}`;
       return `${v} km apart`;

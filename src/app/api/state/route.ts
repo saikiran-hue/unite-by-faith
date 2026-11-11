@@ -15,6 +15,16 @@ import {
 const TAXONOMY_COLUMNS =
   'slug, label, category, description, icon_name, sort_order, subgroup, synonyms, popularity, is_active';
 
+// Only the card fields the home page renders for other people.
+type PublicCard = Pick<UserProfile, 'id' | 'full_name' | 'display_handle' | 'avatar_url' | 'headline'>;
+const publicCard = (p: UserProfile): PublicCard => ({
+  id: p.id,
+  full_name: p.full_name,
+  display_handle: p.display_handle,
+  avatar_url: p.avatar_url,
+  headline: p.headline,
+});
+
 export async function GET() {
   try {
     const admin = createSupabaseAdminClient();
@@ -116,7 +126,7 @@ export async function GET() {
     }
 
     // Hydrate pod members
-    const membersByPod = new Map<string, PodMemberProfile[]>();
+    const membersByPod = new Map<string, (Omit<PodMemberProfile, 'profile'> & { profile: PublicCard })[]>();
     for (const pm of podMemberRows || []) {
       const memberProfile = profileMap.get(pm.user_id);
       if (!memberProfile) continue;
@@ -126,7 +136,7 @@ export async function GET() {
         user_id: pm.user_id,
         role: pm.role,
         joined_at: pm.joined_at,
-        profile: memberProfile,
+        profile: publicCard(memberProfile),
       });
       membersByPod.set(pm.pod_id, list);
     }
@@ -138,7 +148,7 @@ export async function GET() {
 
     // Map existing 1v1 chat rooms for currentUser
     const existingDuoRoomsByPartnerId = new Map<string, string>();
-    const duoChats: { partner: UserProfile; chat_room_id: string }[] = [];
+    const duoChats: { partner: PublicCard; chat_room_id: string }[] = [];
     for (const dm of duoRows || []) {
       if (!dm.chat_room_id) continue;
       if (dm.user_a_id === currentUser.id) {
@@ -149,7 +159,7 @@ export async function GET() {
     }
     for (const [partnerId, chat_room_id] of existingDuoRoomsByPartnerId) {
       const partner = profileMap.get(partnerId);
-      if (partner) duoChats.push({ partner, chat_room_id });
+      if (partner) duoChats.push({ partner: publicCard(partner), chat_room_id });
     }
 
     // The viewer's own pods, for the Group Chats list.

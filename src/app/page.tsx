@@ -184,6 +184,8 @@ export default function Home() {
     m.reasons.flatMap((r) => (r.kind === 'shared_tag' ? [r.slug] : r.kind === 'related_tag' ? [r.mine] : []));
   const podChats = joinedPods;
   const emptyCopy = emptyRule ? EMPTY_BY_RULE[emptyRule] : undefined;
+  // The gender rule never narrows group search, so it falls back to the generic message.
+  const podEmptyCopy = emptyRule && emptyRule !== 'gender' ? EMPTY_BY_RULE[emptyRule] : undefined;
   const fresh = search?.status === 'done';
 
   return (
@@ -370,11 +372,24 @@ export default function Home() {
                 </ul>
               ) : (
                 <div className="card">
-                  <Empty icon="users" title="No groups match your habits yet." text="Create one and invite people who share your rhythms.">
-                    <Btn variant="btn-amber" icon="plus" onClick={() => { setCreateKey((k) => k + 1); setCreateOpen(true); }}>
-                      Create Group
-                    </Btn>
-                  </Empty>
+                  {podEmptyCopy ? (
+                    <Empty icon="users" title="No groups yet" text={podEmptyCopy.text}>
+                      {podEmptyCopy.href && (
+                        <Link className="btn btn-outline" href={podEmptyCopy.href}>
+                          {podEmptyCopy.button}
+                        </Link>
+                      )}
+                      <Btn variant="btn-amber" icon="plus" onClick={() => { setCreateKey((k) => k + 1); setCreateOpen(true); }}>
+                        Create Group
+                      </Btn>
+                    </Empty>
+                  ) : (
+                    <Empty icon="users" title="No groups match your habits yet." text="Create one and invite people who share your rhythms.">
+                      <Btn variant="btn-amber" icon="plus" onClick={() => { setCreateKey((k) => k + 1); setCreateOpen(true); }}>
+                        Create Group
+                      </Btn>
+                    </Empty>
+                  )}
                 </div>
               ))}
           </section>
