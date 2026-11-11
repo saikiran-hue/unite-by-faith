@@ -20,10 +20,16 @@ export async function GET(req: NextRequest) {
     // Only load the model when text matching found nothing good enough.
     let picked = pickSuggestions(textHits, []);
     if (picked.source === 'none') {
-      const [vec] = await embed([q]);
-      const { data, error } = await admin.rpc('search_tags_vector', { q: `[${Array.from(vec).join(',')}]`, k: 3 });
-      if (error) throw new Error(`search_tags_vector: ${error.message}`);
-      picked = pickSuggestions(textHits, (data ?? []) as { slug: string; cos: number }[]);
+      try {
+        const [vec] = await embed([q]);
+        const { data, error } = await admin.rpc('search_tags_vector', { q: `[${Array.from(vec).join(',')}]`, k: 3 });
+        if (error) throw new Error(`search_tags_vector: ${error.message}`);
+        picked = pickSuggestions(textHits, (data ?? []) as { slug: string; cos: number }[]);
+      } catch (e) {
+        // Infrastructure failure, not missing-tag demand: do not log a tag_request.
+        console.error('tags/search meaning step failed', e);
+        return NextResponse.json({ source: 'none', tags: [] });
+      }
     }
 
     if (picked.source === 'none') {
