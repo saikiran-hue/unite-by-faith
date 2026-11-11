@@ -7,7 +7,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { embed } from '../src/lib/matching/embed';
-import { computeNeighbors, tagEmbeddingText } from '../src/lib/matching/neighbors';
+import { centreByCategory, computeNeighbors, tagEmbeddingText } from '../src/lib/matching/neighbors';
 import type { CatalogueTag } from './catalogue-constants';
 
 const root = path.resolve(__dirname, '..');
@@ -21,7 +21,7 @@ async function main() {
     vecs.push(...(await embed(tags.slice(i, i + 32).map(tagEmbeddingText))));
   }
   const rounded = vecs.map((v) => Float32Array.from(v, r6));
-  const neighbors = computeNeighbors(tags.map((t, i) => ({ slug: t.slug, category: t.category, vec: vecs[i] })));
+  const neighbors = computeNeighbors(centreByCategory(tags.map((t, i) => ({ slug: t.slug, category: t.category, vec: vecs[i] }))));
   neighbors.sort((x, y) => x.a.localeCompare(y.a) || y.sim - x.sim || x.b.localeCompare(y.b));
 
   const sql = [

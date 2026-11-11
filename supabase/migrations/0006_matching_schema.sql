@@ -95,7 +95,7 @@ insert into public.match_weights (version, is_active, config) values (
     "interests":{"hobbies":0.40,"tastes":0.35,"skills":0.25},
     "life":{"stage":0.35,"availability":0.35,"place":0.15,"age":0.15},
     "pod":{"min":0.5,"mean":0.3,"anchor":0.2},
-    "neighborMin":0.60,
+    "neighborMin":0.25,
     "relatedCap":0.7,
     "onlineTzMaxMin":180}'::jsonb
 ) on conflict (version) do nothing;

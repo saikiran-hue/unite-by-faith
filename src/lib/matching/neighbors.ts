@@ -1,5 +1,8 @@
 import type { PillarCategory } from '@/types/database';
 
+/** Minimum centred cosine for a related tag; calibrated in task-7-report.md. Keep in step with neighborMin in match_weights v1. */
+export const NEIGHBOR_MIN = 0.25;
+
 export function tagEmbeddingText(t: { label: string; description: string; synonyms: string[] }): string {
   const base = `${t.label}. ${t.description}.`;
   return t.synonyms.length ? `${base} Also: ${t.synonyms.join(', ')}` : base;
@@ -11,7 +14,7 @@ export function tagEmbeddingText(t: { label: string; description: string; synony
  */
 export function computeNeighbors(
   items: { slug: string; category: PillarCategory; vec: Float32Array }[],
-  opts: { k: number; min: number } = { k: 10, min: 0.6 },
+  opts: { k: number; min: number } = { k: 10, min: NEIGHBOR_MIN },
 ): { a: string; b: string; sim: number }[] {
   const kept = new Map<string, number>();
   for (let i = 0; i < items.length; i++) {
@@ -33,5 +36,33 @@ export function computeNeighbors(
   return [...kept.entries()].map(([key, sim]) => {
     const [a, b] = key.split('\u0000');
     return { a, b, sim };
+  });
+}
+
+/**
+ * Subtracts each category's mean vector and re-normalises to unit length, which spreads out the
+ * compressed cosines of a sentence-embedding model. A vector that is zero after centring
+ * (e.g. a lone tag in its category) is returned as zeros, never NaN.
+ */
+export function centreByCategory<T extends { category: PillarCategory; vec: Float32Array }>(items: T[]): T[] {
+  const sums = new Map<PillarCategory, { sum: Float64Array; n: number }>();
+  for (const it of items) {
+    const s = sums.get(it.category) ?? { sum: new Float64Array(it.vec.length), n: 0 };
+    for (let d = 0; d < it.vec.length; d++) s.sum[d] += it.vec[d];
+    s.n++;
+    sums.set(it.category, s);
+  }
+  return items.map((it) => {
+    const { sum, n } = sums.get(it.category)!;
+    const out = new Float32Array(it.vec.length);
+    let norm = 0;
+    for (let d = 0; d < out.length; d++) {
+      out[d] = it.vec[d] - sum[d] / n;
+      norm += out[d] * out[d];
+    }
+    norm = Math.sqrt(norm);
+    if (norm > 1e-9) for (let d = 0; d < out.length; d++) out[d] /= norm;
+    else out.fill(0);
+    return { ...it, vec: out };
   });
 }
