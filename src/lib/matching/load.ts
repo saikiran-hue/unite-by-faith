@@ -83,6 +83,35 @@ export function tzOffsetMinutes(timeZone: string, at: Date = new Date()): number
   }
 }
 
+
+const CHUNK = 100;
+const PAGE = 500;
+
+/**
+ * Runs `fetchPage` for each chunk of `keys`, paging each chunk until a short page, and merges the rows.
+ * Needed because PostgREST caps rows per response (max_rows) and long `.in()` lists make huge URLs.
+ * `fetchPage` must use a stable order so pages do not overlap.
+ */
+export async function fetchChunked<T, K>(
+  keys: K[],
+  fetchPage: (chunk: K[], from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+  chunkSize = CHUNK,
+  pageSize = PAGE,
+): Promise<T[]> {
+  const out: T[] = [];
+  for (let i = 0; i < keys.length; i += chunkSize) {
+    const chunk = keys.slice(i, i + chunkSize);
+    for (let from = 0; ; from += pageSize) {
+      const { data, error } = await fetchPage(chunk, from, from + pageSize - 1);
+      if (error) throw new Error(error.message);
+      const rows = data ?? [];
+      out.push(...rows);
+      if (rows.length < pageSize) break;
+    }
+  }
+  return out;
+}
+
 function must<T>(res: { data: T | null; error: { message: string } | null }, what: string): T {
   if (res.error) throw new Error(`${what}: ${res.error.message}`);
   return (res.data ?? []) as T;
@@ -93,28 +122,49 @@ export async function loadPeople(admin: SupabaseClient, ids: string[]): Promise<
   const out = new Map<string, LoadedPerson>();
   if (ids.length === 0) return out;
 
-  const [profRes, privRes, tagRes] = await Promise.all([
-    admin
-      .from('profiles')
-      .select(
-        'id, full_name, display_handle, avatar_url, headline, denomination_or_tradition, languages, location_city_id, meet_mode, life_stage, availability, tradition_id, faith_stage, is_demo_account',
-      )
-      .in('id', ids),
-    admin.from('profile_private').select('user_id, birth_date, gender, max_distance_km').in('user_id', ids),
-    admin.from('user_tags').select('user_id, tag_slug, category, level, is_priority').in('user_id', ids),
+  const [profiles, privateRows, tagRows] = await Promise.all([
+    fetchChunked<ProfileRow, string>(ids, (c, a, b) =>
+      admin
+        .from('profiles')
+        .select(
+          'id, full_name, display_handle, avatar_url, headline, denomination_or_tradition, languages, location_city_id, meet_mode, life_stage, availability, tradition_id, faith_stage, is_demo_account',
+        )
+        .in('id', c)
+        .order('id')
+        .range(a, b) as never,
+    ),
+    fetchChunked<PrivateRow, string>(ids, (c, a, b) =>
+      admin
+        .from('profile_private')
+        .select('user_id, birth_date, gender, max_distance_km')
+        .in('user_id', c)
+        .order('user_id')
+        .range(a, b) as never,
+    ),
+    fetchChunked<UserTagRow, string>(ids, (c, a, b) =>
+      admin
+        .from('user_tags')
+        .select('user_id, tag_slug, category, level, is_priority')
+        .in('user_id', c)
+        .order('user_id')
+        .order('tag_slug')
+        .range(a, b) as never,
+    ),
   ]);
-  const profiles = must<ProfileRow[]>(profRes as never, 'profiles');
-  const privates = new Map(must<PrivateRow[]>(privRes as never, 'profile_private').map((r) => [r.user_id, r]));
-  const tagRows = must<UserTagRow[]>(tagRes as never, 'user_tags');
+  const privates = new Map(privateRows.map((r) => [r.user_id, r]));
 
   const cityIds = [...new Set(profiles.map((p) => p.location_city_id).filter((x): x is number => x !== null))];
   const tradIds = [...new Set(profiles.map((p) => p.tradition_id).filter((x): x is string => x !== null))];
-  const [cityRes, tradRes] = await Promise.all([
-    cityIds.length ? admin.from('cities').select('id, name, lat, lng, timezone').in('id', cityIds) : { data: [], error: null },
-    tradIds.length ? admin.from('traditions').select('id, name, family').in('id', tradIds) : { data: [], error: null },
+  const [cityRows, tradRows] = await Promise.all([
+    fetchChunked<CityRow, number>(cityIds, (c, a, b) =>
+      admin.from('cities').select('id, name, lat, lng, timezone').in('id', c).order('id').range(a, b) as never,
+    ),
+    fetchChunked<TraditionRow, string>(tradIds, (c, a, b) =>
+      admin.from('traditions').select('id, name, family').in('id', c).order('id').range(a, b) as never,
+    ),
   ]);
-  const cities = new Map(must<CityRow[]>(cityRes as never, 'cities').map((c) => [c.id, c]));
-  const traditions = new Map(must<TraditionRow[]>(tradRes as never, 'traditions').map((t) => [t.id, t]));
+  const cities = new Map(cityRows.map((c) => [c.id, c]));
+  const traditions = new Map(tradRows.map((t) => [t.id, t]));
 
   const tagsByUser = new Map<string, UserTagRow[]>();
   for (const t of tagRows) {
@@ -219,14 +269,20 @@ export async function loadScoreContext(
   isDemo: boolean,
 ): Promise<{ ctx: ScoreContext; labels: Map<string, string> }> {
   const unique = [...new Set(slugs)];
-  const [wRes, popRes, nbRes, usersRes] = await Promise.all([
+  const [wRes, tagRows, nbRows, usersRes] = await Promise.all([
     admin.from('match_weights').select('config').eq('is_active', true).order('version', { ascending: false }).limit(1),
-    unique.length
-      ? admin.from('taxonomy_tags').select('slug, label, popularity').in('slug', unique)
-      : { data: [], error: null },
-    unique.length
-      ? admin.from('tag_neighbors').select('tag_a, tag_b, sim').in('tag_a', unique)
-      : { data: [], error: null },
+    fetchChunked<{ slug: string; label: string; popularity: number }, string>(unique, (c, a, b) =>
+      admin.from('taxonomy_tags').select('slug, label, popularity').in('slug', c).order('slug').range(a, b) as never,
+    ),
+    fetchChunked<{ tag_a: string; tag_b: string; sim: number }, string>(unique, (c, a, b) =>
+      admin
+        .from('tag_neighbors')
+        .select('tag_a, tag_b, sim')
+        .in('tag_a', c)
+        .order('tag_a')
+        .order('tag_b')
+        .range(a, b) as never,
+    ),
     admin
       .from('profiles')
       .select('id', { count: 'exact', head: true })
@@ -239,12 +295,14 @@ export async function loadScoreContext(
 
   const popularity = new Map<string, number>();
   const labels = new Map<string, string>();
-  for (const r of must<{ slug: string; label: string; popularity: number }[]>(popRes as never, 'taxonomy_tags')) {
+  for (const r of tagRows) {
     popularity.set(r.slug, r.popularity);
     labels.set(r.slug, r.label);
   }
   const neighbors = new Map<string, Map<string, number>>();
-  for (const r of must<{ tag_a: string; tag_b: string; sim: number }[]>(nbRes as never, 'tag_neighbors')) {
+  const inPlay = new Set(unique);
+  for (const r of nbRows) {
+    if (!inPlay.has(r.tag_b)) continue;
     const m = neighbors.get(r.tag_a) ?? new Map<string, number>();
     m.set(r.tag_b, r.sim);
     neighbors.set(r.tag_a, m);

@@ -1,9 +1,14 @@
 import { after, NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { requireUserId } from '@/lib/session';
-import { loadPeople, loadScoreContext, loadViewerLifeFit, type LoadedPerson } from '@/lib/matching/load';
+import { fetchChunked, loadPeople, loadScoreContext, loadViewerLifeFit, type LoadedPerson } from '@/lib/matching/load';
 import { rankDuos, rankPods } from '@/lib/matching/rank';
 import type { PairScore } from '@/lib/matching/score';
+
+interface PodRow {
+  id: string; chat_room_id: string; title: string; description: string; focus_pillar: string; anchor_tags: string[];
+  min_members: number; max_members: number; member_count: number; meeting_cadence: string; status: string; created_at: string;
+}
 
 const RULE_ORDER = ['age', 'language', 'place', 'gender', 'tradition'];
 
@@ -31,7 +36,8 @@ export async function GET(req: NextRequest) {
     }
     const viewer = (await loadPeople(admin, [userId])).get(userId);
     if (!viewer) {
-      return NextResponse.json({ code: 'life_fit_incomplete', missing: [] }, { status: 409 });
+      // Nothing is missing yet the viewer could not be loaded: a server fault, not a 409.
+      throw new Error('Viewer could not be loaded');
     }
 
     let results: Record<string, unknown>[] = [];
@@ -66,29 +72,32 @@ export async function GET(req: NextRequest) {
         ...scoreFields(r),
       }));
       events = ranked.map((r) => ({ target_id: r.userId, score: r.score, breakdown: r.breakdown, weights_version: r.weightsVersion }));
-      return await respond(kind, results, events, labels);
+      return await respond(kind, results, events, labels, ids.length === 0);
     }
 
     // kind === 'pods'
     const { data, error } = await admin.rpc('match_pod_candidates', { viewer: userId, lim: 100 });
     if (error) throw new Error(`match_pod_candidates: ${error.message}`);
     const podIds = ((data ?? []) as { pod_id: string }[]).map((r) => r.pod_id);
-    const [podRes, memRes] = podIds.length
-      ? await Promise.all([
-          admin
-            .from('pods')
-            .select('id, chat_room_id, title, description, focus_pillar, anchor_tags, min_members, max_members, member_count, meeting_cadence, status, created_at')
-            .in('id', podIds),
-          admin.from('pod_members').select('pod_id, user_id, role, joined_at').in('pod_id', podIds),
-        ])
-      : [{ data: [], error: null }, { data: [], error: null }];
-    if (podRes.error) throw new Error(`pods: ${podRes.error.message}`);
-    if (memRes.error) throw new Error(`pod_members: ${memRes.error.message}`);
-    const pods = (podRes.data ?? []) as {
-      id: string; chat_room_id: string; title: string; description: string; focus_pillar: string; anchor_tags: string[];
-      min_members: number; max_members: number; member_count: number; meeting_cadence: string; status: string; created_at: string;
-    }[];
-    const members = (memRes.data ?? []) as { pod_id: string; user_id: string; role: string; joined_at: string }[];
+    const pods = await fetchChunked<PodRow, string>(podIds, (c, a, b) =>
+      admin
+        .from('pods')
+        .select('id, chat_room_id, title, description, focus_pillar, anchor_tags, min_members, max_members, member_count, meeting_cadence, status, created_at')
+        .in('id', c)
+        .order('id')
+        .range(a, b) as never,
+    );
+    const members = await fetchChunked<{ pod_id: string; user_id: string; role: string; joined_at: string }, string>(
+      podIds,
+      (c, a, b) =>
+        admin
+          .from('pod_members')
+          .select('pod_id, user_id, role, joined_at')
+          .in('pod_id', c)
+          .order('pod_id')
+          .order('user_id')
+          .range(a, b) as never,
+    );
     const people = await loadPeople(admin, [...new Set(members.map((m) => m.user_id))]);
     const slugs = [
       ...viewer.match.tags.map((t) => t.slug),
@@ -101,11 +110,17 @@ export async function GET(req: NextRequest) {
     const membersOf = (podId: string) => members.filter((m) => m.pod_id === podId);
     const ranked = rankPods(
       viewer.match,
-      pods.map((p) => ({
-        podId: p.id,
-        members: membersOf(p.id).map((m) => people.get(m.user_id)?.match).filter((x): x is NonNullable<typeof x> => !!x),
-        anchorTags: p.anchor_tags,
-      })),
+      pods
+        // Never score on a subset: drop a pod if any member could not be loaded.
+        .filter((p) => {
+          const ms = membersOf(p.id);
+          return ms.length > 0 && ms.every((m) => people.has(m.user_id));
+        })
+        .map((p) => ({
+          podId: p.id,
+          members: membersOf(p.id).map((m) => (people.get(m.user_id) as LoadedPerson).match),
+          anchorTags: p.anchor_tags,
+        })),
       ctx,
       20,
     );
@@ -135,16 +150,17 @@ export async function GET(req: NextRequest) {
       };
     });
     events = ranked.map((r) => ({ target_id: r.podId, score: r.score, breakdown: r.breakdown, weights_version: r.weightsVersion }));
-    return await respond(kind, results, events, labels);
+    return await respond(kind, results, events, labels, podIds.length === 0);
 
     async function respond(
       k: 'duo' | 'pods',
       res: Record<string, unknown>[],
       evs: typeof events,
       labelMap: Map<string, string>,
+      sqlEmpty: boolean,
     ) {
       const body: Record<string, unknown> = { kind: k, results: res, tag_labels: Object.fromEntries(labelMap) };
-      if (res.length === 0) {
+      if (res.length === 0 && sqlEmpty) {
         const { data: counts, error: cErr } = await admin.rpc('match_filter_counts', { viewer: userId, kind: k });
         if (cErr) {
           console.error(`match_filter_counts failed: ${cErr.message}`);
