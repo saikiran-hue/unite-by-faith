@@ -2,6 +2,7 @@ import { after, NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { requireUserId } from '@/lib/session';
 import { recordMessageOutcomes } from '@/lib/matching/outcomes';
+import { isRoomMember } from '@/lib/rooms';
 import { buildContextualIcebreakers } from '@/lib/matching/engine';
 import {
   ChatMessage,
@@ -54,6 +55,9 @@ export async function GET(
         { error: roomErr?.message || 'Chat room not found' },
         { status: 404 }
       );
+    }
+    if (!(await isRoomMember(admin, room, userId))) {
+      return NextResponse.json({ error: 'not_a_member' }, { status: 403 });
     }
 
     const taxonomyTags = (taxonomyRows || []) as TaxonomyTag[];
@@ -207,6 +211,18 @@ export async function POST(
     const { userId } = auth;
     const senderId = userId;
 
+    const { data: room } = await admin
+      .from('chat_rooms')
+      .select('id, room_type')
+      .eq('id', roomId)
+      .maybeSingle();
+    if (!room) {
+      return NextResponse.json({ error: 'Chat room not found' }, { status: 404 });
+    }
+    if (!(await isRoomMember(admin, room, userId))) {
+      return NextResponse.json({ error: 'not_a_member' }, { status: 403 });
+    }
+
     if (body.action === 'message') {
       const content = String(body.content || '').trim();
       const messageType =
@@ -309,13 +325,18 @@ export async function POST(
         .from('room_pins')
         .select('amen_count')
         .eq('id', pinId)
-        .single();
+        .eq('room_id', roomId)
+        .maybeSingle();
+      if (!existing) {
+        return NextResponse.json({ error: 'pin_not_found' }, { status: 404 });
+      }
 
-      const nextCount = (existing?.amen_count || 1) + 1;
+      const nextCount = (existing.amen_count || 1) + 1;
       const { data: updated, error } = await admin
         .from('room_pins')
         .update({ amen_count: nextCount })
         .eq('id', pinId)
+        .eq('room_id', roomId)
         .select('*')
         .single();
 
@@ -331,12 +352,17 @@ export async function POST(
         .from('room_pins')
         .select('is_answered')
         .eq('id', pinId)
-        .single();
+        .eq('room_id', roomId)
+        .maybeSingle();
+      if (!existing) {
+        return NextResponse.json({ error: 'pin_not_found' }, { status: 404 });
+      }
 
       const { data: updated, error } = await admin
         .from('room_pins')
-        .update({ is_answered: !existing?.is_answered })
+        .update({ is_answered: !existing.is_answered })
         .eq('id', pinId)
+        .eq('room_id', roomId)
         .select('*')
         .single();
 

@@ -74,4 +74,33 @@ check "state viewer is the demo id" "$DEMO_ID" "$(viewer "$JAR2")"
 check "signout (demo)" 200 "$(status "$JAR2" '{"mode":"signout"}')"
 check "/api/state after demo signout" 401 "$(state "$JAR2")"
 
+# --- rooms: members only ---
+CALEB="11111111-1111-4111-8111-111111111101"   # member of rooms ...201 and ...204
+ROOM_IN="22222222-2222-4222-8222-222222222201"
+ROOM_OUT="22222222-2222-4222-8222-222222222202" # Caleb is not a member
+PIN_OUT="55555555-5555-4555-8555-555555555503"  # a pin in ROOM_OUT
+room() { # jar method room [json] -> status
+  if [ -n "$4" ]; then
+    curl -s -o /dev/null -w '%{http_code}' -b "$1" -X "$2" -H 'Content-Type: application/json' -d "$4" "$BASE/api/rooms/$3"
+  else
+    curl -s -o /dev/null -w '%{http_code}' -b "$1" "$BASE/api/rooms/$3"
+  fi
+}
+# The signout above ends every session of the new user, so sign in again.
+: > "$JAR"
+check "signin new user again" 200 "$(status "$JAR" "$(signin_json "$EMAIL" secret12)")"
+check "GET room signed out" 401 "$(room /dev/null GET "$ROOM_IN")"
+check "GET room as non-member (new user)" 403 "$(room "$JAR" GET "$ROOM_IN")"
+check "POST message as non-member (new user)" 403 "$(room "$JAR" POST "$ROOM_IN" '{"action":"message","content":"intruder"}')"
+: > "$JAR2"
+check "demo sign-in Caleb" 200 "$(status "$JAR2" "$(demo_json "$CALEB")")"
+check "GET own room as member" 200 "$(room "$JAR2" GET "$ROOM_IN")"
+check "GET another room as non-member" 403 "$(room "$JAR2" GET "$ROOM_OUT")"
+check "POST message into another room" 403 "$(room "$JAR2" POST "$ROOM_OUT" '{"action":"message","content":"intruder"}')"
+check "POST create_pin into another room" 403 "$(room "$JAR2" POST "$ROOM_OUT" '{"action":"create_pin","title":"intruder"}')"
+AMEN_JSON="$(printf '{"action":"amen_pin","pinId":"%s"}' "$PIN_OUT")"
+TOGGLE_JSON="$(printf '{"action":"toggle_answered","pinId":"%s"}' "$PIN_OUT")"
+check "amen_pin on a pin from another room" 404 "$(room "$JAR2" POST "$ROOM_IN" "$AMEN_JSON")"
+check "toggle_answered on a pin from another room" 404 "$(room "$JAR2" POST "$ROOM_IN" "$TOGGLE_JSON")"
+
 exit $fail
