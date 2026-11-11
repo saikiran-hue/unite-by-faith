@@ -110,35 +110,44 @@ export async function POST(req: NextRequest) {
       const randomAvatar = AVATAR_POOL[Math.floor(Math.random() * AVATAR_POOL.length)];
       const range = defaultAgeRange(ageOn(birthDate, today));
 
-      const { error: profErr } = await admin.from('profiles').upsert({
-        id: newUserId,
-        full_name: fullName,
-        display_handle: displayHandle,
-        avatar_url: randomAvatar,
-        headline: 'Christian Friend & Community Builder',
-        bio: 'Excited to connect in 3–4 member fellowship pods and 1v1 matches!',
-        denomination_or_tradition: 'Non-Denominational',
-        church_or_fellowship: '',
-        location_city: 'Bengaluru, IN',
-        location_timezone: 'Asia/Kolkata',
-        years_in_faith: 'Growing Believer',
-        fellowship_mode: 'both',
-        onboarding_completed: false,
-        is_demo_account: false,
-      });
-      const { error: privErr } = profErr
-        ? { error: null }
-        : await admin.from('profile_private').insert({
-            user_id: newUserId,
-            birth_date: birthDate,
-            age_min: range.min,
-            age_max: range.max,
-          });
+      let setupError: string | null = null;
+      try {
+        const { error: profErr } = await admin.from('profiles').upsert({
+          id: newUserId,
+          full_name: fullName,
+          display_handle: displayHandle,
+          avatar_url: randomAvatar,
+          headline: 'Christian Friend & Community Builder',
+          bio: 'Excited to connect in 3–4 member fellowship pods and 1v1 matches!',
+          denomination_or_tradition: 'Non-Denominational',
+          church_or_fellowship: '',
+          location_city: 'Bengaluru, IN',
+          location_timezone: 'Asia/Kolkata',
+          years_in_faith: 'Growing Believer',
+          fellowship_mode: 'both',
+          onboarding_completed: false,
+          is_demo_account: false,
+        });
+        const { error: privErr } = profErr
+          ? { error: null }
+          : await admin.from('profile_private').insert({
+              user_id: newUserId,
+              birth_date: birthDate,
+              age_min: range.min,
+              age_max: range.max,
+            });
+        setupError = profErr?.message ?? privErr?.message ?? null;
+      } catch (e) {
+        setupError = e instanceof Error ? e.message : 'Could not finish creating the account';
+      }
 
-      if (profErr || privErr) {
+      if (setupError) {
         // Leave nothing half-created: the cascade removes the profile rows.
-        await admin.auth.admin.deleteUser(newUserId);
-        return fail(500, (profErr || privErr)!.message);
+        const { error: delErr } = await admin.auth.admin.deleteUser(newUserId);
+        if (delErr) {
+          console.error(`signup cleanup failed for ${newUserId}: ${delErr.message}`);
+        }
+        return fail(500, setupError);
       }
 
       const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });

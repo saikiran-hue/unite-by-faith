@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 # Asserts the server trusts only the Supabase session. Needs the dev server on :3000.
-# WRITES DATA (sign-up creates a user): run it only against a dev server pointed at the LOCAL Supabase stack.
+# WRITES DATA (sign-up creates a user), so it refuses to run unless you opt in:
+# start the dev server against the LOCAL Supabase stack (127.0.0.1:54321), then run
+#   LOCAL=1 bash scripts/check-identity.sh
 BASE="${BASE:-http://localhost:3000}"
+if [ "${LOCAL:-}" != "1" ]; then
+  echo "Refusing to run: this script creates users. Point the dev server at the LOCAL Supabase stack and re-run with LOCAL=1." >&2
+  exit 2
+fi
 fail=0
 check() { # name expected actual
   if [ "$2" = "$3" ]; then echo "PASS $1 ($3)"; else echo "FAIL $1: expected $2, got $3"; fail=1; fi
