@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { requireUserId } from '@/lib/session';
+import { recordMessageOutcomes } from '@/lib/matching/outcomes';
 import { buildContextualIcebreakers } from '@/lib/matching/engine';
 import {
   ChatMessage,
@@ -245,6 +246,8 @@ export async function POST(
         .from('chat_rooms')
         .update({ last_message_at: new Date().toISOString() })
         .eq('id', roomId);
+
+      after(() => recordMessageOutcomes(admin, roomId, senderId, new Date()));
 
       return NextResponse.json({ message: msg });
     }

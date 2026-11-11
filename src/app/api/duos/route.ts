@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { requireUserId } from '@/lib/session';
+import { recordOutcome } from '@/lib/matching/outcomes';
 
 export async function POST(req: NextRequest) {
   try {
@@ -33,6 +34,8 @@ export async function POST(req: NextRequest) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
+
+    after(() => recordOutcome(admin, userId, 'duo', partnerId, 'connected'));
 
     return NextResponse.json(data);
   } catch (err) {
