@@ -1,6 +1,6 @@
 import { BookOpen, Code, Coffee, Guitar, type LucideIcon } from 'lucide-react';
 import { PillarCategory, TaxonomyTag } from '@/types/database';
-import { PILLAR_WEIGHTS } from '@/lib/matching/engine';
+import { PILLAR_WEIGHTS } from '@/lib/matching/pillar-weights';
 
 export interface PillarMeta {
   key: PillarCategory;

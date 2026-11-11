@@ -79,8 +79,14 @@ export default function OnboardingPage() {
         setTaxonomyTags(
           [...((data.taxonomyTags || []) as TaxonomyTag[])].sort((a, b) => a.sort_order - b.sort_order)
         );
-        const toLifeFit = window.location.hash === `#${LIFE_ANCHOR}`;
-        if (toLifeFit) focusHeading.current = true;
+        // #life-fit opens the step; #life-fit-<field> (e.g. #life-fit-distance) also focuses that field.
+        const hash = window.location.hash.slice(1);
+        const toLifeFit = hash === LIFE_ANCHOR || hash.startsWith(`${LIFE_ANCHOR}-`);
+        if (toLifeFit) {
+          const field = hash.slice(LIFE_ANCHOR.length + 1);
+          if (field) focusField.current = field;
+          else focusHeading.current = true;
+        }
         setStep(toLifeFit ? LIFE_STEP : 1);
         setError(null);
         fillFrom(u, (data.city as City | null) ?? null);

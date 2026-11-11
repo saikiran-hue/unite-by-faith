@@ -124,27 +124,7 @@ export interface FellowshipPod {
   created_by: string | null;
   created_at: string;
   members: PodMemberProfile[];
-  affinity_score: number;
-  overlapping_tags: string[];
   is_joined: boolean;
-}
-
-export interface PillarBreakdown {
-  faith: { score: number; shared: string[] };
-  skills: { score: number; shared: string[] };
-  hobbies: { score: number; shared: string[] };
-  tastes: { score: number; shared: string[] };
-}
-
-export interface ComputedDuoMatch {
-  partner: UserProfile;
-  similarity_score: number;
-  shared_tags: string[];
-  priority_hits: string[];
-  pillar_breakdown: PillarBreakdown;
-  match_headline: string;
-  suggested_icebreaker: string;
-  existing_chat_room_id: string | null;
 }
 
 export interface ChatRoom {

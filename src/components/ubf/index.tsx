@@ -11,6 +11,8 @@ import { ICON_PATHS, type IconName } from './icon-paths';
 import type { Level, TaxonomyTag } from '@/types/database';
 import { CAT_BY_KEY, CATS, type Cat } from '@/lib/cats';
 import { THEME_KEY } from './theme-script';
+import { LIFE_STAGES } from '@/lib/life-fit';
+import type { Reason } from '@/lib/matching/score';
 
 export type { IconName };
 
@@ -309,13 +311,81 @@ export function sortHabits(slugs: string[], tagMap: Map<string, TaxonomyTag>, st
   );
 }
 
-/** "You both share A and B." — B is from a different category when possible. */
-export function reasonLine(shared: string[], tagMap: Map<string, TaxonomyTag>) {
-  if (!shared.length) return '';
-  const sorted = sortHabits(shared, tagMap);
+/** Three labelled 0-100 bars: Faith, Interests, Life fit. */
+export function ScoreBars({ breakdown }: { breakdown: { faith: number; interests: number; lifeFit: number } }) {
+  const rows: [string, number][] = [
+    ['Faith', breakdown.faith],
+    ['Interests', breakdown.interests],
+    ['Life fit', breakdown.lifeFit],
+  ];
+  return (
+    <div className="bars">
+      {rows.map(([name, n]) => (
+        <div className="bar" key={name}>
+          <span aria-hidden="true">{name}</span>
+          <span className="track" role="meter" aria-label={`${name} match`} aria-valuenow={n} aria-valuemin={0} aria-valuemax={100}>
+            <i style={{ width: `${Math.max(0, Math.min(100, n))}%` }} />
+          </span>
+          <span className="num" aria-hidden="true">
+            {n}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Up to four reason chips; related-habit reasons are dashed so they read differently from exact shares. */
+export function ReasonChips({
+  reasons,
+  tagMap,
+  names,
+}: {
+  reasons: Reason[];
+  tagMap: Map<string, TaxonomyTag>;
+  names?: { tradition?: string | null };
+}) {
+  if (!reasons.length) return null;
+  return (
+    <ul className="chips">
+      {reasons.slice(0, 4).map((r, i) => (
+        <li key={i} className={`chip${r.kind === 'related_tag' ? ' dashed' : ''}`}>
+          {reasonText(r, tagMap, names)}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Display name of a snake_case value: "eastern_orthodox" -> "Eastern Orthodox". */
+function humanize(v: string) {
+  return v
+    .split('_')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
+/**
+ * One plain sentence for a match reason. `names.tradition` is the shared tradition's name
+ * (the reason itself only carries the family); without it a same-tradition reason names the family.
+ */
+export function reasonText(r: Reason, tagMap: Map<string, TaxonomyTag>, names?: { tradition?: string | null }): string {
   const label = (s: string) => tagMap.get(s)?.label ?? s;
-  const a = sorted[0];
-  const catA = tagMap.get(a)?.category;
-  const b = sorted.slice(1).find((s) => tagMap.get(s)?.category !== catA) ?? sorted[1];
-  return `You both share ${label(a)}${b ? ` and ${label(b)}` : ''}.`;
+  switch (r.kind) {
+    case 'shared_tag':
+      return `You both love ${label(r.slug)}`;
+    case 'related_tag':
+      return `Your ${label(r.mine)}, their ${label(r.theirs)}`;
+    case 'tradition':
+      return r.same && names?.tradition ? `Both ${names.tradition}` : `Both ${humanize(r.family)} traditions`;
+    case 'life': {
+      const v = r.value ?? '';
+      if (r.detail === 'same_stage') return `Both ${LIFE_STAGES.find(([k]) => k === v)?.[1] ?? humanize(v)}`;
+      if (r.detail === 'availability') {
+        return `Both free ${v.split(',').filter(Boolean).map((k) => k.replace('_', ' ')).join(' and ')}`;
+      }
+      if (r.detail === 'same_city') return `Both in ${v}`;
+      return `${v} km apart`;
+    }
+  }
 }

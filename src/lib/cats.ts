@@ -1,6 +1,6 @@
 import type { PillarCategory } from '@/types/database';
 import type { IconName } from '@/components/ubf/icon-paths';
-import { PILLAR_WEIGHTS } from '@/lib/matching/engine';
+import { PILLAR_WEIGHTS } from '@/lib/matching/pillar-weights';
 
 /** The four habit categories, faith first. Weights come from the matching engine. */
 export interface Cat {

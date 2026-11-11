@@ -2,9 +2,16 @@
 
 import { FellowshipPod, TaxonomyTag } from '@/types/database';
 import { podCover } from '@/lib/sample-content';
-import { AlertBox, Btn, HabitChips, Icon, ScorePill, reasonLine, sortHabits } from '@/components/ubf';
+import type { Reason } from '@/lib/matching/score';
+import { AlertBox, Btn, HabitChips, Icon, ReasonChips, ScoreBars, ScorePill, sortHabits } from '@/components/ubf';
 
-/** One 1v1 result from GET /api/match?kind=duo (Task 16 adds the breakdown and reasons to the card). */
+export interface Breakdown {
+  faith: number;
+  interests: number;
+  lifeFit: number;
+}
+
+/** One 1v1 result from GET /api/match?kind=duo. */
 export interface DuoResult {
   partner: {
     id: string;
@@ -18,12 +25,16 @@ export interface DuoResult {
   };
   existing_chat_room_id: string | null;
   score: number;
+  breakdown: Breakdown;
+  reasons: Reason[];
 }
 
 /** One group result from GET /api/match?kind=pods. */
-export type PodResult = Omit<FellowshipPod, 'created_by' | 'members' | 'affinity_score' | 'overlapping_tags'> & {
+export type PodResult = Omit<FellowshipPod, 'created_by' | 'members'> & {
   members: { user_id: string; profile: { full_name: string; avatar_url: string } }[];
   score: number;
+  breakdown: Breakdown;
+  reasons: Reason[];
 };
 
 /* ------------------------------------------------------------------ */
@@ -32,25 +43,19 @@ export type PodResult = Omit<FellowshipPod, 'created_by' | 'members' | 'affinity
 
 export function DuoCard({
   match,
-  shared,
   tagMap,
-  starred,
   busy,
   countUp,
   onConnect,
 }: {
   match: DuoResult;
-  /** Habit slugs both people have picked. */
-  shared: string[];
   tagMap: Map<string, TaxonomyTag>;
-  starred: Set<string>;
   busy: boolean;
   countUp?: boolean;
   onConnect: (match: DuoResult) => void;
 }) {
   const p = match.partner;
   const first = p.full_name.split(' ')[0];
-  const sharedSorted = sortHabits(shared, tagMap, starred);
   return (
     <li className="card mcard spot">
       <div className="m-top">
@@ -72,15 +77,8 @@ export function DuoCard({
         </div>
         <ScorePill pct={match.score} countUp={countUp} />
       </div>
-      {shared.length > 0 && (
-        <p className="reason">
-          <span>{reasonLine(shared, tagMap)}</span>
-          <span className="rc">
-            <Icon name="check" />
-          </span>
-        </p>
-      )}
-      <HabitChips slugs={sharedSorted} tagMap={tagMap} starred={starred} max={5} />
+      <ScoreBars breakdown={match.breakdown} />
+      <ReasonChips reasons={match.reasons} tagMap={tagMap} names={{ tradition: p.tradition?.name }} />
       {match.existing_chat_room_id ? (
         <Btn variant="btn-outline indigo block" icon="chat" onClick={() => onConnect(match)}>
           Continue with {first}
@@ -158,6 +156,8 @@ export function PodCard({
             </span>
           </p>
         </div>
+        <ScoreBars breakdown={pod.breakdown} />
+        <ReasonChips reasons={pod.reasons} tagMap={tagMap} />
         <HabitChips slugs={sortHabits(pod.anchor_tags, tagMap, starred)} tagMap={tagMap} starred={starred} />
         {failed && (
           <AlertBox

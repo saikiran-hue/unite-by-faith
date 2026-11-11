@@ -16,8 +16,29 @@ type Kind = 'duo' | 'pods';
 type Search = { kind: Kind; status: 'loading' | 'done' | 'error' | 'incomplete' };
 
 type MatchFetch =
-  | { ok: true; results: unknown[]; labels: Record<string, string> }
+  | { ok: true; results: unknown[]; labels: Record<string, string>; emptyRule: string | null }
   | { ok: false; reason: 'incomplete' | 'signed_out' | 'error' };
+
+/** What to tell a viewer whose search found nobody, by the narrowest rule, and where to change it. */
+const EMPTY_BY_RULE: Record<string, { text: string; button: string; href?: string }> = {
+  place: {
+    text: 'Nobody near you yet. Try a wider distance or meeting online.',
+    button: 'Change distance',
+    href: '/onboarding#life-fit-distance',
+  },
+  age: { text: 'Nobody in your age range yet. Try widening it.', button: 'Change age range', href: '/onboarding#life-fit-agemin' },
+  language: {
+    text: 'Nobody shares your languages yet.',
+    button: 'Change languages',
+    href: '/onboarding#life-fit-languages',
+  },
+  gender: { text: 'No 1v1 matches yet. Try Search Groups.', button: 'Search Groups' },
+  tradition: {
+    text: 'Nobody from your tradition yet. Try turning off Only my tradition.',
+    button: 'Change tradition',
+    href: '/onboarding#life-fit-tradition',
+  },
+};
 
 /** GET /api/match: the ranked results, or why there are none (Life fit missing, signed out, failure). */
 async function fetchMatch(kind: Kind): Promise<MatchFetch> {
@@ -27,7 +48,7 @@ async function fetchMatch(kind: Kind): Promise<MatchFetch> {
     if (res.status === 409) return { ok: false, reason: 'incomplete' };
     if (!res.ok) return { ok: false, reason: 'error' };
     const data = await res.json();
-    return { ok: true, results: data.results ?? [], labels: data.tag_labels ?? {} };
+    return { ok: true, results: data.results ?? [], labels: data.tag_labels ?? {}, emptyRule: data.emptyReason?.rule ?? null };
   } catch {
     return { ok: false, reason: 'error' };
   }
@@ -39,7 +60,7 @@ export default function Home() {
     loading,
     currentUser,
     taxonomyTags,
-    pods,
+    joinedPods,
     duoChats,
     tagMap,
     startingDuoId,
@@ -53,6 +74,7 @@ export default function Home() {
   const [duoRes, setDuoRes] = useState<DuoResult[]>([]);
   const [podRes, setPodRes] = useState<PodResult[]>([]);
   const [labels, setLabels] = useState<Record<string, string>>({});
+  const [emptyRule, setEmptyRule] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [joiningId, setJoiningId] = useState<string | null>(null);
@@ -78,6 +100,7 @@ export default function Home() {
     }
     if (found.ok) {
       setLabels(found.labels);
+      setEmptyRule(found.emptyRule);
       if (kind === 'duo') setDuoRes(found.results as DuoResult[]);
       else setPodRes(found.results as PodResult[]);
     }
@@ -147,7 +170,6 @@ export default function Home() {
   }
 
   const habits = currentUser.tags.map((t) => t.tag_slug);
-  const habitSet = new Set(habits);
   const starred = new Set(currentUser.tags.filter((t) => t.is_priority).map((t) => t.tag_slug));
   const tooFew = habits.length < 3;
   const duoResults = duoRes;
@@ -157,8 +179,11 @@ export default function Home() {
   for (const [slug, label] of Object.entries(labels)) {
     if (!resultTagMap.has(slug)) resultTagMap.set(slug, { slug, label } as TaxonomyTag);
   }
-  const sharedOf = (m: DuoResult) => m.partner.tags.map((t) => t.slug).filter((slug) => habitSet.has(slug));
-  const podChats = pods.filter((p) => p.is_joined);
+  // Habits behind the top reasons, best first: they seed the chat's icebreakers.
+  const sharedOf = (m: DuoResult) =>
+    m.reasons.flatMap((r) => (r.kind === 'shared_tag' ? [r.slug] : r.kind === 'related_tag' ? [r.mine] : []));
+  const podChats = joinedPods;
+  const emptyCopy = emptyRule ? EMPTY_BY_RULE[emptyRule] : undefined;
   const fresh = search?.status === 'done';
 
   return (
@@ -290,9 +315,7 @@ export default function Home() {
                       <DuoCard
                         key={m.partner.id}
                         match={m}
-                        shared={sharedOf(m)}
                         tagMap={resultTagMap}
-                        starred={starred}
                         busy={startingDuoId === m.partner.id}
                         countUp={fresh}
                         onConnect={(r) =>
@@ -308,11 +331,25 @@ export default function Home() {
                   </ul>
                 ) : (
                   <div className="card">
-                    <Empty icon="user" title="No one shares your habits yet." text="Add a few more habits and search again.">
-                      <Btn variant="btn-outline" icon="pencil" onClick={() => setEditSignal((n) => n + 1)}>
-                        Edit Habits
-                      </Btn>
-                    </Empty>
+                    {emptyCopy ? (
+                      <Empty icon="user" title="No matches yet" text={emptyCopy.text}>
+                        {emptyCopy.href ? (
+                          <Link className="btn btn-outline" href={emptyCopy.href}>
+                            {emptyCopy.button}
+                          </Link>
+                        ) : (
+                          <Btn variant="btn-outline" icon="users" onClick={() => runSearch('pods')}>
+                            {emptyCopy.button}
+                          </Btn>
+                        )}
+                      </Empty>
+                    ) : (
+                      <Empty icon="user" title="No one shares your habits yet." text="Add a few more habits and search again.">
+                        <Btn variant="btn-outline" icon="pencil" onClick={() => setEditSignal((n) => n + 1)}>
+                          Edit Habits
+                        </Btn>
+                      </Empty>
+                    )}
                   </div>
                 )
               ) : podResults.length ? (

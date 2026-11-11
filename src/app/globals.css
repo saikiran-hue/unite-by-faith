@@ -168,6 +168,12 @@ html[data-theme="dark"] { background: #0a0a0b; }
 .ubf .cat .chip, .ubf .summary .chip { background: var(--u-surface); box-shadow: none; }
 .ubf .chip svg.ic { width: 12px; height: 12px; color: var(--u-mute); }
 .ubf .chip svg.ic.star { color: var(--u-accent-text); width: 11px; height: 11px; }
+.ubf .chip.dashed { background: none; box-shadow: none; border: 1px dashed var(--u-line-strong); }
+.ubf .bars { display: grid; gap: 8px; margin: 0; }
+.ubf .bar { display: grid; grid-template-columns: 76px 1fr 30px; align-items: center; gap: 10px; font-size: 12px; font-weight: 600; color: var(--u-mute); }
+.ubf .bar .track { height: 6px; border-radius: 999px; background: var(--u-line); overflow: hidden; }
+.ubf .bar .track i { display: block; height: 100%; border-radius: inherit; background: var(--grad); }
+.ubf .bar .num { text-align: right; font-variant-numeric: tabular-nums; color: var(--u-ink); }
 .ubf .chip.more { background: none; box-shadow: none; color: var(--u-mute); padding-left: 4px; }
 
 /* Toggle chips: white when off, accent when picked */

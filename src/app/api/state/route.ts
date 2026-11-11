@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { requireUserId } from '@/lib/session';
-import { computeDuoMatches, scoreAndRankPods } from '@/lib/matching/engine';
 import {
   CurrentUser,
   PodMemberProfile,
@@ -153,25 +152,17 @@ export async function GET() {
       if (partner) duoChats.push({ partner, chat_room_id });
     }
 
-    const rankedPods = scoreAndRankPods(
-      currentUser,
-      hydratedPods,
-      taxonomyTags
-    );
-    const duoMatches = computeDuoMatches(
-      currentUser,
-      allProfiles,
-      taxonomyTags,
-      existingDuoRoomsByPartnerId
-    );
+    // The viewer's own pods, for the Group Chats list.
+    const joinedPods = hydratedPods
+      .filter((pod) => (membersByPod.get(pod.id) || []).some((m) => m.user_id === userId))
+      .map((pod) => ({ ...pod, is_joined: true }));
 
     return NextResponse.json({
       currentUser,
       taxonomyTags,
       traditions: (traditionRows || []) as Tradition[],
       city,
-      pods: rankedPods,
-      duoMatches,
+      joinedPods,
       duoChats,
     });
   } catch (err) {

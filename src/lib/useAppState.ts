@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  ComputedDuoMatch,
   CurrentUser,
   DuoChat,
   FellowshipPod,
@@ -17,8 +16,7 @@ import {
 interface StatePayload {
   currentUser: CurrentUser;
   taxonomyTags?: TaxonomyTag[];
-  pods?: FellowshipPod[];
-  duoMatches?: ComputedDuoMatch[];
+  joinedPods?: FellowshipPod[];
   duoChats?: DuoChat[];
 }
 
@@ -43,8 +41,7 @@ export function useAppState() {
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [taxonomyTags, setTaxonomyTags] = useState<TaxonomyTag[]>([]);
-  const [pods, setPods] = useState<FellowshipPod[]>([]);
-  const [duoMatches, setDuoMatches] = useState<ComputedDuoMatch[]>([]);
+  const [joinedPods, setJoinedPods] = useState<FellowshipPod[]>([]);
   const [duoChats, setDuoChats] = useState<DuoChat[]>([]);
 
   const [startingDuoId, setStartingDuoId] = useState<string | null>(null);
@@ -55,8 +52,7 @@ export function useAppState() {
     if (data) {
       setCurrentUser(data.currentUser);
       setTaxonomyTags(data.taxonomyTags || []);
-      setPods(data.pods || []);
-      setDuoMatches(data.duoMatches || []);
+      setJoinedPods(data.joinedPods || []);
       setDuoChats(data.duoChats || []);
     }
     setLoading(false);
@@ -128,8 +124,7 @@ export function useAppState() {
     loading,
     currentUser,
     taxonomyTags,
-    pods,
-    duoMatches,
+    joinedPods,
     duoChats,
     tagMap,
     userTagSet,
