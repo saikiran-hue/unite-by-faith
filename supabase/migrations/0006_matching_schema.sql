@@ -86,6 +86,9 @@ create table if not exists public.match_events (
 );
 create index if not exists idx_match_events_viewer_created
   on public.match_events (viewer_id, created_at);
+-- One row per outcome per viewer and target; `shown` may repeat.
+create unique index if not exists uq_match_events_outcome
+  on public.match_events (viewer_id, target_id, event) where event <> 'shown';
 
 insert into public.match_weights (version, is_active, config) values (
   1, true,

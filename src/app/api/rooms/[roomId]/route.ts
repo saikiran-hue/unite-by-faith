@@ -247,7 +247,7 @@ export async function POST(
         .update({ last_message_at: new Date().toISOString() })
         .eq('id', roomId);
 
-      after(() => recordMessageOutcomes(admin, roomId, senderId, new Date()));
+      after(() => recordMessageOutcomes(admin, roomId, msg.id, senderId, new Date()));
 
       return NextResponse.json({ message: msg });
     }

@@ -15,6 +15,7 @@ describe('outcomeEventsForMessage', () => {
         roomCreatedAt: created,
         now: at(1),
         history: [msg('a', 0), msg('b', 1)],
+        priorCount: 0,
         alreadyLogged: new Set(),
       }),
     ).toEqual(['replied']);
@@ -28,6 +29,7 @@ describe('outcomeEventsForMessage', () => {
         roomCreatedAt: created,
         now: at(1),
         history: [msg('a', 0), msg('a', 1)],
+        priorCount: 0,
         alreadyLogged: new Set(),
       }),
     ).toEqual([]);
@@ -43,6 +45,7 @@ describe('outcomeEventsForMessage', () => {
         roomCreatedAt: created,
         now: at(6),
         history: threeEach,
+        priorCount: 2,
         alreadyLogged: new Set(['replied']),
       }),
     ).toEqual(['active_7d']);
@@ -56,6 +59,7 @@ describe('outcomeEventsForMessage', () => {
         roomCreatedAt: created,
         now: at(8),
         history: [...threeEach.slice(0, 5), msg('b', 8)],
+        priorCount: 2,
         alreadyLogged: new Set(['replied']),
       }),
     ).toEqual([]);
@@ -69,6 +73,7 @@ describe('outcomeEventsForMessage', () => {
         roomCreatedAt: created,
         now: at(6),
         history: threeEach,
+        priorCount: 2,
         alreadyLogged: new Set(['replied', 'active_7d']),
       }),
     ).toEqual([]);
@@ -82,6 +87,7 @@ describe('outcomeEventsForMessage', () => {
         roomCreatedAt: created,
         now: at(1),
         history: [msg('a', 0), msg('c', 1)],
+        priorCount: 0,
         alreadyLogged: new Set(),
       }),
     ).toEqual(['replied']);
@@ -95,6 +101,7 @@ describe('outcomeEventsForMessage', () => {
         roomCreatedAt: created,
         now: at(3),
         history: [msg('a', 0), msg('c', 1), msg('c', 3)],
+        priorCount: 1,
         alreadyLogged: new Set(['replied']),
       }),
     ).toEqual(['active_7d']);
@@ -108,8 +115,55 @@ describe('outcomeEventsForMessage', () => {
         roomCreatedAt: created,
         now: at(3),
         history: [msg('a', 0), msg('a', 1), msg('a', 3)],
+        priorCount: 2,
         alreadyLogged: new Set(['replied']),
       }),
     ).toEqual([]);
+  });
+
+  it('first message after the 7-day window still emits replied (duo)', () => {
+    expect(
+      outcomeEventsForMessage({
+        roomType: 'duo_1v1',
+        senderId: 'b',
+        roomCreatedAt: created,
+        now: at(9),
+        history: [],
+        priorCount: 0,
+        connectorId: 'a',
+        alreadyLogged: new Set(),
+      }),
+    ).toEqual(['replied']);
+  });
+
+  it('first message after the window still emits replied (pod)', () => {
+    expect(
+      outcomeEventsForMessage({
+        roomType: 'pod_group',
+        senderId: 'c',
+        roomCreatedAt: created,
+        now: at(9),
+        history: [],
+        priorCount: 0,
+        alreadyLogged: new Set(),
+      }),
+    ).toEqual(['replied']);
+  });
+
+  it('a later message does not catch up an unlogged replied', () => {
+    for (const roomType of ['duo_1v1', 'pod_group'] as const) {
+      expect(
+        outcomeEventsForMessage({
+          roomType,
+          senderId: 'b',
+          roomCreatedAt: created,
+          now: at(2),
+          history: [msg('a', 0), msg('b', 1), msg('b', 2)],
+          priorCount: 1,
+          connectorId: 'a',
+          alreadyLogged: new Set(['active_7d']),
+        }),
+      ).toEqual([]);
+    }
   });
 });
