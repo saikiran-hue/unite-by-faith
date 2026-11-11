@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
-import { ACTIVE_USER_COOKIE } from '@/lib/session';
 
 const AVATAR_POOL = [
   'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=240&auto=format&fit=crop&q=80',
@@ -14,7 +12,6 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const admin = createSupabaseAdminClient();
-    const cookieStore = await cookies();
 
     // 1. Direct believer switch by userId
     if (body.userId) {
@@ -31,11 +28,6 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      cookieStore.set(ACTIVE_USER_COOKIE, profile.id, {
-        path: '/',
-        maxAge: 60 * 60 * 24 * 30,
-        sameSite: 'lax',
-      });
 
       return NextResponse.json({
         userId: profile.id,
@@ -63,11 +55,6 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      cookieStore.set(ACTIVE_USER_COOKIE, signInData.user.id, {
-        path: '/',
-        maxAge: 60 * 60 * 24 * 30,
-        sameSite: 'lax',
-      });
 
       const { data: profile } = await admin
         .from('profiles')
@@ -143,11 +130,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: profErr.message }, { status: 500 });
       }
 
-      cookieStore.set(ACTIVE_USER_COOKIE, newUserId, {
-        path: '/',
-        maxAge: 60 * 60 * 24 * 30,
-        sameSite: 'lax',
-      });
 
       return NextResponse.json({
         userId: newUserId,

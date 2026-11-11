@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
-import { getActiveUserId, DEFAULT_SEED_USER_ID } from '@/lib/session';
+import { requireUserId } from '@/lib/session';
 import { computeDuoMatches, scoreAndRankPods } from '@/lib/matching/engine';
 import {
   PodMemberProfile,
@@ -12,7 +12,9 @@ import {
 export async function GET() {
   try {
     const admin = createSupabaseAdminClient();
-    const requestedUserId = await getActiveUserId();
+    const auth = await requireUserId();
+    if ('response' in auth) return auth.response;
+    const { userId } = auth;
 
     const [
       { data: taxonomyRows, error: taxError },
@@ -70,14 +72,11 @@ export async function GET() {
 
     const profileMap = new Map(allProfiles.map((p) => [p.id, p]));
 
-    const currentUser =
-      profileMap.get(requestedUserId) ||
-      profileMap.get(DEFAULT_SEED_USER_ID) ||
-      allProfiles[0];
+    const currentUser = profileMap.get(userId);
 
     if (!currentUser) {
       return NextResponse.json(
-        { error: 'No community profiles found in database' },
+        { error: 'No profile found for this account' },
         { status: 404 }
       );
     }

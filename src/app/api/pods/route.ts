@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
-import { getActiveUserId } from '@/lib/session';
+import { requireUserId } from '@/lib/session';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const admin = createSupabaseAdminClient();
-    const userId = await getActiveUserId();
+    const auth = await requireUserId();
+    if ('response' in auth) return auth.response;
+    const { userId } = auth;
 
     if (body.action === 'join') {
       const podId = String(body.podId || '');

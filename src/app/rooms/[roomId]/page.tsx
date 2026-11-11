@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import {
   AlertBox,
@@ -55,6 +55,7 @@ function displayText(content: string) {
 
 function FellowshipRoomContent() {
   const params = useParams<{ roomId: string }>();
+  const router = useRouter();
   const roomId = params?.roomId || '';
 
   const [loading, setLoading] = useState(true);
@@ -101,6 +102,10 @@ function FellowshipRoomContent() {
     async (silent = false) => {
       try {
         const res = await fetch(`/api/rooms/${roomId}`);
+        if (res.status === 401) {
+          router.replace('/auth');
+          return;
+        }
         const data = await res.json();
         if (res.ok && data.room) {
           setRoom(data.room);
@@ -123,7 +128,7 @@ function FellowshipRoomContent() {
         if (!silent) setLoading(false);
       }
     },
-    [roomId]
+    [roomId, router]
   );
 
   useEffect(() => {
@@ -193,6 +198,7 @@ function FellowshipRoomContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
+      if (res.status === 401) router.replace('/auth');
       return res.ok;
     } catch {
       return false;
@@ -249,6 +255,7 @@ function FellowshipRoomContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
+      if (res.status === 401) router.replace('/auth');
       return res.ok;
     } catch {
       return false;

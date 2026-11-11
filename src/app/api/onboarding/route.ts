@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
-import { ACTIVE_USER_COOKIE, getActiveUserId } from '@/lib/session';
+import { requireUserId } from '@/lib/session';
 import { PillarCategory } from '@/types/database';
 
 interface IncomingTag {
@@ -14,9 +13,11 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const admin = createSupabaseAdminClient();
-    const cookieStore = await cookies();
+    const auth = await requireUserId();
+    if ('response' in auth) return auth.response;
+    const { userId } = auth;
 
-    let targetUserId = await getActiveUserId();
+    let targetUserId = userId;
 
     const fullName = String(body.fullName || 'Believer').trim();
     const headline = String(
@@ -133,12 +134,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: tagErr.message }, { status: 500 });
       }
     }
-
-    cookieStore.set(ACTIVE_USER_COOKIE, targetUserId, {
-      path: '/',
-      maxAge: 60 * 60 * 24 * 30,
-      sameSite: 'lax',
-    });
 
     return NextResponse.json({
       success: true,

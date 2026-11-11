@@ -1,31 +1,32 @@
-import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { UserProfile, UserTag } from '@/types/database';
 
-export const ACTIVE_USER_COOKIE = 'ubf_active_user_id';
-export const DEFAULT_SEED_USER_ID = '11111111-1111-4111-8111-111111111101';
-
-export async function getActiveUserId(): Promise<string> {
-  const cookieStore = await cookies();
-  const overrideId = cookieStore.get(ACTIVE_USER_COOKIE)?.value;
-  if (overrideId) {
-    return overrideId;
-  }
-
+/** The verified Supabase Auth session user id, or null when signed out. */
+export async function getSessionUserId(): Promise<string | null> {
   try {
     const supabase = await createSupabaseServerClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (user?.id) {
-      return user.id;
-    }
+    return user?.id ?? null;
   } catch {
-    // Fallback to default seed believer if unauthenticated
+    return null;
   }
+}
 
-  return DEFAULT_SEED_USER_ID;
+/** Resolves the signed-in user id, or a 401 `signed_out` response to return. */
+export async function requireUserId(): Promise<
+  { userId: string } | { response: NextResponse }
+> {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    return {
+      response: NextResponse.json({ error: 'signed_out' }, { status: 401 }),
+    };
+  }
+  return { userId };
 }
 
 export async function getHydratedProfile(

@@ -32,8 +32,9 @@ export default function AuthPage() {
 
   useEffect(() => {
     fetch('/api/state')
-      .then((r) => r.json())
+      .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
+        if (!data) return;
         if (data.currentUser) setCurrentUser(data.currentUser);
         if (data.allProfiles) setAllProfiles(data.allProfiles);
       })

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
-import { getActiveUserId, DEFAULT_SEED_USER_ID } from '@/lib/session';
+import { requireUserId } from '@/lib/session';
 import { buildContextualIcebreakers } from '@/lib/matching/engine';
 import {
   ChatMessage,
@@ -17,7 +17,9 @@ export async function GET(
   try {
     const { roomId } = await context.params;
     const admin = createSupabaseAdminClient();
-    const activeUserId = await getActiveUserId();
+    const auth = await requireUserId();
+    if ('response' in auth) return auth.response;
+    const { userId } = auth;
 
     const [
       { data: room, error: roomErr },
@@ -68,10 +70,10 @@ export async function GET(
     }));
     const profileMap = new Map(allProfiles.map((p) => [p.id, p]));
 
-    const currentUser =
-      profileMap.get(activeUserId) ||
-      profileMap.get(DEFAULT_SEED_USER_ID) ||
-      allProfiles[0];
+    const currentUser = profileMap.get(userId);
+    if (!currentUser) {
+      return NextResponse.json({ error: 'signed_out' }, { status: 401 });
+    }
 
     let podDetails = null;
     let participants: {
@@ -199,8 +201,10 @@ export async function POST(
     const { roomId } = await context.params;
     const body = await req.json();
     const admin = createSupabaseAdminClient();
-    const activeUserId = await getActiveUserId();
-    const senderId = body.senderId || activeUserId;
+    const auth = await requireUserId();
+    if ('response' in auth) return auth.response;
+    const { userId } = auth;
+    const senderId = userId;
 
     if (body.action === 'message') {
       const content = String(body.content || '').trim();

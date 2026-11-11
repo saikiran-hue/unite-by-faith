@@ -22,9 +22,13 @@ interface StatePayload {
 }
 
 /** Fetches /api/state (matches scored against saved habits); null on failure. */
-async function loadState(): Promise<StatePayload | null> {
+async function loadState(onSignedOut: () => void): Promise<StatePayload | null> {
   try {
     const res = await fetch('/api/state');
+    if (res.status === 401) {
+      onSignedOut();
+      return null;
+    }
     if (!res.ok) return null;
     return (await res.json()) as StatePayload;
   } catch {
@@ -59,11 +63,15 @@ export function useAppState() {
   }, []);
 
   /** Reloads state; resolves true when fresh matches were loaded. */
-  const fetchState = useCallback(() => loadState().then(apply), [apply]);
+  const signedOut = useCallback(() => router.replace('/auth'), [router]);
+  const fetchState = useCallback(
+    () => loadState(signedOut).then(apply),
+    [apply, signedOut]
+  );
 
   useEffect(() => {
-    void loadState().then(apply);
-  }, [apply]);
+    void loadState(signedOut).then(apply);
+  }, [apply, signedOut]);
 
   const tagMap = useMemo(
     () => new Map(taxonomyTags.map((t) => [t.slug, t])),
@@ -93,6 +101,10 @@ export function useAppState() {
           similarityScore: match.similarity_score,
         }),
       });
+      if (res.status === 401) {
+        router.replace('/auth');
+        return;
+      }
       const data = await res.json();
       if (!res.ok) {
         setActionError(data.error || "Couldn't open the 1v1 chat. Try again.");
