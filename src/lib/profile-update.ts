@@ -67,6 +67,19 @@ const MAX_TAGS = 30;
 const MAX_STARRED = 3;
 const MAX_LANGUAGES = 6;
 
+// [column, max length, error message when empty (null = may be empty)]
+const STRING_RULES: Record<string, [number, string | null]> = {
+  fullName: [80, 'Enter your name.'],
+  headline: [120, 'Add a short headline.'],
+  bio: [600, null],
+  avatarUrl: [500, 'Choose a photo.'],
+  denomination: [120, null],
+  church: [120, null],
+  locationCity: [120, null],
+  yearsInFaith: [120, null],
+  traditionId: [120, null],
+};
+
 const STRING_KEYS = {
   fullName: 'full_name',
   headline: 'headline',
@@ -132,7 +145,11 @@ export function buildProfileUpdate(body: unknown): ProfileUpdate | ProfileUpdate
   for (const [key, col] of Object.entries(STRING_KEYS)) {
     if (!has(key)) continue;
     if (typeof b[key] !== 'string') return bad(key, 'Must be text.');
-    profile[col] = (b[key] as string).trim();
+    const v = (b[key] as string).trim();
+    const [max, emptyMsg] = STRING_RULES[key];
+    if (!v && emptyMsg) return bad(key, emptyMsg);
+    if (v.length > max) return bad(key, `Keep this to ${max} characters or fewer.`);
+    profile[col] = v;
   }
   for (const [key, [col, allowed]] of Object.entries(ENUM_KEYS)) {
     if (!has(key)) continue;
@@ -174,14 +191,14 @@ export function buildProfileUpdate(body: unknown): ProfileUpdate | ProfileUpdate
     priv.gender = b.gender;
   }
   if (has('ageMin')) {
-    if (typeof b.ageMin !== 'number' || !Number.isInteger(b.ageMin) || b.ageMin < 18) {
-      return bad('ageMin', 'Minimum age must be a whole number, 18 or over.');
+    if (typeof b.ageMin !== 'number' || !Number.isInteger(b.ageMin) || b.ageMin < 18 || b.ageMin > 99) {
+      return bad('ageMin', 'Minimum age must be a whole number from 18 to 99.');
     }
     priv.age_min = b.ageMin;
   }
   if (has('ageMax')) {
-    if (typeof b.ageMax !== 'number' || !Number.isInteger(b.ageMax)) {
-      return bad('ageMax', 'Maximum age must be a whole number.');
+    if (typeof b.ageMax !== 'number' || !Number.isInteger(b.ageMax) || b.ageMax < 18 || b.ageMax > 99) {
+      return bad('ageMax', 'Maximum age must be a whole number from 18 to 99.');
     }
     priv.age_max = b.ageMax;
   }

@@ -64,4 +64,24 @@ describe('buildProfileUpdate', () => {
     const many = Array.from({ length: 31 }, (_, i) => tag(`t${i}`));
     expect(buildProfileUpdate({ tags: many })).toMatchObject({ error: { field: 'tags' } });
   });
+
+  it('rejects empty or blank fullName, headline, avatarUrl; allows empty bio', () => {
+    expect(buildProfileUpdate({ fullName: '  ' })).toEqual({ error: { field: 'fullName', message: 'Enter your name.' } });
+    expect(buildProfileUpdate({ headline: '' })).toEqual({ error: { field: 'headline', message: 'Add a short headline.' } });
+    expect(buildProfileUpdate({ avatarUrl: ' ' })).toEqual({ error: { field: 'avatarUrl', message: 'Choose a photo.' } });
+    expect(buildProfileUpdate({ bio: '', church: '' })).toEqual({ profile: { bio: '', church_or_fellowship: '' }, private: {} });
+  });
+
+  it('enforces length caps at the boundary', () => {
+    expect(buildProfileUpdate({ fullName: 'a'.repeat(80) })).toMatchObject({ profile: {} });
+    expect(buildProfileUpdate({ fullName: 'a'.repeat(81) })).toMatchObject({ error: { field: 'fullName' } });
+    expect(buildProfileUpdate({ bio: 'a'.repeat(601) })).toMatchObject({ error: { field: 'bio' } });
+  });
+
+  it('bounds ages to 18..99, including ageMax alone', () => {
+    expect(buildProfileUpdate({ ageMax: 17 })).toMatchObject({ error: { field: 'ageMax' } });
+    expect(buildProfileUpdate({ ageMax: 100 })).toMatchObject({ error: { field: 'ageMax' } });
+    expect(buildProfileUpdate({ ageMin: 100 })).toMatchObject({ error: { field: 'ageMin' } });
+    expect(buildProfileUpdate({ ageMax: 99 })).toMatchObject({ private: { age_max: 99 } });
+  });
 });

@@ -87,7 +87,8 @@ export async function POST(req: NextRequest) {
     }
 
     if (tagRows) {
-      await admin.from('user_tags').delete().eq('user_id', userId);
+      const { error: delErr } = await admin.from('user_tags').delete().eq('user_id', userId);
+      if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 });
       if (tagRows.length > 0) {
         const { error } = await admin.from('user_tags').insert(tagRows);
         if (error) return NextResponse.json({ error: error.message }, { status: 500 });
