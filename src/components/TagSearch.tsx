@@ -13,7 +13,6 @@ interface Hit {
 
 type Result =
   | { kind: 'idle' }
-  | { kind: 'loading' }
   | { kind: 'hits'; source: 'text' | 'meaning'; tags: Hit[] }
   | { kind: 'none' }
   | { kind: 'error' };
@@ -31,6 +30,7 @@ export function TagSearch({ category, picked, onPick }: TagSearchProps) {
   const id = useId();
   const [query, setQuery] = useState('');
   const [result, setResult] = useState<Result>({ kind: 'idle' });
+  const [loading, setLoading] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const seq = useRef(0);
 
@@ -46,6 +46,7 @@ export function TagSearch({ category, picked, onPick }: TagSearchProps) {
     try {
       const res = await fetch(`/api/tags/search?q=${encodeURIComponent(q)}`);
       if (mine !== seq.current) return;
+      setLoading(false);
       if (!res.ok) {
         setResult({ kind: 'error' });
         return;
@@ -55,7 +56,10 @@ export function TagSearch({ category, picked, onPick }: TagSearchProps) {
       const tags = (data.tags ?? []).filter((t) => !category || t.category === category);
       setResult(data.source === 'none' || !tags.length ? { kind: 'none' } : { kind: 'hits', source: data.source, tags });
     } catch {
-      if (mine === seq.current) setResult({ kind: 'error' });
+      if (mine === seq.current) {
+        setLoading(false);
+        setResult({ kind: 'error' });
+      }
     }
   }
 
@@ -65,15 +69,16 @@ export function TagSearch({ category, picked, onPick }: TagSearchProps) {
     const q = value.trim();
     const mine = ++seq.current;
     if (!q) {
+      setLoading(false);
       setResult({ kind: 'idle' });
       return;
     }
-    setResult({ kind: 'loading' });
+    setLoading(true);
     timer.current = setTimeout(() => void run(q, mine), DEBOUNCE_MS);
   }
 
   let status = '';
-  if (result.kind === 'loading') status = 'Searching…';
+  if (loading) status = 'Searching…';
   else if (result.kind === 'none') status = "We don't have that yet. We've noted it.";
   else if (result.kind === 'error') status = "Search isn't working right now. Try again in a moment.";
   else if (result.kind === 'hits') status = `${result.tags.length} found`;

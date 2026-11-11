@@ -64,6 +64,7 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
   const [starred, setStarred] = useState<string[]>([]);
   const [levels, setLevels] = useState<Record<string, Level>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [retired, setRetired] = useState(false);
   const [saving, setSaving] = useState(false);
   const [starHint, setStarHint] = useState(false);
   const [error, setError] = useState<[string, string] | null>(null);
@@ -90,15 +91,16 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
   const savedLevels = new Map(user.tags.map((t) => [t.tag_slug, (t.level ?? DEFAULT_LEVEL) as Level]));
 
   function openEditor() {
-    setPicked(savedPicked);
-    setStarred([...savedStarred]);
-    setLevels(Object.fromEntries(savedLevels));
+    const keep = (s: string) => tagMap.get(s)?.is_active !== false;
+    setPicked(savedPicked.filter(keep));
+    setStarred([...savedStarred].filter(keep));
+    setLevels(Object.fromEntries([...savedLevels].filter(([s]) => keep(s))));
+    setRetired(savedPicked.some((s) => !keep(s)));
     setExpanded({});
     setError(null);
     setStarHint(false);
     setEditing(true);
   }
-  const startEditing = openEditor;
 
   function cancel() {
     setError(null);
@@ -263,6 +265,7 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
             );
           })}
         </div>
+        {retired && <Note style={{ marginTop: 16 }}>A habit you picked is no longer offered and was removed.</Note>}
         {error && (
           <div style={{ marginTop: 16 }}>
             <AlertBox title={error[0]} text={error[1]} />
@@ -302,7 +305,7 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
           title="Pick Your First Habits"
           text="Habits are the things you do and love. Pick at least 3 and we will match you with people who share them, faith first."
         >
-          <Btn variant="btn-amber" icon="plus" onClick={startEditing} ref={editBtnRef}>
+          <Btn variant="btn-amber" icon="plus" onClick={openEditor} ref={editBtnRef}>
             Choose Habits
           </Btn>
         </Empty>
@@ -322,7 +325,7 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
             {savedPicked.length} habits, {savedStarred.size} starred. Starred habits count double.
           </p>
         </div>
-        <Btn variant="btn-outline" icon="pencil" onClick={startEditing} ref={editBtnRef}>
+        <Btn variant="btn-outline" icon="pencil" onClick={openEditor} ref={editBtnRef}>
           Edit Habits
         </Btn>
       </div>
