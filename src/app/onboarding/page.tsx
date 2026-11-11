@@ -56,8 +56,11 @@ export default function OnboardingPage() {
   const [picked, setPicked] = useState<string[]>([]);
   const [starred, setStarred] = useState<string[]>([]);
 
+  const [fieldErr, setFieldErr] = useState<{ id: 'name' | 'headline'; message: string } | null>(null);
+
   const headingRef = useRef<HTMLHeadingElement>(null);
   const focusHeading = useRef(false);
+  const focusField = useRef<string | null>(null);
 
   function fillFrom(u: UserProfile | null) {
     setFullName(u?.full_name ?? '');
@@ -96,8 +99,10 @@ export default function OnboardingPage() {
   }, [loadInitialState]);
 
   useEffect(() => {
-    if (focusHeading.current) headingRef.current?.focus();
+    if (focusField.current) document.getElementById(`pf-${focusField.current}`)?.focus();
+    else if (focusHeading.current) headingRef.current?.focus();
     focusHeading.current = false;
+    focusField.current = null;
   }, [step]);
 
   const tagMap = useMemo(() => new Map(taxonomyTags.map((t) => [t.slug, t])), [taxonomyTags]);
@@ -106,6 +111,20 @@ export default function OnboardingPage() {
     focusHeading.current = true;
     setStep(n);
     setError(null);
+    setFieldErr(null);
+  }
+
+  /** Shows an inline error on a required About You field and moves focus to it. */
+  function showFieldError(id: 'name' | 'headline', message: string) {
+    focusField.current = id;
+    setError(null);
+    setFieldErr({ id, message });
+    if (step === 1) {
+      document.getElementById(`pf-${id}`)?.focus();
+      focusField.current = null;
+    } else {
+      setStep(1);
+    }
   }
 
   function toggle(slug: string) {
@@ -136,11 +155,11 @@ export default function OnboardingPage() {
       return;
     }
     if (!fullName.trim()) {
-      setError([
-        'Add your name.',
-        `Your name is empty. Tap Go to About You, fill in Name, then tap ${finishLabel}.`,
-        { label: 'Go to About You', onClick: () => goStep(1) },
-      ]);
+      showFieldError('name', 'Enter your name.');
+      return;
+    }
+    if (!headline.trim()) {
+      showFieldError('headline', 'Add a short headline.');
       return;
     }
 
@@ -150,6 +169,7 @@ export default function OnboardingPage() {
     ];
     setSaving(true);
     setError(null);
+    setFieldErr(null);
     try {
       const res = await fetch('/api/onboarding', {
         method: 'POST',
@@ -164,7 +184,7 @@ export default function OnboardingPage() {
           yearsInFaith,
           fellowshipMode,
           onboardingCompleted: true,
-          avatarUrl: currentUser?.avatar_url,
+          ...(currentUser?.avatar_url ? { avatarUrl: currentUser.avatar_url } : {}),
           selectedTags: picked.map((slug) => ({
             slug,
             category: tagMap.get(slug)?.category ?? 'faith',
@@ -173,7 +193,15 @@ export default function OnboardingPage() {
         }),
       });
       if (!res.ok) {
-        setError(failed);
+        const data = res.status < 500 ? await res.json().catch(() => null) : null;
+        const fe = data?.error;
+        if (fe && typeof fe.field === 'string' && typeof fe.message === 'string') {
+          if (fe.field === 'fullName') showFieldError('name', fe.message);
+          else if (fe.field === 'headline') showFieldError('headline', fe.message);
+          else setError([fe.message, `Check ${fe.field}, then tap ${finishLabel} again.`]);
+        } else {
+          setError(failed);
+        }
         return;
       }
       router.replace('/');
@@ -210,9 +238,12 @@ export default function OnboardingPage() {
   const mode = MODES.find((m) => m.mode === fellowshipMode) ?? MODES[0];
 
   function field(id: string, label: string, value: string, set: (v: string) => void, ph?: string, opts?: string[]) {
+    const required = id === 'name' || id === 'headline';
+    const err = fieldErr?.id === id ? fieldErr.message : null;
     return (
       <div className="field">
         <label htmlFor={`pf-${id}`}>{label}</label>
+        {required && <span className="hint">Required</span>}
         {opts ? (
           <select className="input" id={`pf-${id}`} value={value} onChange={(e) => set(e.target.value)}>
             {opts.map((o) => (
@@ -225,8 +256,18 @@ export default function OnboardingPage() {
             id={`pf-${id}`}
             value={value}
             placeholder={ph}
-            onChange={(e) => set(e.target.value)}
+            aria-invalid={err ? true : undefined}
+            aria-describedby={err ? `pf-${id}-err` : undefined}
+            onChange={(e) => {
+              set(e.target.value);
+              if (err) setFieldErr(null);
+            }}
           />
+        )}
+        {err && (
+          <span className="hint" id={`pf-${id}-err`} role="alert" style={{ color: 'var(--u-danger)' }}>
+            {err}
+          </span>
         )}
       </div>
     );
