@@ -149,7 +149,9 @@ SCORE="$(echo "$out" | sed -n 's/.*"similarity_score":\([0-9.]*\).*/\1/p')"
 [ -n "$SCORE" ] && [ "$SCORE" != "5" ] && echo "PASS stored score is server-side ($SCORE, client sent 5)" || { echo "FAIL stored score: $out"; fail=1; }
 out="$(api "$JAR2" duos "$(printf '{"partnerId":"%s"}' "$DANIEL")")"
 check "connect again returns the same room" "$ROOM1" "$(echo "$out" | sed -n 's/.*"chat_room_id":"\([^"]*\)".*/\1/p')"
-out="$(api "$JAR2" pods "$(printf '{"action":"join","podId":"%s"}' "$POD_IN")")"; check "Caleb joins an eligible pod" 200 "${out##* }"
+# Pod ...303 (room ...203), so ROOM_OUT above stays a room Caleb is not in on a re-run.
+POD_JOIN="33333333-3333-4333-8333-333333333303"
+out="$(api "$JAR2" pods "$(printf '{"action":"join","podId":"%s"}' "$POD_JOIN")")"; check "Caleb joins an eligible pod" 200 "${out##* }"
 out="$(api "$JAR2" pods '{"action":"create","title":"Check pod","description":"made by check-identity"}')"; check "create group is not blocked" 200 "${out##* }"
 
 # --- search_tags_vector is not callable by anon (M4) ---
