@@ -1,6 +1,6 @@
 import { BookOpen, Code, Coffee, Guitar, type LucideIcon } from 'lucide-react';
 import { PillarCategory, TaxonomyTag } from '@/types/database';
-import { PILLAR_WEIGHTS } from '@/lib/matching/pillar-weights';
+import { categoryShare } from '@/lib/matching/pillar-weights';
 
 export interface PillarMeta {
   key: PillarCategory;
@@ -8,7 +8,7 @@ export interface PillarMeta {
   /** Short description of what the pillar covers */
   blurb: string;
   icon: LucideIcon;
-  /** Matching weight as a whole percentage, derived from the engine */
+  /** Engine share this pillar feeds, as a whole percentage (Faith 40, Interests 35) */
   weight: number;
   /** CSS variable for the pillar fill (icons, dots) */
   fill: string;
@@ -20,7 +20,7 @@ export interface PillarMeta {
   tintClass: string;
 }
 
-const pct = (k: PillarCategory) => Math.round(PILLAR_WEIGHTS[k] * 100);
+const pct = (k: PillarCategory) => categoryShare(k);
 
 /** Ordered by importance: faith is the core, tech & skills is one interest among others. */
 export const PILLARS: PillarMeta[] = [

@@ -181,7 +181,9 @@ export function CatHead({ cat, extra }: { cat: Cat; extra?: React.ReactNode }) {
         <div className="grow">
           <h3 className="cat-name">{cat.name}</h3>
           <p className="small" style={{ fontSize: 12 }}>
-            {cat.weight}% of your match
+            {cat.key === 'faith'
+              ? `${cat.weight}% of your match`
+              : `Part of Interests, ${cat.weight}% of your match`}
           </p>
         </div>
         {cat.key === 'faith' && <span className="tag core">Core</span>}

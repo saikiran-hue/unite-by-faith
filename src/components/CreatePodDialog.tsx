@@ -86,6 +86,10 @@ export function CreatePodDialog({ open, onClose, tagMap, habits, starred }: Crea
           anchorTags: picked,
         }),
       });
+      if (res.status === 401) {
+        router.replace('/auth');
+        return;
+      }
       const data = await res.json();
       if (!res.ok) {
         setFailed(true);

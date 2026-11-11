@@ -140,6 +140,10 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'join', podId: pod.id }),
       });
+      if (res.status === 401) {
+        router.replace('/auth');
+        return;
+      }
       if (!res.ok) {
         setJoinFailedId(pod.id);
         return;

@@ -152,4 +152,10 @@ check "connect again returns the same room" "$ROOM1" "$(echo "$out" | sed -n 's/
 out="$(api "$JAR2" pods "$(printf '{"action":"join","podId":"%s"}' "$POD_IN")")"; check "Caleb joins an eligible pod" 200 "${out##* }"
 out="$(api "$JAR2" pods '{"action":"create","title":"Check pod","description":"made by check-identity"}')"; check "create group is not blocked" 200 "${out##* }"
 
+# --- search_tags_vector is not callable by anon (M4) ---
+VEC="$(python3 -c 'print("[" + ",".join(["0"]*384) + "]")' 2>/dev/null)"
+VEC_JSON="$(printf '{"q":"%s","k":1}' "$VEC")"
+out="$(rest "$ANON" POST rpc/search_tags_vector "$VEC_JSON")"; check "anon rpc search_tags_vector denied" 401 "${out##* }"
+out="$(rest "$TOKEN" POST rpc/search_tags_vector "$VEC_JSON")"; check "authenticated rpc search_tags_vector allowed" 200 "${out##* }"
+
 exit $fail

@@ -158,3 +158,7 @@ revoke execute on function public.duo_pair_allowed(uuid, uuid) from public, anon
 revoke execute on function public.pod_join_allowed(uuid, uuid) from public, anon, authenticated;
 grant execute on function public.duo_pair_allowed(uuid, uuid) to service_role;
 grant execute on function public.pod_join_allowed(uuid, uuid) to service_role;
+
+-- search_tags_vector: 0009 granted authenticated but left the default public/anon grant.
+revoke execute on function public.search_tags_vector(extensions.vector, int) from public, anon;
+grant execute on function public.search_tags_vector(extensions.vector, int) to authenticated, service_role;

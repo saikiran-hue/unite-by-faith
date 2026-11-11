@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Level, TaxonomyTag, UserProfile } from '@/types/database';
 import { CATS } from '@/lib/cats';
 import { AlertBox, Btn, CatHead, Empty, HabitChips, Icon, Note, sortHabits } from '@/components/ubf';
@@ -65,6 +66,7 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
   const [levels, setLevels] = useState<Record<string, Level>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [retired, setRetired] = useState(false);
+  const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [starHint, setStarHint] = useState(false);
   const [error, setError] = useState<[string, string] | null>(null);
@@ -158,6 +160,10 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
           })),
         }),
       });
+      if (res.status === 401) {
+        router.replace('/auth');
+        return;
+      }
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
         const message = res.status < 500 ? body?.error?.message : undefined;

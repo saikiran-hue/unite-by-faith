@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { AlertBox, Btn, CatHead, HabitChips, Icon, Note, sortHabits, type IconName } from '@/components/ubf';
 import { CATS } from '@/lib/cats';
+import { MATCH_SPLIT } from '@/lib/matching/pillar-weights';
 import { LifeFitFields } from '@/components/LifeFitFields';
 import {
   FIELD_TO_ID,
@@ -231,6 +232,10 @@ export default function OnboardingPage() {
             : {}),
         }),
       });
+      if (res.status === 401) {
+        router.replace('/auth');
+        return;
+      }
       if (!res.ok) {
         const data = res.status < 500 ? await res.json().catch(() => null) : null;
         const fe = data?.error;
@@ -338,6 +343,10 @@ export default function OnboardingPage() {
   } else if (step === LIFE_STEP) {
     body = (
       <div id={LIFE_ANCHOR}>
+        <p className="sub" style={{ marginBottom: 12 }}>
+          Life fit is {MATCH_SPLIT.lifeFit}% of your match. Faith is {MATCH_SPLIT.faith}% and your interests{' '}
+          {MATCH_SPLIT.interests}%.
+        </p>
         <LifeFitFields
           key={currentUser?.id}
           value={lifeFit}
