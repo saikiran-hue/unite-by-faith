@@ -33,6 +33,19 @@ export interface TaxonomyTag {
   is_active?: boolean;
 }
 
+export interface Tradition {
+  id: string;
+  name: string;
+  family: string;
+  sort_order: number;
+}
+
+export interface City {
+  id: number;
+  name: string;
+  country_code: string;
+}
+
 export interface UserTag {
   user_id: string;
   tag_slug: string;

@@ -7,6 +7,7 @@ import {
   PodMemberProfile,
   ProfilePrivate,
   TaxonomyTag,
+  Tradition,
   UserProfile,
   UserTag,
 } from '@/types/database';
@@ -30,6 +31,7 @@ export async function GET() {
       { data: podMemberRows, error: pmError },
       { data: duoRows, error: duoError },
       { data: privateRow, error: privError },
+      { data: traditionRows, error: tradError },
     ] = await Promise.all([
       admin
         .from('taxonomy_tags')
@@ -53,9 +55,10 @@ export async function GET() {
         )
         .eq('user_id', userId)
         .maybeSingle(),
+      admin.from('traditions').select('id, name, family, sort_order').order('sort_order', { ascending: true }),
     ]);
 
-    if (taxError || profError || tagError || podError || pmError || duoError || privError) {
+    if (taxError || profError || tagError || podError || pmError || duoError || privError || tradError) {
       return NextResponse.json(
         {
           error:
@@ -65,7 +68,8 @@ export async function GET() {
             podError?.message ||
             pmError?.message ||
             duoError?.message ||
-            privError?.message,
+            privError?.message ||
+            tradError?.message,
         },
         { status: 500 }
       );
@@ -100,6 +104,17 @@ export async function GET() {
       ...profile,
       private: (privateRow as ProfilePrivate | null) ?? null,
     };
+
+    let city: { id: number; name: string; country_code: string } | null = null;
+    if (profile.location_city_id) {
+      const { data: cityRow, error: cityError } = await admin
+        .from('cities')
+        .select('id, name, country_code')
+        .eq('id', profile.location_city_id)
+        .maybeSingle();
+      if (cityError) return NextResponse.json({ error: cityError.message }, { status: 500 });
+      city = cityRow;
+    }
 
     // Hydrate pod members
     const membersByPod = new Map<string, PodMemberProfile[]>();
@@ -153,6 +168,8 @@ export async function GET() {
     return NextResponse.json({
       currentUser,
       taxonomyTags,
+      traditions: (traditionRows || []) as Tradition[],
+      city,
       pods: rankedPods,
       duoMatches,
       duoChats,

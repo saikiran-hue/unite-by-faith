@@ -1,8 +1,30 @@
 'use client';
 
-import { ComputedDuoMatch, FellowshipPod, TaxonomyTag } from '@/types/database';
+import { FellowshipPod, TaxonomyTag } from '@/types/database';
 import { podCover } from '@/lib/sample-content';
 import { AlertBox, Btn, HabitChips, Icon, ScorePill, reasonLine, sortHabits } from '@/components/ubf';
+
+/** One 1v1 result from GET /api/match?kind=duo (Task 16 adds the breakdown and reasons to the card). */
+export interface DuoResult {
+  partner: {
+    id: string;
+    full_name: string;
+    avatar_url: string;
+    headline: string;
+    denomination_or_tradition: string;
+    city: string | null;
+    tradition: { id: string; name: string } | null;
+    tags: { slug: string }[];
+  };
+  existing_chat_room_id: string | null;
+  score: number;
+}
+
+/** One group result from GET /api/match?kind=pods. */
+export type PodResult = Omit<FellowshipPod, 'created_by' | 'members' | 'affinity_score' | 'overlapping_tags' | 'members'> & {
+  members: { user_id: string; profile: { full_name: string; avatar_url: string } }[];
+  score: number;
+};
 
 /* ------------------------------------------------------------------ */
 /* 1v1 match tile                                                      */
@@ -10,22 +32,25 @@ import { AlertBox, Btn, HabitChips, Icon, ScorePill, reasonLine, sortHabits } fr
 
 export function DuoCard({
   match,
+  shared,
   tagMap,
   starred,
   busy,
   countUp,
   onConnect,
 }: {
-  match: ComputedDuoMatch;
+  match: DuoResult;
+  /** Habit slugs both people have picked. */
+  shared: string[];
   tagMap: Map<string, TaxonomyTag>;
   starred: Set<string>;
   busy: boolean;
   countUp?: boolean;
-  onConnect: (match: ComputedDuoMatch) => void;
+  onConnect: (match: DuoResult) => void;
 }) {
   const p = match.partner;
   const first = p.full_name.split(' ')[0];
-  const shared = sortHabits(match.shared_tags, tagMap, starred);
+  const sharedSorted = sortHabits(shared, tagMap, starred);
   return (
     <li className="card mcard spot">
       <div className="m-top">
@@ -37,23 +62,25 @@ export function DuoCard({
           <p className="meta">
             <span>
               <Icon name="church" />
-              {p.denomination_or_tradition}
+              {p.tradition?.name ?? p.denomination_or_tradition}
             </span>
             <span>
               <Icon name="pinmap" />
-              {p.location_city}
+              {p.city}
             </span>
           </p>
         </div>
-        <ScorePill pct={match.similarity_score} countUp={countUp} />
+        <ScorePill pct={match.score} countUp={countUp} />
       </div>
-      <p className="reason">
-        <span>{reasonLine(match.shared_tags, tagMap)}</span>
-        <span className="rc">
-          <Icon name="check" />
-        </span>
-      </p>
-      <HabitChips slugs={shared} tagMap={tagMap} starred={starred} max={5} />
+      {shared.length > 0 && (
+        <p className="reason">
+          <span>{reasonLine(shared, tagMap)}</span>
+          <span className="rc">
+            <Icon name="check" />
+          </span>
+        </p>
+      )}
+      <HabitChips slugs={sharedSorted} tagMap={tagMap} starred={starred} max={5} />
       {match.existing_chat_room_id ? (
         <Btn variant="btn-outline indigo block" icon="chat" onClick={() => onConnect(match)}>
           Continue with {first}
@@ -92,14 +119,14 @@ export function PodCard({
   onJoin,
   onOpen,
 }: {
-  pod: FellowshipPod;
+  pod: PodResult;
   tagMap: Map<string, TaxonomyTag>;
   starred: Set<string>;
   busy: boolean;
   failed: boolean;
   countUp?: boolean;
-  onJoin: (pod: FellowshipPod) => void;
-  onOpen: (pod: FellowshipPod) => void;
+  onJoin: (pod: PodResult) => void;
+  onOpen: (pod: PodResult) => void;
 }) {
   const n = pod.members.length || pod.member_count;
   const open = Math.max(0, pod.max_members - n);
@@ -109,7 +136,7 @@ export function PodCard({
       <div className="p-cover">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={podCover(pod.title, pod.anchor_tags)} alt="" />
-        <ScorePill pct={pod.affinity_score} countUp={countUp} className="amber" />
+        <ScorePill pct={pod.score} countUp={countUp} className="amber" />
         {pod.is_joined && (
           <span className="badge">
             <Icon name="check" />

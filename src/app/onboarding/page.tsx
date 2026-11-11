@@ -5,34 +5,28 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { AlertBox, Btn, CatHead, HabitChips, Icon, sortHabits, type IconName } from '@/components/ubf';
 import { CATS } from '@/lib/cats';
-import { FellowshipMode, TaxonomyTag, UserProfile } from '@/types/database';
+import { LifeFitFields } from '@/components/LifeFitFields';
+import {
+  FIELD_TO_ID,
+  LIFE_FIT_ORDER,
+  lifeFitBody,
+  lifeFitFrom,
+  validateLifeFit,
+  type LifeFitId,
+  type LifeFitValue,
+} from '@/lib/life-fit';
+import { City, CurrentUser, FellowshipMode, TaxonomyTag, Tradition } from '@/types/database';
 
-const STEPS = ['About You', 'Faith & Hobbies', 'Tastes, Tech & Skills'];
+const STEPS = ['About You', 'Life fit', 'Faith & Hobbies', 'Tastes, Tech & Skills'];
+const LIFE_STEP = 2;
+const LIFE_ANCHOR = 'life-fit';
 const MODES: { mode: FellowshipMode; title: string; desc: string; icon: IconName }[] = [
   { mode: 'both', title: 'Pods + 1v1 Duos', desc: 'Open to groups and one-to-one friends.', icon: 'users' },
   { mode: 'group_only', title: 'Fellowship Pods Only', desc: 'Small circles of 3 to 4 people.', icon: 'users' },
   { mode: 'duo_only', title: '1v1 Duo Only', desc: 'One friend at a time.', icon: 'user' },
 ];
-const TRADITIONS = [
-  'Evangelical',
-  'Baptist',
-  'Catholic',
-  'Church of South India',
-  'Mar Thoma',
-  'Methodist',
-  'Orthodox',
-  'Pentecostal',
-  'Non-denominational',
-  'Other',
-];
-const SEASONS = ['Exploring', 'New Believer', 'Growing Deeper', 'Serving & Leading'];
 const MIN_HABITS = 3;
 const MAX_STARRED = 3;
-
-/** Option list from the design, plus the stored value if it is not in it, so saving never changes it unseen. */
-function withStored(opts: string[], value: string) {
-  return value && !opts.includes(value) ? [value, ...opts] : opts;
-}
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -40,7 +34,10 @@ export default function OnboardingPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<[string, string, { label: string; onClick: () => void }?] | null>(null);
 
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [traditions, setTraditions] = useState<Tradition[]>([]);
+  const [lifeFit, setLifeFit] = useState<LifeFitValue>(() => lifeFitFrom(null, null));
+  const [lfErr, setLfErr] = useState<Partial<Record<LifeFitId, string>>>({});
   const [taxonomyTags, setTaxonomyTags] = useState<TaxonomyTag[]>([]);
 
   const [step, setStep] = useState(1);
@@ -48,10 +45,7 @@ export default function OnboardingPage() {
   const [fullName, setFullName] = useState('');
   const [headline, setHeadline] = useState('');
   const [bio, setBio] = useState('');
-  const [denomination, setDenomination] = useState(TRADITIONS[0]);
   const [church, setChurch] = useState('');
-  const [locationCity, setLocationCity] = useState('');
-  const [yearsInFaith, setYearsInFaith] = useState('Growing Deeper');
   const [fellowshipMode, setFellowshipMode] = useState<FellowshipMode>('both');
   const [picked, setPicked] = useState<string[]>([]);
   const [starred, setStarred] = useState<string[]>([]);
@@ -62,14 +56,13 @@ export default function OnboardingPage() {
   const focusHeading = useRef(false);
   const focusField = useRef<string | null>(null);
 
-  function fillFrom(u: UserProfile | null) {
+  function fillFrom(u: CurrentUser | null, city: City | null) {
     setFullName(u?.full_name ?? '');
     setHeadline(u?.headline ?? '');
     setBio(u?.bio ?? '');
-    setDenomination(u?.denomination_or_tradition || TRADITIONS[0]);
     setChurch(u?.church_or_fellowship ?? '');
-    setLocationCity(u?.location_city ?? '');
-    setYearsInFaith(u?.years_in_faith || 'Growing Deeper');
+    setLifeFit(lifeFitFrom(u, city));
+    setLfErr({});
     setFellowshipMode(u?.fellowship_mode || 'both');
     setPicked(u?.tags.map((t) => t.tag_slug) ?? []);
     setStarred(u?.tags.filter((t) => t.is_priority).map((t) => t.tag_slug) ?? []);
@@ -80,14 +73,17 @@ export default function OnboardingPage() {
       const res = await fetch('/api/state');
       const data = await res.json();
       if (res.ok && data.currentUser) {
-        const u: UserProfile = data.currentUser;
+        const u: CurrentUser = data.currentUser;
         setCurrentUser(u);
+        setTraditions((data.traditions || []) as Tradition[]);
         setTaxonomyTags(
           [...((data.taxonomyTags || []) as TaxonomyTag[])].sort((a, b) => a.sort_order - b.sort_order)
         );
-        setStep(1);
+        const toLifeFit = window.location.hash === `#${LIFE_ANCHOR}`;
+        if (toLifeFit) focusHeading.current = true;
+        setStep(toLifeFit ? LIFE_STEP : 1);
         setError(null);
-        fillFrom(u);
+        fillFrom(u, (data.city as City | null) ?? null);
       }
     } finally {
       setLoading(false);
@@ -112,6 +108,22 @@ export default function OnboardingPage() {
     setStep(n);
     setError(null);
     setFieldErr(null);
+    setLfErr({});
+  }
+
+  /** Shows errors on the Life fit step and moves focus to the first one. */
+  function showLifeFitErrors(errs: Partial<Record<LifeFitId, string>>) {
+    const first = LIFE_FIT_ORDER.find((id) => errs[id]);
+    setError(null);
+    setFieldErr(null);
+    setLfErr(errs);
+    if (first) focusField.current = first;
+    if (step === LIFE_STEP) {
+      if (first) document.getElementById(`pf-${first}`)?.focus();
+      focusField.current = null;
+    } else {
+      setStep(LIFE_STEP);
+    }
   }
 
   /** Shows an inline error on a required About You field and moves focus to it. */
@@ -163,6 +175,12 @@ export default function OnboardingPage() {
       return;
     }
 
+    const lifeErrs = validateLifeFit(lifeFit);
+    if (Object.keys(lifeErrs).length > 0) {
+      showLifeFitErrors(lifeErrs);
+      return;
+    }
+
     const failed: [string, string] = [
       'We couldn’t save your profile.',
       `Your details are still here. Check your connection and tap ${finishLabel} again.`,
@@ -178,10 +196,11 @@ export default function OnboardingPage() {
           fullName,
           headline,
           bio,
-          denomination,
           church,
-          locationCity,
-          yearsInFaith,
+          ...lifeFitBody(lifeFit),
+          // Keep the older text columns in step with the picked city and tradition.
+          locationCity: lifeFit.cityName,
+          denomination: traditions.find((t) => t.id === lifeFit.traditionId)?.name ?? '',
           fellowshipMode,
           onboardingCompleted: true,
           ...(currentUser?.avatar_url ? { avatarUrl: currentUser.avatar_url } : {}),
@@ -198,6 +217,7 @@ export default function OnboardingPage() {
         if (fe && typeof fe.field === 'string' && typeof fe.message === 'string') {
           if (fe.field === 'fullName') showFieldError('name', fe.message);
           else if (fe.field === 'headline') showFieldError('headline', fe.message);
+          else if (FIELD_TO_ID[fe.field]) showLifeFitErrors({ [FIELD_TO_ID[fe.field]]: fe.message });
           else setError([fe.message, `Check ${fe.field}, then tap ${finishLabel} again.`]);
         } else {
           setError(failed);
@@ -281,14 +301,7 @@ export default function OnboardingPage() {
           {field('name', 'Name', fullName, setFullName)}
           {field('headline', 'Headline', headline, setHeadline, 'e.g. Teacher who loves long runs')}
         </div>
-        <div className="two">
-          {field('trad', 'Tradition or Denomination', denomination, setDenomination, '', withStored(TRADITIONS, denomination))}
-          {field('city', 'City', locationCity, setLocationCity, 'e.g. Bengaluru')}
-        </div>
-        <div className="two">
-          {field('church', 'Church', church, setChurch, 'Where you worship, if you have one')}
-          {field('season', 'Season in Faith', yearsInFaith, setYearsInFaith, '', withStored(SEASONS, yearsInFaith))}
-        </div>
+        {field('church', 'Church', church, setChurch, 'Where you worship, if you have one')}
         <div className="field">
           <label htmlFor="pf-intro">Short Intro</label>
           <span className="hint">Two or three lines people see on your match card.</span>
@@ -302,12 +315,26 @@ export default function OnboardingPage() {
         </div>
       </div>
     );
+  } else if (step === LIFE_STEP) {
+    body = (
+      <div id={LIFE_ANCHOR}>
+        <LifeFitFields
+          key={currentUser?.id}
+          value={lifeFit}
+          onChange={setLifeFit}
+          errors={lfErr}
+          clearError={(id) => setLfErr((e) => (e[id] ? { ...e, [id]: undefined } : e))}
+          traditions={traditions}
+          birthDate={currentUser?.private?.birth_date ?? null}
+        />
+      </div>
+    );
   } else {
-    const cats = step === 2 ? CATS.slice(0, 2) : CATS.slice(2);
+    const cats = step === 3 ? CATS.slice(0, 2) : CATS.slice(2);
     body = (
       <>
         <p className="sub" style={{ marginBottom: 12 }}>
-          {step === 2
+          {step === 3
             ? 'Start with your faith rhythms. They shape every match.'
             : 'The everyday things that make conversation easy.'}{' '}
           Tap a habit to pick it. Star up to 3 as most important.
@@ -350,7 +377,7 @@ export default function OnboardingPage() {
         <p className="counter" role="status" style={{ marginTop: 12 }}>
           {counterText}
         </p>
-        {step === 3 && (
+        {step === STEPS.length && (
           <div className="field" style={{ marginTop: 20 }}>
             <span className="legend" id="mm">
               How Do You Want to Match?
@@ -390,7 +417,7 @@ export default function OnboardingPage() {
             <h1 className="h1">{first ? 'Set Up Your Profile' : 'Profile Details'}</h1>
             <p className="sub">
               {first
-                ? 'Three short steps, then you can start matching.'
+                ? 'Four short steps, then you can start matching.'
                 : 'Keep this up to date so your matches stay true to you.'}
             </p>
           </div>
@@ -419,7 +446,7 @@ export default function OnboardingPage() {
                   >
                     <span className="n">{done ? <Icon name="check" /> : n}</span>
                     <span className="sr">
-                      Step {n} of 3{done ? ', done' : ''}:{' '}
+                      Step {n} of {STEPS.length}{done ? ', done' : ''}:{' '}
                     </span>
                     <span className="lbl trunc">{s}</span>
                   </button>
@@ -428,7 +455,7 @@ export default function OnboardingPage() {
             })}
           </ol>
           <p className="small" style={{ marginTop: 8, fontWeight: 700, color: 'var(--u-ink)' }}>
-            Step {step} of 3: {STEPS[step - 1]}
+            Step {step} of {STEPS.length}: {STEPS[step - 1]}
           </p>
         </nav>
 
@@ -451,7 +478,7 @@ export default function OnboardingPage() {
               ) : (
                 <span />
               )}
-              {step < 3 ? (
+              {step < STEPS.length ? (
                 <Btn variant="btn-amber" onClick={() => goStep(step + 1)}>
                   Next: {STEPS[step]}
                 </Btn>

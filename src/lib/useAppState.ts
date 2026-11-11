@@ -84,7 +84,12 @@ export function useAppState() {
     [currentUser]
   );
 
-  async function startDuoChat(match: ComputedDuoMatch) {
+  async function startDuoChat(match: {
+    partner: { id: string };
+    existing_chat_room_id: string | null;
+    shared_tags: string[];
+    similarity_score: number;
+  }) {
     setActionError(null);
     if (match.existing_chat_room_id) {
       router.push(`/rooms/${match.existing_chat_room_id}`);

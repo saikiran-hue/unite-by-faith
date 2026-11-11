@@ -3,17 +3,35 @@
 import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FellowshipPod } from '@/types/database';
+import { TaxonomyTag } from '@/types/database';
 import { useAppState } from '@/lib/useAppState';
 import { AppShell } from '@/components/AppShell';
 import { HabitsPanel } from '@/components/HabitsPanel';
 import { CreatePodDialog } from '@/components/CreatePodDialog';
-import { DuoCard, PodCard } from '@/components/MatchCards';
+import { DuoCard, PodCard, type DuoResult, type PodResult } from '@/components/MatchCards';
 import { AlertBox, Btn, Empty, Icon, Note, type IconName } from '@/components/ubf';
 import { podCover } from '@/lib/sample-content';
 
 type Kind = 'duo' | 'pods';
-type Search = { kind: Kind; status: 'loading' | 'done' | 'error' };
+type Search = { kind: Kind; status: 'loading' | 'done' | 'error' | 'incomplete' };
+
+type MatchFetch =
+  | { ok: true; results: unknown[]; labels: Record<string, string> }
+  | { ok: false; reason: 'incomplete' | 'signed_out' | 'error' };
+
+/** GET /api/match: the ranked results, or why there are none (Life fit missing, signed out, failure). */
+async function fetchMatch(kind: Kind): Promise<MatchFetch> {
+  try {
+    const res = await fetch(`/api/match?kind=${kind}`);
+    if (res.status === 401) return { ok: false, reason: 'signed_out' };
+    if (res.status === 409) return { ok: false, reason: 'incomplete' };
+    if (!res.ok) return { ok: false, reason: 'error' };
+    const data = await res.json();
+    return { ok: true, results: data.results ?? [], labels: data.tag_labels ?? {} };
+  } catch {
+    return { ok: false, reason: 'error' };
+  }
+}
 
 export default function Home() {
   const router = useRouter();
@@ -22,7 +40,7 @@ export default function Home() {
     currentUser,
     taxonomyTags,
     pods,
-    duoMatches,
+    duoChats,
     tagMap,
     startingDuoId,
     actionError,
@@ -32,6 +50,9 @@ export default function Home() {
 
   const [search, setSearch] = useState<Search | null>(null);
   const [searchId, setSearchId] = useState(0);
+  const [duoRes, setDuoRes] = useState<DuoResult[]>([]);
+  const [podRes, setPodRes] = useState<PodResult[]>([]);
+  const [labels, setLabels] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [joiningId, setJoiningId] = useState<string | null>(null);
@@ -49,14 +70,26 @@ export default function Home() {
     setSaved(false);
     setJoinFailedId(null);
     // Re-score against the habits saved right now.
-    const ok = await refresh();
+    const [ok, found] = await Promise.all([refresh(), fetchMatch(kind)]);
     if (seq !== searchSeq.current) return;
-    setSearch({ kind, status: ok ? 'done' : 'error' });
+    if (!found.ok && found.reason === 'signed_out') {
+      router.replace('/auth');
+      return;
+    }
+    if (found.ok) {
+      setLabels(found.labels);
+      if (kind === 'duo') setDuoRes(found.results as DuoResult[]);
+      else setPodRes(found.results as PodResult[]);
+    }
+    setSearch({
+      kind,
+      status: found.ok ? (ok ? 'done' : 'error') : found.reason === 'incomplete' ? 'incomplete' : 'error',
+    });
     setSearchId((n) => n + 1);
     requestAnimationFrame(() => resultsHeadingRef.current?.focus({ preventScroll: false }));
   }
 
-  async function joinPod(pod: FellowshipPod) {
+  async function joinPod(pod: PodResult) {
     setJoiningId(pod.id);
     setJoinFailedId(null);
     setToast(null);
@@ -70,6 +103,7 @@ export default function Home() {
         setJoinFailedId(pod.id);
         return;
       }
+      setPodRes((list) => list.map((p) => (p.id === pod.id ? { ...p, is_joined: true } : p)));
       await refresh();
       setToast(`You joined ${pod.title}.`);
     } catch {
@@ -116,9 +150,14 @@ export default function Home() {
   const habitSet = new Set(habits);
   const starred = new Set(currentUser.tags.filter((t) => t.is_priority).map((t) => t.tag_slug));
   const tooFew = habits.length < 3;
-  const duoResults = duoMatches.filter((m) => m.shared_tags.length > 0);
-  const podResults = pods.filter((p) => p.anchor_tags.some((t) => habitSet.has(t)));
-  const duoChats = duoMatches.filter((m) => m.existing_chat_room_id);
+  const duoResults = duoRes;
+  const podResults = podRes;
+  // Habit labels, plus any label the match API sent for a habit the catalogue list does not have.
+  const resultTagMap = new Map(tagMap);
+  for (const [slug, label] of Object.entries(labels)) {
+    if (!resultTagMap.has(slug)) resultTagMap.set(slug, { slug, label } as TaxonomyTag);
+  }
+  const sharedOf = (m: DuoResult) => m.partner.tags.map((t) => t.slug).filter((slug) => habitSet.has(slug));
   const podChats = pods.filter((p) => p.is_joined);
   const fresh = search?.status === 'done';
 
@@ -206,7 +245,9 @@ export default function Home() {
                     ? search.kind === 'duo'
                       ? 'Finding people who share your habits…'
                       : 'Finding groups that fit your habits…'
-                    : `Matched on your ${habits.length} habits${
+                    : search.status === 'incomplete'
+                      ? 'One more step before we can match you.'
+                      : `Matched on your ${habits.length} habits${
                         search.status === 'done'
                           ? `, ${search.kind === 'duo' ? duoResults.length : podResults.length} found`
                           : ''
@@ -222,6 +263,16 @@ export default function Home() {
             {toast && <Note>{toast}</Note>}
 
             {search.status === 'loading' && <Skeletons />}
+
+            {search.status === 'incomplete' && (
+              <div className="card pad" style={{ display: 'grid', gap: 12, justifyItems: 'start' }}>
+                <Note>Add your Life fit details to search.</Note>
+                <Link className="btn btn-amber" href="/onboarding#life-fit">
+                  <Icon name="pencil" />
+                  Add Life fit details
+                </Link>
+              </div>
+            )}
 
             {search.status === 'error' && (
               <AlertBox
@@ -239,11 +290,19 @@ export default function Home() {
                       <DuoCard
                         key={m.partner.id}
                         match={m}
-                        tagMap={tagMap}
+                        shared={sharedOf(m)}
+                        tagMap={resultTagMap}
                         starred={starred}
                         busy={startingDuoId === m.partner.id}
                         countUp={fresh}
-                        onConnect={startDuoChat}
+                        onConnect={(r) =>
+                          startDuoChat({
+                            partner: r.partner,
+                            existing_chat_room_id: r.existing_chat_room_id,
+                            shared_tags: sharedOf(r),
+                            similarity_score: r.score,
+                          })
+                        }
                       />
                     ))}
                   </ul>
@@ -262,7 +321,7 @@ export default function Home() {
                     <PodCard
                       key={p.id}
                       pod={p}
-                      tagMap={tagMap}
+                      tagMap={resultTagMap}
                       starred={starred}
                       busy={joiningId === p.id}
                       failed={joinFailedId === p.id}
@@ -295,7 +354,7 @@ export default function Home() {
               <ul className="list">
                 {duoChats.map((m) => (
                   <li key={m.partner.id}>
-                    <Link href={`/rooms/${m.existing_chat_room_id}`}>
+                    <Link href={`/rooms/${m.chat_room_id}`}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img className="avatar" src={m.partner.avatar_url} width={44} height={44} alt="" />
                       <span className="grow">
