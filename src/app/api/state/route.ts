@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { requireUserId } from '@/lib/session';
+import { PUBLIC_CARD_COLUMNS, TAXONOMY_COLUMNS } from '@/lib/taxonomy';
 import {
   CurrentUser,
   PodMemberProfile,
@@ -11,19 +12,8 @@ import {
   UserTag,
 } from '@/types/database';
 
-// Explicit columns: never select the 384-d embedding.
-const TAXONOMY_COLUMNS =
-  'slug, label, category, description, icon_name, sort_order, subgroup, synonyms, popularity, is_active';
-
 // Only the card fields the home page renders for other people.
 type PublicCard = Pick<UserProfile, 'id' | 'full_name' | 'display_handle' | 'avatar_url' | 'headline'>;
-const publicCard = (p: UserProfile): PublicCard => ({
-  id: p.id,
-  full_name: p.full_name,
-  display_handle: p.display_handle,
-  avatar_url: p.avatar_url,
-  headline: p.headline,
-});
 
 export async function GET() {
   try {
@@ -32,12 +22,12 @@ export async function GET() {
     if ('response' in auth) return auth.response;
     const { userId } = auth;
 
+    // Everything is scoped to the viewer: whole-table reads hit the 1000-row cap and truncate silently.
     const [
       { data: taxonomyRows, error: taxError },
-      { data: profileRows, error: profError },
+      { data: profileRow, error: profError },
       { data: userTagRows, error: tagError },
-      { data: podRows, error: podError },
-      { data: podMemberRows, error: pmError },
+      { data: mySeats, error: seatError },
       { data: duoRows, error: duoError },
       { data: privateRow, error: privError },
       { data: traditionRows, error: tradError },
@@ -46,17 +36,13 @@ export async function GET() {
         .from('taxonomy_tags')
         .select(TAXONOMY_COLUMNS)
         .order('sort_order', { ascending: true }),
+      admin.from('profiles').select('*').eq('id', userId).maybeSingle(),
+      admin.from('user_tags').select('*').eq('user_id', userId),
+      admin.from('pod_members').select('pod_id').eq('user_id', userId),
       admin
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: true }),
-      admin.from('user_tags').select('*'),
-      admin.from('pods').select('*').order('created_at', { ascending: true }),
-      admin
-        .from('pod_members')
-        .select('*')
-        .order('joined_at', { ascending: true }),
-      admin.from('duo_matches').select('*'),
+        .from('duo_matches')
+        .select('user_a_id, user_b_id, chat_room_id')
+        .or(`user_a_id.eq.${userId},user_b_id.eq.${userId}`),
       admin
         .from('profile_private')
         .select(
@@ -67,47 +53,21 @@ export async function GET() {
       admin.from('traditions').select('id, name, family, sort_order').order('sort_order', { ascending: true }),
     ]);
 
-    if (taxError || profError || tagError || podError || pmError || duoError || privError || tradError) {
-      return NextResponse.json(
-        {
-          error:
-            taxError?.message ||
-            profError?.message ||
-            tagError?.message ||
-            podError?.message ||
-            pmError?.message ||
-            duoError?.message ||
-            privError?.message ||
-            tradError?.message,
-        },
-        { status: 500 }
-      );
+    const firstError =
+      taxError || profError || tagError || seatError || duoError || privError || tradError;
+    if (firstError) {
+      return NextResponse.json({ error: firstError.message }, { status: 500 });
     }
 
     const taxonomyTags = (taxonomyRows || []) as TaxonomyTag[];
 
-    const tagsByUser = new Map<string, UserTag[]>();
-    for (const ut of (userTagRows || []) as UserTag[]) {
-      const list = tagsByUser.get(ut.user_id) || [];
-      list.push(ut);
-      tagsByUser.set(ut.user_id, list);
-    }
-
-    const allProfiles: UserProfile[] = (profileRows || []).map((p) => ({
-      ...p,
-      tags: tagsByUser.get(p.id) || [],
-    }));
-
-    const profileMap = new Map(allProfiles.map((p) => [p.id, p]));
-
-    const profile = profileMap.get(userId);
-
-    if (!profile) {
+    if (!profileRow) {
       return NextResponse.json(
         { error: 'No profile found for this account' },
         { status: 404 }
       );
     }
+    const profile: UserProfile = { ...profileRow, tags: (userTagRows || []) as UserTag[] };
 
     const currentUser: CurrentUser = {
       ...profile,
@@ -125,47 +85,78 @@ export async function GET() {
       city = cityRow;
     }
 
+    // The viewer's pods and their members.
+    const myPodIds = (mySeats || []).map((m) => m.pod_id as string);
+    let podRows: Record<string, unknown>[] = [];
+    let podMemberRows: Omit<PodMemberProfile, 'profile'>[] = [];
+    if (myPodIds.length > 0) {
+      const [{ data: pRows, error: pErr }, { data: pmRows, error: pmErr }] = await Promise.all([
+        admin.from('pods').select('*').in('id', myPodIds).order('created_at', { ascending: true }),
+        admin
+          .from('pod_members')
+          .select('pod_id, user_id, role, joined_at')
+          .in('pod_id', myPodIds)
+          .order('joined_at', { ascending: true }),
+      ]);
+      if (pErr || pmErr) {
+        return NextResponse.json({ error: (pErr || pmErr)!.message }, { status: 500 });
+      }
+      podRows = pRows || [];
+      podMemberRows = pmRows || [];
+    }
+
+    // 1v1 partners by id
+    const existingDuoRoomsByPartnerId = new Map<string, string>();
+    for (const dm of duoRows || []) {
+      if (!dm.chat_room_id) continue;
+      existingDuoRoomsByPartnerId.set(
+        dm.user_a_id === userId ? dm.user_b_id : dm.user_a_id,
+        dm.chat_room_id
+      );
+    }
+
+    // Public cards for pod members and 1v1 partners only.
+    const cardIds = [
+      ...new Set([...podMemberRows.map((m) => m.user_id), ...existingDuoRoomsByPartnerId.keys()]),
+    ];
+    const cardMap = new Map<string, PublicCard>();
+    if (cardIds.length > 0) {
+      const { data: cards, error: cardError } = await admin
+        .from('profiles')
+        .select(PUBLIC_CARD_COLUMNS)
+        .in('id', cardIds);
+      if (cardError) return NextResponse.json({ error: cardError.message }, { status: 500 });
+      for (const c of (cards || []) as PublicCard[]) cardMap.set(c.id, c);
+    }
+
     // Hydrate pod members
     const membersByPod = new Map<string, (Omit<PodMemberProfile, 'profile'> & { profile: PublicCard })[]>();
-    for (const pm of podMemberRows || []) {
-      const memberProfile = profileMap.get(pm.user_id);
-      if (!memberProfile) continue;
+    for (const pm of podMemberRows) {
+      const card = cardMap.get(pm.user_id);
+      if (!card) continue;
       const list = membersByPod.get(pm.pod_id) || [];
       list.push({
         pod_id: pm.pod_id,
         user_id: pm.user_id,
         role: pm.role,
         joined_at: pm.joined_at,
-        profile: publicCard(memberProfile),
+        profile: card,
       });
       membersByPod.set(pm.pod_id, list);
     }
 
-    const hydratedPods = (podRows || []).map((pod) => ({
-      ...pod,
-      members: membersByPod.get(pod.id) || [],
-    }));
-
-    // Map existing 1v1 chat rooms for currentUser
-    const existingDuoRoomsByPartnerId = new Map<string, string>();
     const duoChats: { partner: PublicCard; chat_room_id: string }[] = [];
-    for (const dm of duoRows || []) {
-      if (!dm.chat_room_id) continue;
-      if (dm.user_a_id === currentUser.id) {
-        existingDuoRoomsByPartnerId.set(dm.user_b_id, dm.chat_room_id);
-      } else if (dm.user_b_id === currentUser.id) {
-        existingDuoRoomsByPartnerId.set(dm.user_a_id, dm.chat_room_id);
-      }
-    }
     for (const [partnerId, chat_room_id] of existingDuoRoomsByPartnerId) {
-      const partner = profileMap.get(partnerId);
-      if (partner) duoChats.push({ partner: publicCard(partner), chat_room_id });
+      const partner = cardMap.get(partnerId);
+      if (partner) duoChats.push({ partner, chat_room_id });
     }
 
     // The viewer's own pods, for the Group Chats list.
-    const joinedPods = hydratedPods
-      .filter((pod) => (membersByPod.get(pod.id) || []).some((m) => m.user_id === userId))
-      .map((pod) => ({ ...pod, is_joined: true }));
+    const joinedPods = podRows.map((pod) => ({
+      ...pod,
+      members: membersByPod.get(pod.id as string) || [],
+      is_joined: true,
+    }));
 
     return NextResponse.json({
       currentUser,

@@ -134,4 +134,22 @@ out="$(rest "$TOKEN" POST chat_messages "$(printf '{"room_id":"%s","sender_id":"
 check "authenticated non-member chat_messages insert denied" 403 "${out##* }"
 check "authenticated non-member pin update changes nothing" "[] 200" "$(rest "$TOKEN" PATCH "room_pins?id=eq.$PIN_OUT&select=id" '{"is_answered":true}')"
 
+# --- Connect / Join run the hard filters (I2) ---
+HANNAH="11111111-1111-4111-8111-111111111102"   # woman
+DANIEL="11111111-1111-4111-8111-111111111103"   # man, passes Caleb's rules
+api() { # jar route json -> "<body> <status>"
+  curl -s -w ' %{http_code}' -b "$1" -X POST -H 'Content-Type: application/json' -d "$3" "$BASE/api/$2"
+}
+out="$(api "$JAR" duos "$(printf '{"partnerId":"%s"}' "$CALEB")")"; check "real account connecting to a demo id" 403 "${out##* }"
+out="$(api "$JAR" pods "$(printf '{"action":"join","podId":"%s"}' "$POD_IN")")"; check "real account joining a demo pod" 403 "${out##* }"
+out="$(api "$JAR2" duos "$(printf '{"partnerId":"%s"}' "$HANNAH")")"; check "connect to an opposite-gender id" 403 "${out##* }"
+out="$(api "$JAR2" duos "$(printf '{"partnerId":"%s","similarityScore":5}' "$DANIEL")")"; check "connect to an eligible id" 200 "${out##* }"
+ROOM1="$(echo "$out" | sed -n 's/.*"chat_room_id":"\([^"]*\)".*/\1/p')"
+SCORE="$(echo "$out" | sed -n 's/.*"similarity_score":\([0-9.]*\).*/\1/p')"
+[ -n "$SCORE" ] && [ "$SCORE" != "5" ] && echo "PASS stored score is server-side ($SCORE, client sent 5)" || { echo "FAIL stored score: $out"; fail=1; }
+out="$(api "$JAR2" duos "$(printf '{"partnerId":"%s"}' "$DANIEL")")"
+check "connect again returns the same room" "$ROOM1" "$(echo "$out" | sed -n 's/.*"chat_room_id":"\([^"]*\)".*/\1/p')"
+out="$(api "$JAR2" pods "$(printf '{"action":"join","podId":"%s"}' "$POD_IN")")"; check "Caleb joins an eligible pod" 200 "${out##* }"
+out="$(api "$JAR2" pods '{"action":"create","title":"Check pod","description":"made by check-identity"}')"; check "create group is not blocked" 200 "${out##* }"
+
 exit $fail

@@ -343,7 +343,6 @@ export default function Home() {
                             partner: r.partner,
                             existing_chat_room_id: r.existing_chat_room_id,
                             shared_tags: sharedOf(r),
-                            similarity_score: r.score,
                           })
                         }
                       />

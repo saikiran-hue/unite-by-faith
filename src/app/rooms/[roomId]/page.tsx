@@ -115,7 +115,7 @@ function FellowshipRoomContent() {
           setPins(data.pins || []);
           setContextualIcebreakers(data.contextualIcebreakers || []);
           setPodDetails(data.podDetails || null);
-          setDuoSimilarityScore(data.duoSimilarityScore || null);
+          setDuoSimilarityScore(data.duoSimilarityScore ?? null);
           setLoadError(false);
         } else if (!silent) {
           setLoadError(true);
@@ -440,7 +440,7 @@ function FellowshipRoomContent() {
             <Icon name="user" />
             1v1 Duo Match
           </span>
-          {duoSimilarityScore ? (
+          {duoSimilarityScore !== null ? (
             <ScorePill pct={Math.round(duoSimilarityScore)} className="solid" />
           ) : null}
         </div>

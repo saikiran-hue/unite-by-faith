@@ -6,6 +6,25 @@ type MessageOutcome = "replied" | "active_7d";
 const WINDOW_MS = 7 * 86_400_000;
 const ACTIVE_MESSAGES = 3;
 
+/**
+ * Message types a person writes. `icebreaker` and `milestone` are posted by the app
+ * (room created, someone joined) and never count toward replied / active_7d.
+ */
+export const HUMAN_MESSAGE_TYPES = ["text", "prayer_request"] as const;
+
+export function isHumanMessage(messageType: string): boolean {
+  return (HUMAN_MESSAGE_TYPES as readonly string[]).includes(messageType);
+}
+
+/** Human messages only, oldest first as given, shaped for outcomeEventsForMessage. */
+export function humanHistory(
+  rows: { sender_id: string; created_at: string; message_type: string }[],
+): { senderId: string; createdAt: Date }[] {
+  return rows
+    .filter((m) => isHumanMessage(m.message_type))
+    .map((m) => ({ senderId: m.sender_id, createdAt: new Date(m.created_at) }));
+}
+
 export interface OutcomeMessageInput {
   roomType: "duo_1v1" | "pod_group";
   senderId: string;
@@ -124,9 +143,11 @@ export async function recordMessageOutcomes(
   roomId: string,
   messageId: string,
   senderId: string,
+  messageType: string,
   now: Date,
 ): Promise<void> {
   try {
+    if (!isHumanMessage(messageType)) return;
     const { data: room } = await admin
       .from("chat_rooms")
       .select("room_type, created_at")
@@ -198,6 +219,7 @@ export async function recordMessageOutcomes(
         .from("chat_messages")
         .select("id", { count: "exact", head: true })
         .eq("room_id", roomId)
+        .in("message_type", [...HUMAN_MESSAGE_TYPES])
         .neq("id", messageId);
       q =
         roomType === "duo_1v1"
@@ -212,15 +234,13 @@ export async function recordMessageOutcomes(
     if (inWindow && !alreadyLogged.has("active_7d")) {
       const { data: msgs } = await admin
         .from("chat_messages")
-        .select("sender_id, created_at")
+        .select("sender_id, created_at, message_type")
         .eq("room_id", roomId)
+        .in("message_type", [...HUMAN_MESSAGE_TYPES])
         .lte("created_at", windowEnd)
         .order("created_at", { ascending: true })
         .limit(500);
-      history = (msgs ?? []).map((m) => ({
-        senderId: m.sender_id,
-        createdAt: new Date(m.created_at),
-      }));
+      history = humanHistory(msgs ?? []);
     }
 
     const events = outcomeEventsForMessage({

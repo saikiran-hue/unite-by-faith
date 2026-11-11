@@ -20,6 +20,27 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      // A member re-joining gets join_pod_atomic's already_member reply; anyone else must pass the pod rule.
+      const { data: seat } = await admin
+        .from('pod_members')
+        .select('user_id')
+        .eq('pod_id', podId)
+        .eq('user_id', userId)
+        .maybeSingle();
+      if (!seat) {
+        const { data: allowed, error: ruleErr } = await admin.rpc('pod_join_allowed', {
+          viewer: userId,
+          pod: podId,
+        });
+        if (ruleErr) throw new Error(`pod_join_allowed: ${ruleErr.message}`);
+        if (!allowed) {
+          return NextResponse.json(
+            { error: 'You can’t join this group.', code: 'not_eligible' },
+            { status: 403 }
+          );
+        }
+      }
+
       const { data, error } = await admin.rpc('join_pod_atomic', {
         p_pod_id: podId,
         p_user_id: userId,

@@ -3,6 +3,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { requireUserId } from '@/lib/session';
 import { recordMessageOutcomes } from '@/lib/matching/outcomes';
 import { isRoomMember } from '@/lib/rooms';
+import { PUBLIC_CARD_COLUMNS, TAXONOMY_COLUMNS } from '@/lib/taxonomy';
 import { buildContextualIcebreakers } from '@/lib/matching/engine';
 import {
   ChatMessage,
@@ -11,6 +12,10 @@ import {
   UserProfile,
   UserTag,
 } from '@/types/database';
+
+const MESSAGE_LIMIT = 200;
+
+type Card = Pick<UserProfile, 'id' | 'full_name' | 'display_handle' | 'avatar_url' | 'headline'>;
 
 export async function GET(
   _req: NextRequest,
@@ -23,33 +28,11 @@ export async function GET(
     if ('response' in auth) return auth.response;
     const { userId } = auth;
 
-    const [
-      { data: room, error: roomErr },
-      { data: taxonomyRows },
-      { data: profileRows },
-      { data: userTagRows },
-      { data: messageRows },
-      { data: pinRows },
-    ] = await Promise.all([
-      admin.from('chat_rooms').select('*').eq('id', roomId).single(),
-      admin
-        .from('taxonomy_tags')
-        .select('*')
-        .order('sort_order', { ascending: true }),
-      admin.from('profiles').select('*'),
-      admin.from('user_tags').select('*'),
-      admin
-        .from('chat_messages')
-        .select('*')
-        .eq('room_id', roomId)
-        .order('created_at', { ascending: true }),
-      admin
-        .from('room_pins')
-        .select('*')
-        .eq('room_id', roomId)
-        .order('created_at', { ascending: false }),
-    ]);
-
+    const { data: room, error: roomErr } = await admin
+      .from('chat_rooms')
+      .select('*')
+      .eq('id', roomId)
+      .maybeSingle();
     if (roomErr || !room) {
       return NextResponse.json(
         { error: roomErr?.message || 'Chat room not found' },
@@ -60,32 +43,49 @@ export async function GET(
       return NextResponse.json({ error: 'not_a_member' }, { status: 403 });
     }
 
-    const taxonomyTags = (taxonomyRows || []) as TaxonomyTag[];
+    // Only this room and its people: whole-table reads hit the 1000-row cap.
+    const [
+      { data: taxonomyRows },
+      { data: profileRow },
+      { data: userTagRows },
+      { data: messageRows },
+      { data: pinRows },
+    ] = await Promise.all([
+      admin
+        .from('taxonomy_tags')
+        .select(TAXONOMY_COLUMNS)
+        .order('sort_order', { ascending: true }),
+      admin.from('profiles').select('*').eq('id', userId).maybeSingle(),
+      admin.from('user_tags').select('*').eq('user_id', userId),
+      // The latest messages, newest first here and reversed for display below.
+      admin
+        .from('chat_messages')
+        .select('*')
+        .eq('room_id', roomId)
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
+        .limit(MESSAGE_LIMIT),
+      admin
+        .from('room_pins')
+        .select('*')
+        .eq('room_id', roomId)
+        .order('created_at', { ascending: false })
+        .limit(MESSAGE_LIMIT),
+    ]);
 
-    const tagsByUser = new Map<string, UserTag[]>();
-    for (const ut of (userTagRows || []) as UserTag[]) {
-      const list = tagsByUser.get(ut.user_id) || [];
-      list.push(ut);
-      tagsByUser.set(ut.user_id, list);
-    }
-
-    const allProfiles: UserProfile[] = (profileRows || []).map((p) => ({
-      ...p,
-      tags: tagsByUser.get(p.id) || [],
-    }));
-    const profileMap = new Map(allProfiles.map((p) => [p.id, p]));
-
-    const currentUser = profileMap.get(userId);
-    if (!currentUser) {
+    if (!profileRow) {
       return NextResponse.json({ error: 'signed_out' }, { status: 401 });
     }
+    const currentUser: UserProfile = {
+      ...profileRow,
+      tags: (userTagRows || []) as UserTag[],
+    };
+    const taxonomyTags = (taxonomyRows || []) as TaxonomyTag[];
+    const messages = (messageRows || []).reverse();
+    const pins = pinRows || [];
 
     let podDetails = null;
-    let participants: {
-      user_id: string;
-      role: string;
-      profile: UserProfile;
-    }[] = [];
+    let participantRows: { user_id: string; role: string }[] = [];
     let duoSimilarityScore: number | null = null;
 
     if (room.room_type === 'pod_group') {
@@ -99,75 +99,61 @@ export async function GET(
         podDetails = pod;
         const { data: pmRows } = await admin
           .from('pod_members')
-          .select('*')
+          .select('user_id, role')
           .eq('pod_id', pod.id)
           .order('joined_at', { ascending: true });
-
-        participants = (pmRows || [])
-          .map((pm) => {
-            const prof = profileMap.get(pm.user_id);
-            return prof
-              ? { user_id: pm.user_id, role: pm.role, profile: prof }
-              : null;
-          })
-          .filter(Boolean) as {
-          user_id: string;
-          role: string;
-          profile: UserProfile;
-        }[];
+        participantRows = pmRows || [];
       }
     } else {
       const { data: duo } = await admin
         .from('duo_matches')
-        .select('*')
+        .select('user_a_id, user_b_id, similarity_score')
         .eq('chat_room_id', roomId)
         .single();
 
       if (duo) {
-        duoSimilarityScore = Number(duo.similarity_score || 92);
-        const pA = profileMap.get(duo.user_a_id);
-        const pB = profileMap.get(duo.user_b_id);
-        if (pA)
-          participants.push({
-            user_id: pA.id,
-            role: 'duo_partner',
-            profile: pA,
-          });
-        if (pB)
-          participants.push({
-            user_id: pB.id,
-            role: 'duo_partner',
-            profile: pB,
-          });
+        duoSimilarityScore =
+          duo.similarity_score === null ? null : Number(duo.similarity_score);
+        participantRows = [
+          { user_id: duo.user_a_id, role: 'duo_partner' },
+          { user_id: duo.user_b_id, role: 'duo_partner' },
+        ];
       }
     }
 
-    const hydratedMessages: ChatMessage[] = (messageRows || []).map((m) => {
-      const senderProf = profileMap.get(m.sender_id);
-      return {
-        ...m,
-        sender: senderProf
-          ? {
-              id: senderProf.id,
-              full_name: senderProf.full_name,
-              display_handle: senderProf.display_handle,
-              avatar_url: senderProf.avatar_url,
-              headline: senderProf.headline,
-            }
-          : undefined,
-      };
+    // Public cards for participants, message senders and pin authors (a sender may have left).
+    const cardIds = [
+      ...new Set([
+        ...participantRows.map((p) => p.user_id),
+        ...messages.map((m) => m.sender_id as string),
+        ...pins.map((p) => p.author_id as string),
+      ]),
+    ];
+    const cardMap = new Map<string, Card>();
+    if (cardIds.length > 0) {
+      const { data: cards } = await admin
+        .from('profiles')
+        .select(PUBLIC_CARD_COLUMNS)
+        .in('id', cardIds);
+      for (const c of (cards || []) as Card[]) cardMap.set(c.id, c);
+    }
+
+    const participants = participantRows.flatMap((p) => {
+      const profile = cardMap.get(p.user_id);
+      return profile ? [{ user_id: p.user_id, role: p.role, profile }] : [];
     });
 
-    const hydratedPins: RoomPin[] = (pinRows || []).map((pin) => {
-      const authorProf = profileMap.get(pin.author_id);
+    const hydratedMessages: ChatMessage[] = messages.map((m) => ({
+      ...m,
+      sender: cardMap.get(m.sender_id),
+    }));
+
+    const hydratedPins: RoomPin[] = pins.map((pin) => {
+      const author = cardMap.get(pin.author_id);
       return {
         ...pin,
-        author: authorProf
-          ? {
-              id: authorProf.id,
-              full_name: authorProf.full_name,
-              avatar_url: authorProf.avatar_url,
-            }
+        author: author
+          ? { id: author.id, full_name: author.full_name, avatar_url: author.avatar_url }
           : undefined,
       };
     });
@@ -181,7 +167,6 @@ export async function GET(
     return NextResponse.json({
       room,
       currentUser,
-      allProfiles,
       taxonomyTags,
       podDetails,
       duoSimilarityScore,
@@ -263,7 +248,9 @@ export async function POST(
         .update({ last_message_at: new Date().toISOString() })
         .eq('id', roomId);
 
-      after(() => recordMessageOutcomes(admin, roomId, msg.id, senderId, new Date()));
+      after(() =>
+        recordMessageOutcomes(admin, roomId, msg.id, senderId, messageType, new Date())
+      );
 
       return NextResponse.json({ message: msg });
     }

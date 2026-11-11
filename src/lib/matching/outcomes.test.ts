@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { outcomeEventsForMessage } from './outcomes';
+import { humanHistory, isHumanMessage, outcomeEventsForMessage } from './outcomes';
 
 const DAY = 86_400_000;
 const created = new Date('2026-11-01T00:00:00Z');
@@ -165,5 +165,59 @@ describe('outcomeEventsForMessage', () => {
         }),
       ).toEqual([]);
     }
+  });
+});
+
+describe('human message filtering', () => {
+  it('only text and prayer_request are human', () => {
+    expect(isHumanMessage('text')).toBe(true);
+    expect(isHumanMessage('prayer_request')).toBe(true);
+    expect(isHumanMessage('icebreaker')).toBe(false);
+    expect(isHumanMessage('milestone')).toBe(false);
+  });
+
+  const iso = (days: number) => at(days).toISOString();
+  // Pod: creator icebreaker, joiner milestone, then the joiner's first real message.
+  const podRows = [
+    { sender_id: 'a', created_at: iso(0), message_type: 'icebreaker' },
+    { sender_id: 'b', created_at: iso(1), message_type: 'milestone' },
+    { sender_id: 'b', created_at: iso(1), message_type: 'text' },
+  ];
+
+  it('humanHistory drops app-posted icebreakers and milestones', () => {
+    expect(humanHistory(podRows)).toEqual([{ senderId: 'b', createdAt: at(1) }]);
+  });
+
+  it('pod: a joiner\'s first text after their milestone is still a reply', () => {
+    expect(
+      outcomeEventsForMessage({
+        roomType: 'pod_group',
+        senderId: 'b',
+        roomCreatedAt: created,
+        now: at(1),
+        history: humanHistory(podRows),
+        priorCount: 0, // the milestone is not counted
+        alreadyLogged: new Set(),
+      }),
+    ).toEqual(['replied']);
+  });
+
+  it('pod: milestones and icebreakers do not make a room active_7d', () => {
+    const rows = [
+      ...podRows,
+      { sender_id: 'c', created_at: iso(2), message_type: 'milestone' },
+      { sender_id: 'a', created_at: iso(2), message_type: 'icebreaker' },
+    ];
+    expect(
+      outcomeEventsForMessage({
+        roomType: 'pod_group',
+        senderId: 'b',
+        roomCreatedAt: created,
+        now: at(2),
+        history: humanHistory(rows),
+        priorCount: 1,
+        alreadyLogged: new Set(['replied']),
+      }),
+    ).toEqual([]);
   });
 });

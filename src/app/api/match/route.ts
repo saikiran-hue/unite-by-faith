@@ -4,13 +4,12 @@ import { requireUserId } from '@/lib/session';
 import { fetchChunked, loadPeople, loadScoreContext, loadViewerLifeFit, type LoadedPerson } from '@/lib/matching/load';
 import { rankDuos, rankPods } from '@/lib/matching/rank';
 import type { PairScore } from '@/lib/matching/score';
+import { pickEmptyReason, type FilterCount } from '@/lib/matching/empty-reason';
 
 interface PodRow {
   id: string; chat_room_id: string; title: string; description: string; focus_pillar: string; anchor_tags: string[];
   min_members: number; max_members: number; member_count: number; meeting_cadence: string; status: string; created_at: string;
 }
-
-const RULE_ORDER = ['age', 'language', 'place', 'gender', 'tradition'];
 
 const scoreFields = (s: PairScore) => ({
   score: s.score,
@@ -165,9 +164,8 @@ export async function GET(req: NextRequest) {
         if (cErr) {
           console.error(`match_filter_counts failed: ${cErr.message}`);
         } else {
-          const rows = (counts ?? []) as { rule: string; passing: number }[];
-          rows.sort((a, b) => a.passing - b.passing || RULE_ORDER.indexOf(a.rule) - RULE_ORDER.indexOf(b.rule));
-          if (rows[0]) body.emptyReason = { rule: rows[0].rule, passing: rows[0].passing };
+          const reason = pickEmptyReason((counts ?? []) as FilterCount[]);
+          if (reason) body.emptyReason = reason;
         }
       }
       if (evs.length > 0) {

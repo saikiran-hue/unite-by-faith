@@ -153,6 +153,8 @@ $$;
 -- Per-rule pass counts (for the "narrowest rule" empty state) -------------------------
 -- Counts people (eligible = onboarded, same demo-ness, not self) passing each single rule.
 -- For kind = 'pods' the gender rule is not applied, so its row reports the eligible total.
+-- The 'total' row is the pool before any rule: eligible people (duo), or open pods the viewer
+-- is not in whose members are all eligible people (pods). With an empty pool no rule is to blame.
 create or replace function public.match_filter_counts(viewer uuid, kind text)
 returns table (rule text, passing int)
 language sql
@@ -167,6 +169,15 @@ as $$
   union all select 'gender',
     (select case when kind = 'pods' then count(*) else count(*) filter (where ok_gender) end from f)::int
   union all select 'tradition', (select count(*) filter (where ok_tradition) from f)::int
+  union all select 'total',
+    case when kind = 'pods' then
+      (select count(*) from public.pods pd
+       where pd.status not in ('full', 'archived')
+         and pd.member_count < pd.max_members
+         and not exists (select 1 from public.pod_members pm
+                         where pm.pod_id = pd.id
+                           and (pm.user_id = viewer or pm.user_id not in (select cand from f))))::int
+    else (select count(*) from f)::int end
 $$;
 
 -- Tag search by text -----------------------------------------------------------------

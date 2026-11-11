@@ -84,7 +84,6 @@ export function useAppState() {
     partner: { id: string };
     existing_chat_room_id: string | null;
     shared_tags: string[];
-    similarity_score: number;
   }) {
     setActionError(null);
     if (match.existing_chat_room_id) {
@@ -100,7 +99,6 @@ export function useAppState() {
         body: JSON.stringify({
           partnerId: match.partner.id,
           sharedTags: match.shared_tags,
-          similarityScore: match.similarity_score,
         }),
       });
       if (res.status === 401) {

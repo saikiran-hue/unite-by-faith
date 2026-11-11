@@ -110,3 +110,51 @@ drop policy if exists "duo_matches_update_participant" on public.duo_matches;
 drop policy if exists "pod_members_insert_own" on public.pod_members;
 drop policy if exists "pods_insert_authenticated" on public.pods;
 drop policy if exists "pods_update_authenticated" on public.pods;
+
+-- Pairwise eligibility for Connect / Join (same rules as match_candidates / match_pod_candidates,
+-- but for one target, so the 300 / 100 caps never matter). Server only.
+create or replace function public.duo_pair_allowed(viewer uuid, other uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select coalesce((
+    select f.ok_age and f.ok_language and f.ok_place and f.ok_gender and f.ok_tradition
+    from public.match_rule_flags(viewer) f
+    where f.cand = other
+  ), false)
+$$;
+
+-- Pod rule: the viewer allows groups and passes age/language/place/tradition against every
+-- member. Seat limits stay with join_pod_atomic, which reports a full pod by name.
+create or replace function public.pod_join_allowed(viewer uuid, pod uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  with f as (
+    select cand from public.match_rule_flags(viewer)
+    where ok_age and ok_language and ok_place and ok_tradition
+  )
+  select exists (
+    select 1
+    from public.pods pd
+    where pd.id = pod
+      and pd.status <> 'archived'
+      and exists (select 1 from public.profiles vp
+                  where vp.id = viewer and vp.onboarding_completed
+                    and vp.fellowship_mode in ('both', 'group_only'))
+      and not exists (select 1 from public.pod_members pm
+                      where pm.pod_id = pd.id
+                        and pm.user_id not in (select cand from f))
+  )
+$$;
+
+revoke execute on function public.duo_pair_allowed(uuid, uuid) from public, anon, authenticated;
+revoke execute on function public.pod_join_allowed(uuid, uuid) from public, anon, authenticated;
+grant execute on function public.duo_pair_allowed(uuid, uuid) to service_role;
+grant execute on function public.pod_join_allowed(uuid, uuid) to service_role;

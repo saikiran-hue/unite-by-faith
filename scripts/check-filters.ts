@@ -100,6 +100,12 @@ const probes = [
   q("countsDuo", counts("duo")),
   q("countsPods", counts("pods")),
   q("denied", `select current_setting('fx.denied')`),
+  q("pairGood", `select public.duo_pair_allowed('${ids.V}','${ids.good}')::text`),
+  q("pairWoman", `select public.duo_pair_allowed('${ids.V}','${ids.woman}')::text`),
+  q("pairDemo", `select public.duo_pair_allowed('${ids.V}','${ids.demo}')::text`),
+  q("joinOk", `select public.pod_join_allowed('${ids.V}','${POD(1)}')::text`),
+  q("joinMixed", `select public.pod_join_allowed('${ids.V}','${POD(2)}')::text`),
+  q("joinBadAge", `select public.pod_join_allowed('${ids.V}','${POD(3)}')::text`),
   q("searchTop", `select slug from public.search_tags_text('faith and work') limit 1`),
   q("searchCount", `select count(*)::text from public.search_tags_text('prayer')`),
   q("haversine", `select round(public.haversine_km(10.0,76.0,10.27,76.0))::text`),
@@ -145,15 +151,21 @@ check("full pod excludes", !has("podsV", POD(4)));
 check("pods returned are exactly ok + mixed", got.podsV === list(POD(1), POD(2)), got.podsV);
 check("pre_rank counts neighbouring tags", got.preRankGood === "1", got.preRankGood);
 check(
-  "match_filter_counts (duo) returns 5 rows with expected counts",
-  got.countsDuo === "age:8,gender:8,language:8,place:5,tradition:8",
+  "match_filter_counts (duo) returns 5 rule rows and the pool total",
+  got.countsDuo === "age:8,gender:8,language:8,place:5,total:9,tradition:8",
   got.countsDuo,
 );
 check(
-  "match_filter_counts (pods) reports total for gender",
-  got.countsPods === "age:8,gender:9,language:8,place:5,tradition:8",
+  "match_filter_counts (pods) reports total for gender and open pods of eligible people as total",
+  got.countsPods === "age:8,gender:9,language:8,place:5,total:3,tradition:8",
   got.countsPods,
 );
+check("duo_pair_allowed: all-rules-passing pair", got.pairGood === "true", got.pairGood);
+check("duo_pair_allowed: different gender rejected", got.pairWoman === "false", got.pairWoman);
+check("duo_pair_allowed: demo vs real rejected", got.pairDemo === "false", got.pairDemo);
+check("pod_join_allowed: ok pod", got.joinOk === "true", got.joinOk);
+check("pod_join_allowed: mixed-gender pod", got.joinMixed === "true", got.joinMixed);
+check("pod_join_allowed: a member fails the viewer's age range", got.joinBadAge === "false", got.joinBadAge);
 check("authenticated cannot execute match_candidates", got.denied === "yes", got.denied);
 check("search_tags_text finds exact label first", got.searchTop === "faith-and-work", got.searchTop);
 check("search_tags_text returns at most 8 rows", Number(got.searchCount) >= 1 && Number(got.searchCount) <= 8, got.searchCount);
