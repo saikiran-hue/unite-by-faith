@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { defaultAgeRange, ageOn } from '@/lib/age';
+import { resolveToday, validateSignup } from './modes';
 
 const AVATAR_POOL = [
   'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=240&auto=format&fit=crop&q=80',
@@ -8,80 +11,78 @@ const AVATAR_POOL = [
   'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=240&auto=format&fit=crop&q=80',
 ];
 
+function fail(status: number, error: string, field?: string) {
+  return NextResponse.json(field ? { error, field } : { error }, { status });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const admin = createSupabaseAdminClient();
+    const supabase = await createSupabaseServerClient();
 
-    // 1. Direct believer switch by userId
-    if (body.userId) {
-      const { data: profile, error } = await admin
+    async function onboardingDone(userId: string) {
+      const { data } = await admin
         .from('profiles')
-        .select('*')
-        .eq('id', body.userId)
+        .select('onboarding_completed')
+        .eq('id', userId)
         .single();
-
-      if (error || !profile) {
-        return NextResponse.json(
-          { error: 'Believer profile not found' },
-          { status: 404 }
-        );
-      }
-
-
-      return NextResponse.json({
-        userId: profile.id,
-        onboardingCompleted: profile.onboarding_completed,
-      });
+      return Boolean(data?.onboarding_completed);
     }
 
-    // 2. Sign In with Email & Password
-    if (body.mode === 'signin') {
-      const email = String(body.email || '')
-        .trim()
-        .toLowerCase();
-      const password = String(body.password || '');
+    // Sign out: clears the Supabase session cookies.
+    if (body.mode === 'signout') {
+      await supabase.auth.signOut();
+      return NextResponse.json({ ok: true });
+    }
 
-      const { data: signInData, error: signInErr } =
-        await admin.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-      if (signInErr || !signInData.user) {
-        return NextResponse.json(
-          { error: signInErr?.message || 'Invalid credentials' },
-          { status: 401 }
-        );
-      }
-
+    // Demo accounts only: sign in as a seeded demo profile.
+    if (body.mode === 'demo') {
+      const userId = typeof body.userId === 'string' ? body.userId : '';
+      const password = process.env.DEMO_ACCOUNT_PASSWORD;
+      if (!userId) return fail(400, 'Choose a demo member.');
+      if (!password) return fail(500, 'Demo sign-in is not configured.');
 
       const { data: profile } = await admin
         .from('profiles')
-        .select('*')
-        .eq('id', signInData.user.id)
-        .single();
+        .select('id, is_demo_account')
+        .eq('id', userId)
+        .maybeSingle();
+      if (!profile) return fail(404, 'Demo member not found');
+      if (!profile.is_demo_account) return fail(403, 'Not a demo account');
 
+      const { data: authUser } = await admin.auth.admin.getUserById(userId);
+      const email = authUser.user?.email;
+      if (!email) return fail(404, 'Demo member not found');
+
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error || !data.user) return fail(401, 'Could not sign in as that demo member');
       return NextResponse.json({
-        userId: signInData.user.id,
-        onboardingCompleted: Boolean(profile?.onboarding_completed),
+        userId: data.user.id,
+        onboardingCompleted: await onboardingDone(data.user.id),
       });
     }
 
-    // 3. Sign Up new believer account
-    if (body.mode === 'signup') {
-      const email = String(body.email || '')
-        .trim()
-        .toLowerCase();
-      const password = String(body.password || 'UniteFaith2026!');
-      const fullName = String(body.fullName || 'New Believer').trim();
-
-      if (!email || !fullName) {
-        return NextResponse.json(
-          { error: 'Full name and email are required' },
-          { status: 400 }
-        );
+    // Sign in with email and password.
+    if (body.mode === 'signin') {
+      const email = String(body.email || '').trim().toLowerCase();
+      const password = String(body.password || '');
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error || !data.user) {
+        return fail(401, error?.message || 'Invalid credentials');
       }
+      return NextResponse.json({
+        userId: data.user.id,
+        onboardingCompleted: await onboardingDone(data.user.id),
+      });
+    }
+
+    // Sign up a new believer (18 or older).
+    if (body.mode === 'signup') {
+      const today = resolveToday(body.today, new Date());
+      const checked = validateSignup(body, today);
+      if (!checked.ok) return fail(400, checked.message, checked.field);
+      const { fullName, email, password, birthDate } = checked.value;
 
       const handleBase = fullName
         .toLowerCase()
@@ -90,24 +91,24 @@ export async function POST(req: NextRequest) {
         .slice(0, 18);
       const displayHandle = `${handleBase || 'believer'}_${Math.floor(100 + Math.random() * 899)}`;
 
-      const { data: createdAuth, error: createErr } =
-        await admin.auth.admin.createUser({
-          email,
-          password,
-          email_confirm: true,
-          user_metadata: { full_name: fullName },
-        });
+      const { data: createdAuth, error: createErr } = await admin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { full_name: fullName },
+      });
 
       if (createErr || !createdAuth.user) {
-        return NextResponse.json(
-          { error: createErr?.message || 'Could not create user account' },
-          { status: 400 }
-        );
+        const taken =
+          createErr?.code === 'email_exists' || /already/i.test(createErr?.message ?? '');
+        return taken
+          ? fail(409, 'An account with this email already exists. Sign in instead.', 'email')
+          : fail(400, createErr?.message || 'Could not create user account');
       }
 
       const newUserId = createdAuth.user.id;
-      const randomAvatar =
-        AVATAR_POOL[Math.floor(Math.random() * AVATAR_POOL.length)];
+      const randomAvatar = AVATAR_POOL[Math.floor(Math.random() * AVATAR_POOL.length)];
+      const range = defaultAgeRange(ageOn(birthDate, today));
 
       const { error: profErr } = await admin.from('profiles').upsert({
         id: newUserId,
@@ -125,26 +126,29 @@ export async function POST(req: NextRequest) {
         onboarding_completed: false,
         is_demo_account: false,
       });
+      const { error: privErr } = profErr
+        ? { error: null }
+        : await admin.from('profile_private').insert({
+            user_id: newUserId,
+            birth_date: birthDate,
+            age_min: range.min,
+            age_max: range.max,
+          });
 
-      if (profErr) {
-        return NextResponse.json({ error: profErr.message }, { status: 500 });
+      if (profErr || privErr) {
+        // Leave nothing half-created: the cascade removes the profile rows.
+        await admin.auth.admin.deleteUser(newUserId);
+        return fail(500, (profErr || privErr)!.message);
       }
 
+      const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInErr) return fail(500, signInErr.message);
 
-      return NextResponse.json({
-        userId: newUserId,
-        onboardingCompleted: false,
-      });
+      return NextResponse.json({ userId: newUserId, onboardingCompleted: false });
     }
 
-    return NextResponse.json(
-      { error: 'Invalid auth action request' },
-      { status: 400 }
-    );
+    return fail(400, 'Invalid auth action request');
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Unexpected server error' },
-      { status: 500 }
-    );
+    return fail(500, err instanceof Error ? err.message : 'Unexpected server error');
   }
 }

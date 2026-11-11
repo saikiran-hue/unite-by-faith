@@ -109,7 +109,6 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          createNew: false,
           fullName: user.full_name,
           headline: user.headline,
           bio: user.bio,

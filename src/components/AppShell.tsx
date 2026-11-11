@@ -6,18 +6,19 @@ import { useRouter } from 'next/navigation';
 import { UserProfile } from '@/types/database';
 import { Icon, Rose, ThemeButton } from '@/components/ubf';
 
+type DemoProfile = Pick<UserProfile, 'id' | 'full_name' | 'avatar_url' | 'headline'>;
+
 interface AppShellProps {
   currentUser: UserProfile | null;
-  allProfiles?: UserProfile[];
   onSwitchedUser?: () => void;
   children: React.ReactNode;
 }
 
 /** Top bar from the design (brand, theme toggle, profile menu) followed by the page. */
-export function AppShell({ currentUser, allProfiles = [], onSwitchedUser, children }: AppShellProps) {
+export function AppShell({ currentUser, onSwitchedUser, children }: AppShellProps) {
   return (
     <>
-      <Topbar currentUser={currentUser} allProfiles={allProfiles} onSwitchedUser={onSwitchedUser} />
+      <Topbar currentUser={currentUser} onSwitchedUser={onSwitchedUser} />
       {children}
     </>
   );
@@ -25,19 +26,34 @@ export function AppShell({ currentUser, allProfiles = [], onSwitchedUser, childr
 
 function Topbar({
   currentUser,
-  allProfiles,
   onSwitchedUser,
 }: {
   currentUser: UserProfile | null;
-  allProfiles: UserProfile[];
   onSwitchedUser?: () => void;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [switchingId, setSwitchingId] = useState<string | null>(null);
   const [switchError, setSwitchError] = useState<string | null>(null);
+  const [demoProfiles, setDemoProfiles] = useState<DemoProfile[]>([]);
+  const isDemo = Boolean(currentUser?.is_demo_account);
   const wrapRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+
+  // Only demo viewers get the switch list.
+  useEffect(() => {
+    if (!isDemo) return;
+    let live = true;
+    fetch('/api/auth/demo-profiles')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list: DemoProfile[]) => {
+        if (live) setDemoProfiles(list);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [isDemo]);
 
   // Close on outside click.
   useEffect(() => {
@@ -60,7 +76,7 @@ function Topbar({
       const res = await fetch('/api/auth/switch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ mode: 'demo', userId }),
       });
       if (!res.ok) {
         setSwitchError("We couldn't switch profiles. Tap the name again.");
@@ -73,6 +89,19 @@ function Topbar({
       setSwitchError("We couldn't switch profiles. Check your connection and tap the name again.");
     } finally {
       setSwitchingId(null);
+    }
+  }
+
+  async function signOut() {
+    try {
+      await fetch('/api/auth/switch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'signout' }),
+      });
+    } finally {
+      router.replace('/auth');
+      router.refresh();
     }
   }
 
@@ -114,6 +143,8 @@ function Topbar({
               </button>
               {open && (
                 <div className="menu" role="menu" aria-label="Profile">
+                  {isDemo && (
+                    <>
                   <div className="menu-label">Switch Profile</div>
                   {switchError && (
                     <p role="alert" className="small" style={{ padding: '4px 10px', color: 'var(--u-danger)' }}>
@@ -121,7 +152,7 @@ function Topbar({
                     </p>
                   )}
                   <div style={{ maxHeight: 264, overflowY: 'auto' }}>
-                    {allProfiles.map((p) => {
+                    {demoProfiles.map((p) => {
                       const isMe = p.id === currentUser.id;
                       return (
                         <button
@@ -147,6 +178,8 @@ function Topbar({
                     })}
                   </div>
                   <hr />
+                    </>
+                  )}
                   <button type="button" role="menuitem" onClick={() => router.push('/onboarding')}>
                     <Icon name="user" />
                     Profile Details
@@ -154,6 +187,10 @@ function Topbar({
                   <button type="button" role="menuitem" onClick={() => router.push('/auth')}>
                     <Icon name="userplus" />
                     New Account
+                  </button>
+                  <button type="button" role="menuitem" onClick={signOut}>
+                    <Icon name="back" />
+                    Sign Out
                   </button>
                 </div>
               )}

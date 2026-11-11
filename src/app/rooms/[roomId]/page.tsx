@@ -62,7 +62,6 @@ function FellowshipRoomContent() {
   const [loadError, setLoadError] = useState(false);
   const [room, setRoom] = useState<ChatRoom | null>(null);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  const [allProfiles, setAllProfiles] = useState<UserProfile[]>([]);
   const [taxonomyTags, setTaxonomyTags] = useState<TaxonomyTag[]>([]);
   const [participants, setParticipants] = useState<RoomParticipant[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -110,7 +109,6 @@ function FellowshipRoomContent() {
         if (res.ok && data.room) {
           setRoom(data.room);
           setCurrentUser(data.currentUser);
-          setAllProfiles(data.allProfiles || []);
           setTaxonomyTags(data.taxonomyTags || []);
           setParticipants(data.participants || []);
           setMessages(data.messages || []);
@@ -330,7 +328,6 @@ function FellowshipRoomContent() {
   const shell = (children: React.ReactNode) => (
     <AppShell
       currentUser={currentUser}
-      allProfiles={allProfiles}
       onSwitchedUser={() => fetchRoomData(false)}
     >
       {children}

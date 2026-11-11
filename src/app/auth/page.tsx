@@ -8,7 +8,22 @@ import { CATS } from '@/lib/cats';
 import { PHOTOS, VERSES } from '@/lib/sample-content';
 
 type Mode = 'signup' | 'signin';
-type FieldId = 'name' | 'email' | 'password';
+type FieldId = 'name' | 'email' | 'password' | 'birth';
+type DemoProfile = Pick<UserProfile, 'id' | 'full_name' | 'avatar_url' | 'headline'>;
+
+const SERVER_FIELDS: Record<string, FieldId> = {
+  fullName: 'name',
+  email: 'email',
+  password: 'password',
+  birthDate: 'birth',
+};
+
+/** The user's own calendar date as YYYY-MM-DD. */
+function localToday(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
 type Errors = Partial<Record<FieldId, string>>;
 
 export default function AuthPage() {
@@ -17,12 +32,14 @@ export default function AuthPage() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [birthDate, setBirthDate] = useState('');
+  // Set after mount: reading the clock during render is not allowed here.
+  const [maxBirth, setMaxBirth] = useState<string | undefined>();
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
   const [failure, setFailure] = useState<{ title: string; text: string } | null>(null);
 
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  const [allProfiles, setAllProfiles] = useState<UserProfile[]>([]);
+  const [allProfiles, setAllProfiles] = useState<DemoProfile[]>([]);
   const [switcherOpen, setSwitcherOpen] = useState(false);
 
   const create = mode === 'signup';
@@ -31,13 +48,10 @@ export default function AuthPage() {
   const focusField = useRef<FieldId | null>(null);
 
   useEffect(() => {
-    fetch('/api/state')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (!data) return;
-        if (data.currentUser) setCurrentUser(data.currentUser);
-        if (data.allProfiles) setAllProfiles(data.allProfiles);
-      })
+    queueMicrotask(() => setMaxBirth(localToday()));
+    fetch('/api/auth/demo-profiles')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list: DemoProfile[]) => setAllProfiles(list))
       .catch(() => {});
   }, []);
 
@@ -58,6 +72,7 @@ export default function AuthPage() {
     setFullName('');
     setEmail('');
     setPassword('');
+    setBirthDate('');
     setErrors({});
     setFailure(null);
     focusTab.current = next;
@@ -73,8 +88,9 @@ export default function AuthPage() {
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) next.email = 'Enter a valid email, like you@example.com.';
     if (password.trim().length < 6)
       next.password = create ? 'Use at least 6 characters.' : 'Enter your password. It has at least 6 characters.';
+    if (create && !birthDate) next.birth = 'Enter your date of birth.';
     setErrors(next);
-    const first = (['name', 'email', 'password'] as const).find((k) => next[k]);
+    const first = (['name', 'email', 'birth', 'password'] as const).find((k) => next[k]);
     if (first) {
       focusField.current = first;
       return;
@@ -91,10 +107,18 @@ export default function AuthPage() {
           fullName,
           email,
           password,
+          birthDate,
+          today: localToday(),
         }),
       });
       const data = await res.json();
       if (!res.ok) {
+        const fieldId = typeof data.field === 'string' ? SERVER_FIELDS[data.field] : undefined;
+        if (fieldId) {
+          setErrors({ [fieldId]: data.error });
+          focusField.current = fieldId;
+          return;
+        }
         setFailure(
           create
             ? {
@@ -131,7 +155,7 @@ export default function AuthPage() {
       const res = await fetch('/api/auth/switch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ mode: 'demo', userId }),
       });
       if (res.ok) {
         router.replace('/');
@@ -150,7 +174,8 @@ export default function AuthPage() {
     hint: string,
     autoComplete: string,
     value: string,
-    onChange: (v: string) => void
+    onChange: (v: string) => void,
+    max?: string
   ) {
     const err = errors[id];
     return (
@@ -168,6 +193,7 @@ export default function AuthPage() {
           autoComplete={autoComplete}
           placeholder={placeholder}
           value={value}
+          max={max}
           onChange={(e) => onChange(e.target.value)}
           aria-invalid={err ? true : undefined}
           aria-describedby={err ? `au-${id}-e` : hint ? `au-${id}-h` : undefined}
@@ -261,6 +287,18 @@ export default function AuthPage() {
             {failure && <AlertBox title={failure.title} text={failure.text} />}
             {create && field('name', 'Full Name', 'text', 'e.g. Priya Mathew', '', 'name', fullName, setFullName)}
             {field('email', 'Email', 'email', 'you@example.com', '', 'email', email, setEmail)}
+            {create &&
+              field(
+                'birth',
+                'Date of Birth',
+                'date',
+                '',
+                'You must be 18 or older. We keep this private.',
+                'bday',
+                birthDate,
+                setBirthDate,
+                maxBirth
+              )}
             {field(
               'password',
               'Password',
@@ -313,13 +351,11 @@ export default function AuthPage() {
             </div>
             <ul className="list">
               {allProfiles.map((prof) => {
-                const isActive = prof.id === currentUser?.id;
                 return (
                   <li key={prof.id}>
                     <button
                       type="button"
                       disabled={submitting}
-                      aria-current={isActive || undefined}
                       onClick={() => handleQuickSwitch(prof.id)}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -330,16 +366,9 @@ export default function AuthPage() {
                           {prof.headline}
                         </span>
                       </span>
-                      {isActive ? (
-                        <span className="tag ok">
-                          <Icon name="check" />
-                          Active
-                        </span>
-                      ) : (
-                        <span className="go">
-                          <Icon name="right" />
-                        </span>
-                      )}
+                      <span className="go">
+                        <Icon name="right" />
+                      </span>
                     </button>
                   </li>
                 );

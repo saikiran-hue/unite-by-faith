@@ -97,6 +97,15 @@ begin
     (u8, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'rebecca.samuel@unitebyfaith.org', crypt('DemoFaith2026!', gen_salt('bf')), now(), now(), now(), '{"provider":"email","providers":["email"]}', '{"full_name":"Rebecca Samuel"}')
   on conflict (id) do nothing;
 
+  -- GoTrue cannot read users whose token columns are NULL ("Database error
+  -- querying schema"), so password sign-in as a demo account needs ''.
+  update auth.users
+  set confirmation_token = coalesce(confirmation_token, ''),
+      recovery_token = coalesce(recovery_token, ''),
+      email_change = coalesce(email_change, ''),
+      email_change_token_new = coalesce(email_change_token_new, '')
+  where id in (u1, u2, u3, u4, u5, u6, u7, u8);
+
   insert into public.profiles (
     id, full_name, display_handle, avatar_url, headline, bio, denomination_or_tradition, church_or_fellowship, location_city, location_timezone, years_in_faith, fellowship_mode, onboarding_completed, is_demo_account
   )

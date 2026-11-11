@@ -20,7 +20,6 @@ export default function Home() {
   const {
     loading,
     currentUser,
-    allProfiles,
     taxonomyTags,
     pods,
     duoMatches,
@@ -126,7 +125,6 @@ export default function Home() {
   return (
     <AppShell
       currentUser={currentUser}
-      allProfiles={allProfiles}
       onSwitchedUser={() => {
         setSearch(null);
         setToast(null);

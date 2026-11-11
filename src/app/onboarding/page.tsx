@@ -41,11 +41,9 @@ export default function OnboardingPage() {
   const [error, setError] = useState<[string, string, { label: string; onClick: () => void }?] | null>(null);
 
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  const [allProfiles, setAllProfiles] = useState<UserProfile[]>([]);
   const [taxonomyTags, setTaxonomyTags] = useState<TaxonomyTag[]>([]);
 
   const [step, setStep] = useState(1);
-  const [createNew, setCreateNew] = useState(false);
 
   const [fullName, setFullName] = useState('');
   const [headline, setHeadline] = useState('');
@@ -81,11 +79,9 @@ export default function OnboardingPage() {
       if (res.ok && data.currentUser) {
         const u: UserProfile = data.currentUser;
         setCurrentUser(u);
-        setAllProfiles(data.allProfiles || []);
         setTaxonomyTags(
           [...((data.taxonomyTags || []) as TaxonomyTag[])].sort((a, b) => a.sort_order - b.sort_order)
         );
-        setCreateNew(false);
         setStep(1);
         setError(null);
         fillFrom(u);
@@ -112,13 +108,6 @@ export default function OnboardingPage() {
     setError(null);
   }
 
-  function switchProfile(next: boolean) {
-    setCreateNew(next);
-    fillFrom(next ? null : currentUser);
-    setError(null);
-    goStep(1);
-  }
-
   function toggle(slug: string) {
     if (picked.includes(slug)) {
       setPicked(picked.filter((s) => s !== slug));
@@ -134,7 +123,7 @@ export default function OnboardingPage() {
     else if (starred.length < MAX_STARRED) setStarred([...starred, slug]);
   }
 
-  const first = createNew || !currentUser?.onboarding_completed;
+  const first = !currentUser?.onboarding_completed;
   const finishLabel = first ? 'Finish Setup' : 'Save Profile';
 
   async function finish() {
@@ -166,7 +155,6 @@ export default function OnboardingPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          createNew,
           fullName,
           headline,
           bio,
@@ -176,7 +164,7 @@ export default function OnboardingPage() {
           yearsInFaith,
           fellowshipMode,
           // Without this the server resets the photo to its default.
-          avatarUrl: createNew ? undefined : currentUser?.avatar_url,
+          avatarUrl: currentUser?.avatar_url,
           selectedTags: picked.map((slug) => ({
             slug,
             category: tagMap.get(slug)?.category ?? 'faith',
@@ -353,7 +341,6 @@ export default function OnboardingPage() {
   return (
     <AppShell
       currentUser={first ? null : currentUser}
-      allProfiles={allProfiles}
       onSwitchedUser={loadInitialState}
     >
       <main className="wrap stack">
@@ -366,21 +353,12 @@ export default function OnboardingPage() {
                 : 'Keep this up to date so your matches stay true to you.'}
             </p>
           </div>
-          {createNew ? (
-            <Btn variant="btn-quiet" icon="back" onClick={() => switchProfile(false)}>
-              Edit Mine
-            </Btn>
-          ) : (
-            !first && (
-              <div className="foot-btns">
-                <Btn variant="btn-quiet" icon="userplus" onClick={() => switchProfile(true)}>
-                  New Profile
-                </Btn>
-                <Btn variant="btn-quiet" icon="back" onClick={() => router.replace('/')}>
-                  Back to Home
-                </Btn>
-              </div>
-            )
+          {!first && (
+            <div className="foot-btns">
+              <Btn variant="btn-quiet" icon="back" onClick={() => router.replace('/')}>
+                Back to Home
+              </Btn>
+            </div>
           )}
         </div>
 
@@ -446,7 +424,7 @@ export default function OnboardingPage() {
 
           <aside className="card pad summary" aria-labelledby="sum-h">
             <div className="row">
-              {!createNew && currentUser?.avatar_url && (
+              {currentUser?.avatar_url && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img className="avatar" src={currentUser.avatar_url} width={48} height={48} alt="" />
               )}
