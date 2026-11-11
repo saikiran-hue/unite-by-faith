@@ -194,6 +194,22 @@ as $$
 $$;
 grant execute on function public.search_tags_text(text) to anon, authenticated, service_role;
 
+-- Tag search by meaning (query vector is a raw gte-small embedding, compared with the raw column) ---
+create or replace function public.search_tags_vector(q extensions.vector(384), k int default 3)
+returns table (slug text, cos real)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select t.slug, (1 - (t.embedding operator(extensions.<=>) q))::real as cos
+  from public.taxonomy_tags t
+  where t.is_active and t.embedding is not null
+  order by t.embedding operator(extensions.<=>) q
+  limit k
+$$;
+grant execute on function public.search_tags_vector(extensions.vector, int) to authenticated, service_role;
+
 -- Lock down the security definer functions ---------------------------------------------
 revoke execute on function public.match_rule_flags(uuid) from public, anon, authenticated;
 revoke execute on function public.match_pre_rank(uuid, text[]) from public, anon, authenticated;
