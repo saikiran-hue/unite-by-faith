@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertBox, Btn, Icon, Rose, ThemeButton } from '@/components/ubf';
+import { BirthDateSelect } from '@/components/BirthDateSelect';
+import { EMPTY_DATE_PARTS, toIsoDate, type DateParts } from '@/lib/date-parts';
 
 /** The user's own calendar date as YYYY-MM-DD. */
 function localToday(): string {
@@ -13,25 +15,20 @@ function localToday(): string {
 
 export default function AgeCheckPage() {
   const router = useRouter();
-  const [birthDate, setBirthDate] = useState('');
-  // Set after mount: reading the clock during render is not allowed here.
-  const [maxBirth, setMaxBirth] = useState<string | undefined>();
+  const [parts, setParts] = useState<DateParts>(EMPTY_DATE_PARTS);
+  const birthDate = toIsoDate(parts);
   const [error, setError] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const [underage, setUnderage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    queueMicrotask(() => setMaxBirth(localToday()));
-  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (submitting) return;
     setFailure(null);
     if (!birthDate) {
-      setError('Enter your date of birth.');
-      document.getElementById('age-birth')?.focus();
+      setError('Pick your day, month and year of birth.');
+      document.getElementById('age-birth-day')?.focus();
       return;
     }
     setError(null);
@@ -54,7 +51,7 @@ export default function AgeCheckPage() {
       if (!res.ok) {
         if (data.field === 'birthDate') {
           setError(data.error);
-          document.getElementById('age-birth')?.focus();
+          document.getElementById('age-birth-day')?.focus();
         } else {
           setFailure(data.error || 'Something went wrong.');
         }
@@ -108,21 +105,20 @@ export default function AgeCheckPage() {
               </p>
               <form className="form" onSubmit={handleSubmit} noValidate>
                 {failure && <AlertBox title="We couldn’t save that." text={failure} />}
-                <div className="field">
-                  <label htmlFor="age-birth">Date of Birth</label>
+                <fieldset className="field" aria-describedby={error ? 'age-birth-e' : 'age-birth-h'}>
+                  <legend>Date of Birth</legend>
                   <span className="hint" id="age-birth-h">
                     Only you can see this.
                   </span>
-                  <input
-                    className="input"
-                    id="age-birth"
-                    type="date"
-                    autoComplete="bday"
-                    value={birthDate}
-                    max={maxBirth}
-                    onChange={(e) => setBirthDate(e.target.value)}
-                    aria-invalid={error ? true : undefined}
-                    aria-describedby={error ? 'age-birth-e' : 'age-birth-h'}
+                  <BirthDateSelect
+                    idPrefix="age-birth"
+                    value={parts}
+                    onChange={(next) => {
+                      setParts(next);
+                      if (error) setError(null);
+                    }}
+                    invalid={Boolean(error)}
+                    describedBy={error ? 'age-birth-e' : 'age-birth-h'}
                   />
                   {error && (
                     <span className="err" id="age-birth-e" role="alert">
@@ -130,7 +126,7 @@ export default function AgeCheckPage() {
                       {error}
                     </span>
                   )}
-                </div>
+                </fieldset>
                 <Btn type="submit" variant="btn-amber block" busy={submitting} busyLabel="Checking…">
                   Continue
                 </Btn>
