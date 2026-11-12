@@ -3,7 +3,8 @@ import { shouldSendTopics, topicProblem, topicsChanged } from './PersonalTopics'
 
 describe('personal topics editor rules', () => {
   it('compares lists ignoring order and case', () => {
-    expect(topicsChanged(['Chess', 'Opera'], ['opera', 'chess'])).toBe(false);
+    expect(topicsChanged(['Chess', 'Opera'], ['Opera', 'Chess'])).toBe(false);
+    expect(topicsChanged(['Elections in Israel'], ['Elections In Israel'])).toBe(true);
     expect(topicsChanged(['Chess'], ['Chess', 'Opera'])).toBe(true);
   });
   it('sends when changed or a kept topic has no embedding, never when not loaded', () => {

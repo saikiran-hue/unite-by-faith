@@ -7,10 +7,10 @@ import { CUSTOM_MAX_CHARS, CUSTOM_MIN_CHARS, MAX_PERSONAL_TOPICS, topicLabel, va
 
 const key = (s: string) => s.toLowerCase();
 
-/** True when the topic lists differ (order and case ignored). */
+/** True when the topic lists differ (order ignored; a casing-only edit counts as a change). */
 export function topicsChanged(a: string[], b: string[]): boolean {
-  const sb = new Set(b.map(key));
-  return a.length !== b.length || a.some((x) => !sb.has(key(x)));
+  const sb = new Set(b);
+  return a.length !== b.length || a.some((x) => !sb.has(x));
 }
 
 /**
