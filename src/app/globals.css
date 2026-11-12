@@ -204,6 +204,11 @@ html[data-theme="dark"] { background: #0a0a0b; }
 .ubf .lvl button { min-height: 32px; min-width: 44px; padding: 4px 10px; border: 0; border-radius: 999px; background: transparent; font-size: 12px; font-weight: 600; color: var(--u-mute); }
 .ubf .lvl button[aria-checked="true"] { background: var(--u-accent-tint); color: var(--u-ink); }
 .ubf .lvl button:focus-visible { outline-offset: -2px; }
+.ubf .lvl-list { display: grid; gap: 6px; margin-top: 18px; padding-top: 4px; border-top: 1px solid var(--u-line); }
+.ubf .lvl-row { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-height: 44px; }
+@media (min-width: 640px) { .ubf .lvl-row { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; } }
+.ubf .lvl-name { font-weight: 600; font-size: 14px; min-width: 0; overflow-wrap: anywhere; }
+.ubf .lvl-row .lvl { margin-left: 0; }
 .ubf .subgroup { margin: 12px 0 6px; font-size: 12px; font-weight: 700; letter-spacing: .02em; color: var(--u-mute); }
 .ubf .more-btn { margin-top: 10px; }
 .ubf .tsearch { margin-top: 16px; }

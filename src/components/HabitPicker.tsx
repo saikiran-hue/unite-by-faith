@@ -87,7 +87,7 @@ export function HabitPicker({
   const renderTag = (t: TaxonomyTag) => {
     const on = picked.includes(t.slug);
     const st = starred.includes(t.slug);
-    const chip = (
+    return (
       <span key={t.slug} className={`tchip${on ? ' on' : ''}`}>
         <button type="button" className="t-main" aria-pressed={on} onClick={() => onToggle(t.slug)}>
           <Icon name={on ? 'check' : 'plus'} />
@@ -107,20 +107,9 @@ export function HabitPicker({
         )}
       </span>
     );
-    if (!levels) return chip;
-    return (
-      <span key={t.slug} className="tpick">
-        {chip}
-        {on && (
-          <LevelControl
-            label={t.label}
-            value={levels.value[t.slug] ?? DEFAULT_LEVEL}
-            onChange={(v) => levels.onChange(t.slug, v)}
-          />
-        )}
-      </span>
-    );
   };
+  // Levels sit in their own list under the chips, so a level control never widens a chip's place in the row.
+  const leveled = levels ? taxonomyTags.filter((t) => t.category === cat.key && picked.includes(t.slug)) : [];
 
   return (
     <>
@@ -149,6 +138,23 @@ export function HabitPicker({
         <Btn variant="btn-quiet" className="more-btn" aria-expanded={expanded} onClick={() => onExpand(!expanded)}>
           {expanded ? 'Show fewer' : `Show all ${total}`}
         </Btn>
+      )}
+      {levels && leveled.length > 0 && (
+        <div className="lvl-list" role="group" aria-labelledby={`lvl-h-${cat.key}`}>
+          <h4 className="subgroup" id={`lvl-h-${cat.key}`}>
+            How Much You Do Each
+          </h4>
+          {leveled.map((t) => (
+            <div key={t.slug} className="lvl-row">
+              <span className="lvl-name">{t.label}</span>
+              <LevelControl
+                label={t.label}
+                value={levels.value[t.slug] ?? DEFAULT_LEVEL}
+                onChange={(v) => levels.onChange(t.slug, v)}
+              />
+            </div>
+          ))}
+        </div>
       )}
     </>
   );

@@ -60,6 +60,12 @@ export function EditHabitsModal({ user, taxonomyTags, tagMap, initialStep = 0, o
   const closeRef = useRef<HTMLButtonElement>(null);
   const keepRef = useRef<HTMLButtonElement>(null);
   const stepMoved = useRef(false);
+  // Set when a save problem is shown, so the body scrolls up to the error (it sits at the top).
+  const errorShown = useRef(false);
+  // Guards Save against a double click or a held Enter before `saving` re-renders.
+  const savingRef = useRef(false);
+  // A backdrop click closes only if the press also started on the backdrop (not a text-selection drag).
+  const downOnBackdrop = useRef(false);
 
   useEffect(() => {
     const d = dialogRef.current;
@@ -74,6 +80,12 @@ export function EditHabitsModal({ user, taxonomyTags, tagMap, initialStep = 0, o
     bodyRef.current?.scrollTo({ top: 0 });
     stepRef.current?.focus();
   }, [step]);
+
+  useEffect(() => {
+    if (!error || !errorShown.current) return;
+    errorShown.current = false;
+    bodyRef.current?.scrollTo({ top: 0 });
+  }, [error]);
 
   // The confirm takes focus; Keep Editing hands it back to Close once the header is no longer inert.
   const wasConfirming = useRef(false);
@@ -147,10 +159,12 @@ export function EditHabitsModal({ user, taxonomyTags, tagMap, initialStep = 0, o
         savedOwn,
       })
     );
+    errorShown.current = true;
     setError(e);
   }
 
   async function save() {
+    if (savingRef.current) return;
     const n = picked.length;
     if (n < MIN_HABITS) {
       showError('min', [
@@ -159,6 +173,7 @@ export function EditHabitsModal({ user, taxonomyTags, tagMap, initialStep = 0, o
       ]);
       return;
     }
+    savingRef.current = true;
     setSaving(true);
     setError(null);
     const failed: [string, string] = [
@@ -188,14 +203,19 @@ export function EditHabitsModal({ user, taxonomyTags, tagMap, initialStep = 0, o
         const body = (await res.json().catch(() => null)) as { error?: { field?: string; message?: string } } | null;
         const message = res.status < 500 ? body?.error?.message : undefined;
         if (message) showError(body?.error?.field ?? '', ['We couldn’t save your habits.', message]);
-        else setError(failed);
+        else {
+          errorShown.current = true;
+          setError(failed);
+        }
         return;
       }
       await onSaved();
       close();
     } catch {
+      errorShown.current = true;
       setError(failed);
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
@@ -219,7 +239,7 @@ export function EditHabitsModal({ user, taxonomyTags, tagMap, initialStep = 0, o
         if (e.defaultPrevented) return;
         if (e.key === 'Tab') {
           // Keep Tab inside the dialog: wrap from the last control to the first and back.
-          const all = [...e.currentTarget.querySelectorAll<HTMLElement>('button, input, [tabindex="0"]')].filter(
+          const all = [...e.currentTarget.querySelectorAll<HTMLElement>('button, input, select, textarea, a[href], [tabindex="0"]')].filter(
             (el) => el.tabIndex >= 0 && !el.closest('[inert]') && !(el as HTMLButtonElement).disabled && el.offsetParent !== null
           );
           const edge = e.shiftKey ? all[0] : all[all.length - 1];
@@ -234,8 +254,12 @@ export function EditHabitsModal({ user, taxonomyTags, tagMap, initialStep = 0, o
         e.preventDefault();
         requestClose();
       }}
+      onMouseDown={(e) => {
+        downOnBackdrop.current = e.target === e.currentTarget;
+      }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) requestClose();
+        if (e.target === e.currentTarget && downOnBackdrop.current) requestClose();
+        downOnBackdrop.current = false;
       }}
     >
       <div className="hm">
@@ -268,6 +292,11 @@ export function EditHabitsModal({ user, taxonomyTags, tagMap, initialStep = 0, o
         </div>
 
         <div className="hm-body" ref={bodyRef} inert={confirming}>
+          {error && (
+            <div style={{ marginBottom: 16 }}>
+              <AlertBox title={error[0]} text={error[1]} />
+            </div>
+          )}
           <p className="sub" style={{ marginBottom: 12 }}>
             Tap a habit to pick it. Tap its star to mark up to 3 as most important. Starred habits count double.
           </p>
@@ -294,11 +323,6 @@ export function EditHabitsModal({ user, taxonomyTags, tagMap, initialStep = 0, o
           </div>
           {start.retired && (
             <Note style={{ marginTop: 16 }}>A habit you picked is no longer offered and was removed.</Note>
-          )}
-          {error && (
-            <div style={{ marginTop: 16 }}>
-              <AlertBox title={error[0]} text={error[1]} />
-            </div>
           )}
         </div>
 
