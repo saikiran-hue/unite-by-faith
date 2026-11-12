@@ -51,7 +51,7 @@ describe('isDirty', () => {
   it('sees an own habit added or removed', () => {
     expect(isDirty({ ...copy(start), own: [] }, start)).toBe(true);
     expect(isDirty({ ...copy(start), personal: [] }, start)).toBe(true);
-    expect(isDirty({ ...copy(start), personal: ['world war 2'] }, start)).toBe(false);
+    expect(isDirty({ ...copy(start), personal: ['world war 2'] }, start)).toBe(true);
     expect(isDirty({ ...copy(start), own: [...start.own, { category: 'faith', label: 'Psalms' }] }, start)).toBe(true);
   });
 });
