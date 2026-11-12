@@ -369,7 +369,9 @@ html:has(dialog.hm-scrim[open]) { overflow: hidden; }
 .ubf .hm-body { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 16px; }
 .ubf .hm-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--u-line); }
 .ubf .hm-count { flex: 1 1 100%; min-width: 0; padding-left: 4px; }
-.ubf .hm-foot .hm-next, .ubf .hm-confirm .foot-btns { margin-left: auto; }
+.ubf .hm-btns, .ubf .hm-confirm .foot-btns { display: flex; gap: 8px; margin-left: auto; }
+.ubf .hm-foot .btn { padding-left: 14px; padding-right: 14px; }
+.ubf .hm-save .ic { display: none; }
 @media (min-width: 640px) {
   .ubf dialog.scrim.hm-scrim[open] { padding: 24px; }
   .ubf .hm { max-width: 760px; height: auto; max-height: 88dvh; border-radius: 32px; overflow: hidden; }
@@ -378,7 +380,9 @@ html:has(dialog.hm-scrim[open]) { overflow: hidden; }
   .ubf .hm-foot { padding: 14px 24px; }
   .ubf .hm-count { flex: 1 1 auto; order: 1; }
   .ubf .hm-foot > .btn-quiet { order: 0; }
-  .ubf .hm-foot .hm-next { order: 2; margin-left: 0; }
+  .ubf .hm-btns { order: 2; margin-left: 0; }
+  .ubf .hm-foot .btn { padding-left: 18px; padding-right: 18px; }
+  .ubf .hm-save .ic { display: inline-block; }
   .ubf .hm-confirm .hm-count { order: 0; }
 }
 .ubf .cat .cat-edit { background: var(--u-surface); box-shadow: none; margin-right: -4px; }

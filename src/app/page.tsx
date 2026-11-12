@@ -232,6 +232,7 @@ export default function Home() {
             tagMap={tagMap}
             saved={saved}
             editSignal={editSignal}
+            editOpenerId="res-edit-habits"
             onSaved={async () => {
               await refresh();
               setSearch(null);
@@ -376,7 +377,13 @@ export default function Home() {
                       </Empty>
                     ) : (
                       <Empty icon="user" title="No one shares your habits yet." text="Add a few more habits and search again.">
-                        <Btn variant="btn-outline" icon="pencil" onClick={() => setEditSignal((n) => n + 1)}>
+                        <Btn
+                          variant="btn-outline"
+                          icon="pencil"
+                          id="res-edit-habits"
+                          aria-haspopup="dialog"
+                          onClick={() => setEditSignal((n) => n + 1)}
+                        >
                           Edit Habits
                         </Btn>
                       </Empty>

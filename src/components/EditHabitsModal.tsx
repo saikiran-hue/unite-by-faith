@@ -155,7 +155,7 @@ export function EditHabitsModal({ user, taxonomyTags, tagMap, initialStep = 0, o
     if (n < MIN_HABITS) {
       showError('min', [
         'Pick at least 3 habits.',
-        `You have ${n}. Add ${MIN_HABITS - n} more so we can find good matches, then tap Save Habits on the last step.`,
+        `You have ${n}. Add ${MIN_HABITS - n} more so we can find good matches, then tap Save Habits again.`,
       ]);
       return;
     }
@@ -336,16 +336,24 @@ export function EditHabitsModal({ user, taxonomyTags, tagMap, initialStep = 0, o
                 Back
               </Btn>
             )}
-            {last ? (
-              <Btn variant="btn-amber" icon="check" busy={saving} busyLabel="Saving…" onClick={save} className="hm-next">
+            <div className="hm-btns">
+              <Btn
+                variant={last ? 'btn-amber' : 'btn-outline'}
+                icon="check"
+                busy={saving}
+                busyLabel="Saving…"
+                onClick={save}
+                className="hm-save"
+              >
                 Save Habits
               </Btn>
-            ) : (
-              <Btn variant="btn-amber" onClick={() => goStep(step + 1)} className="hm-next">
-                Next
-                <Icon name="arrow" />
-              </Btn>
-            )}
+              {!last && (
+                <Btn variant="btn-amber" onClick={() => goStep(step + 1)} disabled={saving}>
+                  Next
+                  <Icon name="arrow" />
+                </Btn>
+              )}
+            </div>
           </div>
         )}
       </div>

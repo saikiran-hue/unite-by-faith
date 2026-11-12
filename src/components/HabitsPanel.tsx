@@ -17,11 +17,13 @@ interface HabitsPanelProps {
   saved: boolean;
   /** Increment to open the editor from elsewhere (e.g. an empty search result). */
   editSignal?: number;
+  /** Id of the button that sends editSignal, so focus can go back to it when the modal closes. */
+  editOpenerId?: string;
   /** Called after a successful save so matches can be re-scored. */
   onSaved: () => Promise<unknown> | void;
 }
 
-export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0, onSaved }: HabitsPanelProps) {
+export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0, editOpenerId, onSaved }: HabitsPanelProps) {
   // Where the modal opens and which button opened it (focus goes back there), or null when closed.
   // Each open mounts a fresh modal, which reads the saved habits.
   const [editing, setEditing] = useState<{ step: number; opener: string } | null>(null);
@@ -46,7 +48,7 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
   const [seenSignal, setSeenSignal] = useState(editSignal);
   if (editSignal !== seenSignal) {
     setSeenSignal(editSignal);
-    openEditor(0, savedPicked.length ? 'hab-edit-0' : 'hab-choose');
+    openEditor(0, editOpenerId ?? (savedPicked.length ? 'hab-edit-0' : 'hab-choose'));
   }
 
   const modal = editing && (
