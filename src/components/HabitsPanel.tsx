@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Level, TaxonomyTag, UserProfile } from '@/types/database';
+import { CurrentUser, Level, TaxonomyTag } from '@/types/database';
 import { CATS } from '@/lib/cats';
 import { AlertBox, Btn, CatHead, Empty, HabitChips, Icon, Note, sortHabits } from '@/components/ubf';
-import { TagSearch } from '@/components/TagSearch';
+import { CategorySearch, ownChanged, type OwnHabit } from '@/components/OwnHabits';
 
 const MIN_HABITS = 3;
 const MAX_STARRED = 3;
@@ -48,7 +48,7 @@ function LevelControl({ label, value, onChange }: { label: string; value: Level;
 }
 
 interface HabitsPanelProps {
-  user: UserProfile;
+  user: CurrentUser;
   taxonomyTags: TaxonomyTag[];
   tagMap: Map<string, TaxonomyTag>;
   /** Shows "Habits saved" until the next search. */
@@ -64,6 +64,7 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
   const [picked, setPicked] = useState<string[]>([]);
   const [starred, setStarred] = useState<string[]>([]);
   const [levels, setLevels] = useState<Record<string, Level>>({});
+  const [own, setOwn] = useState<OwnHabit[]>([]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [retired, setRetired] = useState(false);
   const router = useRouter();
@@ -84,6 +85,7 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
   const savedPicked = user.tags.map((t) => t.tag_slug);
   const savedStarred = new Set(user.tags.filter((t) => t.is_priority).map((t) => t.tag_slug));
   const savedLevels = new Map(user.tags.map((t) => [t.tag_slug, (t.level ?? DEFAULT_LEVEL) as Level]));
+  const savedOwn = user.customTags ?? [];
 
   function openEditor() {
     const keep = (s: string) => tagMap.get(s)?.is_active !== false;
@@ -91,6 +93,7 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
     setStarred([...savedStarred].filter(keep));
     setLevels(Object.fromEntries([...savedLevels].filter(([s]) => keep(s))));
     setRetired(savedPicked.some((s) => !keep(s)));
+    setOwn(savedOwn.map((c) => ({ category: c.category, label: c.label })));
     setExpanded({});
     setError(null);
     setStarHint(false);
@@ -158,6 +161,8 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
             level: levels[slug] ?? DEFAULT_LEVEL,
             isPriority: starred.includes(slug),
           })),
+          // Only when changed: if own habits failed to load, an unchanged save must not clear them.
+          ...(ownChanged(own, savedOwn) ? { customTags: own } : {}),
         }),
       });
       if (res.status === 401) {
@@ -223,7 +228,6 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
         <p className="sub">
           Tap a habit to pick it. Tap its star to mark up to 3 as most important. Starred habits count double.
         </p>
-        <TagSearch picked={picked} onPick={toggle} />
         <div className="cats" style={{ marginTop: 16 }}>
           {CATS.map((c) => {
             const inCat = taxonomyTags.filter((t) => t.category === c.key);
@@ -247,6 +251,18 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
             return (
               <div key={c.key} className={`cat cat-${c.key}`} role="group" aria-label={c.name}>
                 <CatHead cat={c} />
+                <CategorySearch
+                  cat={c}
+                  picked={picked}
+                  onPick={toggle}
+                  own={own}
+                  setOwn={(next) => {
+                    setOwn(next);
+                    setError(null);
+                  }}
+                  saved={savedOwn}
+                  allowOwn={user.customTagsLoaded !== false}
+                />
                 {open ? (
                   [...groups].map(([name, tags]) => (
                     <div key={name}>
@@ -345,11 +361,18 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
             tagMap,
             savedStarred
           );
+          const mineOwn = savedOwn.filter((o) => o.category === c.key);
           return (
             <div key={c.key} className={`cat spot cat-${c.key}`}>
               <CatHead cat={c} />
-              {mine.length ? (
-                <HabitChips slugs={mine} tagMap={tagMap} starred={savedStarred} levels={savedLevels} />
+              {mine.length || mineOwn.length ? (
+                <HabitChips
+                  slugs={mine}
+                  tagMap={tagMap}
+                  starred={savedStarred}
+                  levels={savedLevels}
+                  own={mineOwn}
+                />
               ) : (
                 <p className="small">None picked yet.</p>
               )}

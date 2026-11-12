@@ -2,7 +2,8 @@
 
 import { useEffect, useId, useRef, useState } from 'react';
 import { PillarCategory } from '@/types/database';
-import { Icon } from '@/components/ubf';
+import { Btn, Icon } from '@/components/ubf';
+import { titleCaseLabel, validCustomLabel } from '@/lib/profile-update';
 
 interface Hit {
   slug: string;
@@ -23,11 +24,18 @@ interface TagSearchProps {
   category?: PillarCategory;
   picked: string[];
   onPick: (slug: string) => void;
+  /** Visible label for the search box. */
+  label?: string;
+  /** Offers "Add “…” as your own" for the typed words. Leave out to hide it. */
+  onAddCustom?: (label: string) => void;
+  /** Own habits already added here, so the same words aren't offered twice. */
+  taken?: string[];
 }
 
 /** Search the habit catalogue by words or meaning; results are pickable chips. */
-export function TagSearch({ category, picked, onPick }: TagSearchProps) {
+export function TagSearch({ category, picked, onPick, label = 'Search habits', onAddCustom, taken = [] }: TagSearchProps) {
   const id = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
   const [result, setResult] = useState<Result>({ kind: 'idle' });
   const [loading, setLoading] = useState(false);
@@ -77,16 +85,36 @@ export function TagSearch({ category, picked, onPick }: TagSearchProps) {
     timer.current = setTimeout(() => void run(q, mine), DEBOUNCE_MS);
   }
 
+  const own = titleCaseLabel(query);
+  const ownKey = own.toLowerCase();
+  const canAdd =
+    !!onAddCustom &&
+    !loading &&
+    (result.kind === 'none' || result.kind === 'hits') &&
+    validCustomLabel(query) &&
+    !taken.some((t) => t.toLowerCase() === ownKey) &&
+    !(result.kind === 'hits' && result.tags.some((t) => t.label.toLowerCase() === ownKey));
+
+  function addCustom() {
+    onAddCustom?.(own);
+    onChange('');
+    // The button unmounts once the query clears, so put focus back on the search box.
+    inputRef.current?.focus();
+  }
+
   let status = '';
   if (loading) status = 'Searching…';
-  else if (result.kind === 'none') status = "We don't have that yet. We've noted it.";
+  else if (result.kind === 'none') {
+    status = onAddCustom ? "We don't have that yet. Add it as your own." : "We don't have that yet. We've noted it.";
+  }
   else if (result.kind === 'error') status = "Search isn't working right now. Try again in a moment.";
   else if (result.kind === 'hits') status = `${result.tags.length} found`;
 
   return (
     <div className="tsearch field">
-      <label htmlFor={`${id}-q`}>Search habits</label>
+      <label htmlFor={`${id}-q`}>{label}</label>
       <input
+        ref={inputRef}
         id={`${id}-q`}
         className="input"
         type="search"
@@ -116,6 +144,11 @@ export function TagSearch({ category, picked, onPick }: TagSearchProps) {
             })}
           </div>
         </>
+      )}
+      {canAdd && (
+        <Btn variant="btn-outline" icon="plus" className="add-own" onClick={addCustom}>
+          Add “{own}” as your own
+        </Btn>
       )}
     </div>
   );

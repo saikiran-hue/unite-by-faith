@@ -205,6 +205,18 @@ html[data-theme="dark"] { background: #0a0a0b; }
 .ubf .more-btn { margin-top: 10px; }
 .ubf .tsearch { margin-top: 16px; }
 .ubf .tsearch .did-you { margin: 10px 0 6px; font-size: 13px; font-weight: 700; }
+/* Own habits ("Add your own"): dashed chips with a remove button */
+.ubf .cat-search .tsearch { margin: 4px 0 12px; }
+.ubf .tsearch .add-own { justify-self: start; width: fit-content; margin-top: 10px; max-width: 100%; }
+.ubf .tsearch .add-own span { overflow-wrap: anywhere; text-align: left; }
+.ubf .own-list { margin-bottom: 12px; }
+.ubf .tchip.own { background: none; border: 1px dashed var(--u-line-strong); }
+.ubf .tchip.own .t-main { display: inline-flex; align-items: center; min-height: 44px; padding: 6px 4px 6px 16px; font-weight: 600; font-size: 14px; overflow-wrap: anywhere; }
+.ubf .tchip .t-x { width: 44px; height: 44px; padding: 0; justify-content: center; border-radius: 50%; color: var(--u-mute); }
+.ubf .tchip .t-x svg.ic { width: 14px; height: 14px; }
+.ubf .tchip .t-x:hover { color: var(--u-ink); }
+.ubf .tchip .t-x:focus-visible { outline-offset: -3px; }
+.ubf .own-hint { padding-left: 16px; font-size: 12px; color: var(--u-mute); }
 .ubf .edit-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-top: 18px; }
 .ubf .counter { font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; }
 .ubf .foot-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }

@@ -8,7 +8,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { ICON_PATHS, type IconName } from './icon-paths';
-import type { Level, TaxonomyTag } from '@/types/database';
+import type { Level, PillarCategory, TaxonomyTag } from '@/types/database';
 import { CAT_BY_KEY, CATS, type Cat } from '@/lib/cats';
 import { THEME_KEY } from './theme-script';
 import { LIFE_STAGES } from '@/lib/life-fit';
@@ -243,12 +243,15 @@ export function HabitChips({
   starred,
   levels,
   max,
+  own = [],
 }: {
   slugs: string[];
   tagMap: Map<string, TaxonomyTag>;
   starred?: Set<string>;
   levels?: Map<string, Level>;
   max?: number;
+  /** Habits in the member's own words, shown after the picks with a dashed outline. */
+  own?: { label: string; category: PillarCategory }[];
 }) {
   const shown = max ? slugs.slice(0, max) : slugs;
   return (
@@ -256,6 +259,17 @@ export function HabitChips({
       {shown.map((s) => (
         <HabitChip key={s} slug={s} tagMap={tagMap} starred={starred?.has(s)} level={levels?.get(s)} />
       ))}
+      {own.map((o) => {
+        const cat = CAT_BY_KEY[o.category];
+        return (
+          <li key={`own-${o.category}-${o.label}`} className={`chip dashed cat-${cat.key}`}>
+            <Icon name={cat.icon} />
+            <span className="sr">{cat.short}: </span>
+            {o.label}
+            <span className="sr"> (your own)</span>
+          </li>
+        );
+      })}
       {max && slugs.length > max && <li className="chip more">+{slugs.length - max} more</li>}
     </ul>
   );

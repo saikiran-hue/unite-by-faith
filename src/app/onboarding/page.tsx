@@ -7,6 +7,7 @@ import { AlertBox, Btn, CatHead, HabitChips, Icon, Note, Select, sortHabits, typ
 import { CATS } from '@/lib/cats';
 import { MATCH_SPLIT } from '@/lib/matching/pillar-weights';
 import { LifeFitFields } from '@/components/LifeFitFields';
+import { CategorySearch, ownChanged, type OwnHabit } from '@/components/OwnHabits';
 import {
   FIELD_TO_ID,
   LIFE_FIT_ORDER,
@@ -51,6 +52,7 @@ export default function OnboardingPage() {
   const [picked, setPicked] = useState<string[]>([]);
   const [starred, setStarred] = useState<string[]>([]);
   const [retiredDropped, setRetiredDropped] = useState(false);
+  const [own, setOwn] = useState<OwnHabit[]>([]);
 
   const [fieldErr, setFieldErr] = useState<{ id: 'name' | 'headline'; message: string } | null>(null);
 
@@ -70,6 +72,7 @@ export default function OnboardingPage() {
     setRetiredDropped(kept.length !== (u?.tags.length ?? 0));
     setPicked(kept.map((t) => t.tag_slug));
     setStarred(kept.filter((t) => t.is_priority).map((t) => t.tag_slug));
+    setOwn((u?.customTags ?? []).map((c) => ({ category: c.category, label: c.label })));
   }
 
   const loadInitialState = useCallback(async () => {
@@ -170,6 +173,7 @@ export default function OnboardingPage() {
   const tagsChanged =
     picked.length !== savedTags.size ||
     picked.some((slug) => !savedTags.has(slug) || savedTags.get(slug)?.is_priority !== starred.includes(slug));
+  const savedOwn = currentUser?.customTags ?? [];
   const finishLabel = first ? 'Finish Setup' : 'Save Profile';
 
   async function finish() {
@@ -230,6 +234,8 @@ export default function OnboardingPage() {
                 })),
               }
             : {}),
+          // Own habits only when changed, so a failed load can't clear them.
+          ...(ownChanged(own, savedOwn) ? { customTags: own } : {}),
         }),
       });
       if (res.status === 401) {
@@ -243,6 +249,7 @@ export default function OnboardingPage() {
           if (fe.field === 'fullName') showFieldError('name', fe.message);
           else if (fe.field === 'headline') showFieldError('headline', fe.message);
           else if (FIELD_TO_ID[fe.field]) showLifeFitErrors({ [FIELD_TO_ID[fe.field]]: fe.message });
+          else if (fe.field === 'customTags') setError([fe.message, `Change your own habits, then tap ${finishLabel} again.`]);
           else setError([fe.message, `Check ${fe.field}, then tap ${finishLabel} again.`]);
         } else {
           setError(failed);
@@ -373,6 +380,18 @@ export default function OnboardingPage() {
           {cats.map((c) => (
             <div key={c.key} className={`cat cat-${c.key}`} role="group" aria-label={c.name}>
               <CatHead cat={c} />
+              <CategorySearch
+                cat={c}
+                picked={picked}
+                onPick={toggle}
+                own={own}
+                setOwn={(next) => {
+                  setOwn(next);
+                  setError(null);
+                }}
+                saved={savedOwn}
+                allowOwn={currentUser?.customTagsLoaded !== false}
+              />
               <div className="tchips">
                 {taxonomyTags
                   .filter((t) => t.category === c.key && t.is_active !== false)
@@ -550,11 +569,12 @@ export default function OnboardingPage() {
                   tagMap,
                   starredSet
                 );
+                const mineOwn = own.filter((o) => o.category === c.key);
                 return (
                   <div key={c.key} className={`s-cat cat-${c.key}`}>
                     <CatHead cat={c} />
-                    {mine.length ? (
-                      <HabitChips slugs={mine} tagMap={tagMap} starred={starredSet} />
+                    {mine.length || mineOwn.length ? (
+                      <HabitChips slugs={mine} tagMap={tagMap} starred={starredSet} own={mineOwn} />
                     ) : (
                       <p className="small">None picked yet.</p>
                     )}
