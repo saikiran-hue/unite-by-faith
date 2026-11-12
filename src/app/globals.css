@@ -85,6 +85,9 @@ html[data-theme="dark"] { background: #0a0a0b; }
 .ubf-frame[data-theme="dark"], [data-theme="dark"] .ubf-frame:not([data-theme="light"]) { color-scheme: dark; }
 .ubf .wrap { max-width: 1120px; margin: 0 auto; padding-left: 12px; padding-right: 12px; }
 .ubf .stack { display: grid; gap: 12px; padding-top: 4px; padding-bottom: 40px; }
+/* App: wider containers for pages that spread across the screen (AppShell width prop) */
+.ubf .wrap.w-1280 { max-width: 1280px; }
+.ubf .wrap.w-1440 { max-width: 1440px; }
 
 /* Tiles: the grey bento surfaces everything sits on. White controls live inside them. */
 .ubf .card { background: var(--u-surface); border-radius: var(--r-tile); }
@@ -465,18 +468,37 @@ html[data-theme="dark"] { background: #0a0a0b; }
 .ubf .step[aria-current="step"] .n { background: var(--u-ink); color: var(--u-on-ink); }
 .ubf .step.done .n { background: var(--grad); color: var(--u-on-accent); }
 .ubf .step.done .n svg.ic { stroke-width: 3.5; width: 13px; height: 13px; }
-.ubf .prof-grid { display: grid; gap: 12px; align-items: start; }
 .ubf .summary .s-cat { padding: 14px; background: var(--u-raised); border-radius: var(--r-panel); box-shadow: var(--u-sh-1); margin-top: 6px; }
 .ubf .summary .s-cat .wbar { margin: 12px 0; }
 
+/* App: onboarding, one full-width step at a time with a sticky action bar */
+html:has(.ubf .ob-bar) { scroll-padding-bottom: 160px; }
+.ubf .ob { padding-bottom: 16px; }
+.ubf .ob-of { font-weight: 700; margin-bottom: 2px; }
+.ubf .ob-grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+.ubf .ob-tabs { display: flex; gap: 4px; padding: 4px; margin-bottom: 8px; background: var(--u-subtle); border-radius: 999px; }
+.ubf .ob-tabs button { flex: 1 1 0; justify-content: center; display: inline-flex; align-items: center; gap: 8px; min-width: 0; min-height: 44px; padding: 6px 8px 6px 14px; border: 0; border-radius: 999px; background: transparent; color: var(--u-mute); font-weight: 600; font-size: 14px; transition: background-color .2s ease, color .2s ease; }
+.ubf .ob-tabs button[aria-selected="true"] { background: var(--u-raised); color: var(--u-ink); box-shadow: var(--u-sh-1); }
+.ubf .ob-tabs button:focus-visible { outline-offset: -2px; border-radius: 999px; }
+.ubf .ob-count { min-width: 26px; height: 26px; padding: 0 7px; border-radius: 999px; display: grid; place-items: center; background: var(--u-surface); color: var(--u-ink); font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; flex: none; }
+.ubf .ob-tabs button[aria-selected="true"] .ob-count { background: var(--u-ink); color: var(--u-on-ink); }
+.ubf .ob-panel { padding: 16px; }
+.ubf .ob-picked { display: none; white-space: nowrap; }
+.ubf .ob-bar { position: sticky; bottom: 12px; z-index: 6; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px; border-radius: var(--r-tile); box-shadow: var(--u-sh-2); }
+.ubf .ob-info { order: -1; flex: 1 1 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-left: 8px; min-width: 0; }
+.ubf .ob-next-to { display: none; }
+.ubf .ob-bar .btn { padding-left: 16px; padding-right: 16px; }
+.ubf .ob-bar .btn-amber .ic { margin-left: 2px; }
+
 /* Grid children may shrink below their content so long names truncate instead of widening the page */
-.ubf .list, .ubf .people, .ubf .board, .ubf .add-row, .ubf .stack, .ubf .cats, .ubf .actions, .ubf .results-grid, .ubf .lists, .ubf .form, .ubf .two, .ubf .chat-body, .ubf .prof-grid, .ubf .modes, .ubf .auth { grid-template-columns: minmax(0, 1fr); }
+.ubf .list, .ubf .people, .ubf .board, .ubf .add-row, .ubf .stack, .ubf .cats, .ubf .actions, .ubf .results-grid, .ubf .lists, .ubf .form, .ubf .two, .ubf .chat-body, .ubf .modes, .ubf .auth { grid-template-columns: minmax(0, 1fr); }
 
 /* Wider containers */
 @container app (min-width: 480px) {
   .ubf .profile-btn .pname { display: inline; }
   .ubf .chat-head .push { display: grid; }
   .ubf .step .lbl { display: inline; }
+  .ubf .ob-picked { display: inline; }
   .ubf .foot-btns { flex-wrap: nowrap; }
   .ubf .composer .input { flex: 1 1 140px; order: 0; }
 }
@@ -492,6 +514,12 @@ html[data-theme="dark"] { background: #0a0a0b; }
   .ubf .chat-head .wrap { padding: 16px 24px 24px; }
 }
 @container app (min-width: 760px) {
+  .ubf .ob-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; }
+  .ubf .ob-info { order: 0; flex: 1 1 auto; justify-content: center; }
+  .ubf .ob-next-to { display: inline; }
+  .ubf .ob-panel { padding: 20px 24px; }
+  .ubf .ob-tabs { width: fit-content; }
+  .ubf .ob-tabs button { flex: 0 1 auto; }
   .ubf .actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .ubf .results-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ubf .lists { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -505,13 +533,17 @@ html[data-theme="dark"] { background: #0a0a0b; }
   .ubf .auth-copy h1 { font-size: 60px; }
   .ubf .auth-form { padding: 0; }
   .ubf .chat-body { grid-template-columns: minmax(0, 1fr) 340px; }
+  .ubf .ob-life > .form { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; align-items: start; }
+  .ubf .ob-life #pf-languages { grid-column: 1 / -1; }
   .ubf .chat-main { height: 720px; }
   .ubf .msgs { flex: 1; }
-  .ubf .prof-grid { grid-template-columns: minmax(0, 1fr) 320px; }
 }
 @container app (min-width: 1040px) {
   .ubf .cats.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .ubf .results-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@container app (min-width: 1024px) {
+  .ubf .wrap.w-1280, .ubf .wrap.w-1440 { padding-left: 32px; padding-right: 32px; }
 }
 @container app (min-width: 1160px) {
   .ubf .chat-head { margin: 0 auto; }

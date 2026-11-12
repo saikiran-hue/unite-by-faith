@@ -4,7 +4,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { AlertBox, Btn, CatHead, HabitChips, Icon, Note, Select, sortHabits, type IconName } from '@/components/ubf';
-import { CATS } from '@/lib/cats';
+import { CATS, type Cat } from '@/lib/cats';
+import { habitList, TOP_N } from '@/lib/habit-list';
 import { MATCH_SPLIT } from '@/lib/matching/pillar-weights';
 import { LifeFitFields } from '@/components/LifeFitFields';
 import { CategorySearch, shouldSendOwn, type OwnHabit } from '@/components/OwnHabits';
@@ -17,7 +18,7 @@ import {
   type LifeFitId,
   type LifeFitValue,
 } from '@/lib/life-fit';
-import { City, CurrentUser, FellowshipMode, TaxonomyTag, Tradition } from '@/types/database';
+import { City, CurrentUser, FellowshipMode, PillarCategory, TaxonomyTag, Tradition } from '@/types/database';
 
 const STEPS = ['About You', 'Life fit', 'Faith & Hobbies', 'Tastes, Tech & Skills'];
 const LIFE_STEP = 2;
@@ -53,6 +54,10 @@ export default function OnboardingPage() {
   const [starred, setStarred] = useState<string[]>([]);
   const [retiredDropped, setRetiredDropped] = useState(false);
   const [own, setOwn] = useState<OwnHabit[]>([]);
+  // The habit steps show one category at a time; each step falls back to its first category.
+  const [tab, setTab] = useState<PillarCategory>('faith');
+  const [expanded, setExpanded] = useState<Partial<Record<PillarCategory, boolean>>>({});
+  const [reviewOpen, setReviewOpen] = useState(false);
 
   const [fieldErr, setFieldErr] = useState<{ id: 'name' | 'headline'; message: string } | null>(null);
 
@@ -267,8 +272,8 @@ export default function OnboardingPage() {
 
   if (loading) {
     return (
-      <AppShell currentUser={null}>
-        <main className="wrap stack">
+      <AppShell currentUser={null} width={1280}>
+        <main className="wrap w-1280 stack">
           <section className="card pad" aria-busy="true">
             <p className="sr" role="status">
               Loading your profile…
@@ -288,6 +293,7 @@ export default function OnboardingPage() {
   const starredSet = new Set(starred);
   const starFull = starred.length >= MAX_STARRED;
   const mode = MODES.find((m) => m.mode === fellowshipMode) ?? MODES[0];
+  const catCount = (key: PillarCategory) => picked.filter((slug) => tagMap.get(slug)?.category === key).length;
 
   function field(id: string, label: string, value: string, set: (v: string) => void, ph?: string, opts?: string[]) {
     const required = id === 'name' || id === 'headline';
@@ -329,11 +335,9 @@ export default function OnboardingPage() {
   let body: React.ReactNode;
   if (step === 1) {
     body = (
-      <div className="form">
-        <div className="two">
-          {field('name', 'Name', fullName, setFullName)}
-          {field('headline', 'Headline', headline, setHeadline, 'e.g. Teacher who loves long runs')}
-        </div>
+      <div className="form ob-grid">
+        {field('name', 'Name', fullName, setFullName)}
+        {field('headline', 'Headline', headline, setHeadline, 'e.g. Teacher who loves long runs')}
         {field('church', 'Church', church, setChurch, 'Where you worship, if you have one')}
         <div className="field">
           <label htmlFor="pf-intro">Short Intro</label>
@@ -350,7 +354,7 @@ export default function OnboardingPage() {
     );
   } else if (step === LIFE_STEP) {
     body = (
-      <div id={LIFE_ANCHOR}>
+      <div id={LIFE_ANCHOR} className="ob-life">
         <p className="sub" style={{ marginBottom: 12 }}>
           Life fit is {MATCH_SPLIT.lifeFit}% of your match. Faith is {MATCH_SPLIT.faith}% and your interests{' '}
           {MATCH_SPLIT.interests}%.
@@ -368,6 +372,33 @@ export default function OnboardingPage() {
     );
   } else {
     const cats = step === 3 ? CATS.slice(0, 2) : CATS.slice(2);
+    const c = cats.find((x) => x.key === tab) ?? cats[0];
+    const { shown, groups, total } = habitList(taxonomyTags, c.key, picked);
+    const open = !!expanded[c.key];
+    const renderTag = (t: TaxonomyTag) => {
+      const on = picked.includes(t.slug);
+      const st = starred.includes(t.slug);
+      return (
+        <span key={t.slug} className={`tchip${on ? ' on' : ''}`}>
+          <button type="button" className="t-main" aria-pressed={on} onClick={() => toggle(t.slug)}>
+            <Icon name={on ? 'check' : 'plus'} />
+            {t.label}
+          </button>
+          {on && (
+            <button
+              type="button"
+              className="t-star"
+              aria-pressed={st}
+              aria-disabled={!st && starFull ? true : undefined}
+              aria-label={st ? `Remove star from ${t.label}` : `Star ${t.label} as most important`}
+              onClick={() => star(t.slug)}
+            >
+              <Icon name="star" className={st ? 'fill' : undefined} />
+            </button>
+          )}
+        </span>
+      );
+    };
     body = (
       <>
         <p className="sub" style={{ marginBottom: 12 }}>
@@ -376,56 +407,43 @@ export default function OnboardingPage() {
             : 'The everyday things that make conversation easy.'}{' '}
           Tap a habit to pick it. Star up to 3 as most important.
         </p>
-        <div className="cats">
-          {cats.map((c) => (
-            <div key={c.key} className={`cat cat-${c.key}`} role="group" aria-label={c.name}>
-              <CatHead cat={c} />
-              <CategorySearch
-                cat={c}
-                picked={picked}
-                onPick={toggle}
-                own={own}
-                setOwn={(next) => {
-                  setOwn(next);
-                  setError(null);
-                }}
-                saved={savedOwn}
-                allowOwn={currentUser?.customTagsLoaded !== false}
-              />
-              <div className="tchips">
-                {taxonomyTags
-                  .filter((t) => t.category === c.key && t.is_active !== false)
-                  .map((t) => {
-                    const on = picked.includes(t.slug);
-                    const st = starred.includes(t.slug);
-                    return (
-                      <span key={t.slug} className={`tchip${on ? ' on' : ''}`}>
-                        <button type="button" className="t-main" aria-pressed={on} onClick={() => toggle(t.slug)}>
-                          <Icon name={on ? 'check' : 'plus'} />
-                          {t.label}
-                        </button>
-                        {on && (
-                          <button
-                            type="button"
-                            className="t-star"
-                            aria-pressed={st}
-                            aria-disabled={!st && starFull ? true : undefined}
-                            aria-label={st ? `Remove star from ${t.label}` : `Star ${t.label} as most important`}
-                            onClick={() => star(t.slug)}
-                          >
-                            <Icon name="star" className={st ? 'fill' : undefined} />
-                          </button>
-                        )}
-                      </span>
-                    );
-                  })}
+        <CatTabs cats={cats} active={c.key} count={catCount} onPick={setTab} />
+        <div className={`cat cat-${c.key} ob-panel`} role="tabpanel" id="ob-panel" aria-labelledby={`ob-tab-${c.key}`}>
+          <CatHead cat={c} extra={<span className="counter ob-picked">{catCount(c.key)} picked</span>} />
+          <CategorySearch
+            key={c.key}
+            cat={c}
+            picked={picked}
+            onPick={toggle}
+            own={own}
+            setOwn={(next) => {
+              setOwn(next);
+              setError(null);
+            }}
+            saved={savedOwn}
+            allowOwn={currentUser?.customTagsLoaded !== false}
+          />
+          {open ? (
+            groups.map(([name, tags]) => (
+              <div key={name}>
+                {name && <h4 className="subgroup">{name}</h4>}
+                <div className="tchips">{tags.map(renderTag)}</div>
               </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            <div className="tchips">{shown.map(renderTag)}</div>
+          )}
+          {total > TOP_N && (
+            <Btn
+              variant="btn-quiet"
+              className="more-btn"
+              aria-expanded={open}
+              onClick={() => setExpanded({ ...expanded, [c.key]: !open })}
+            >
+              {open ? 'Show fewer' : `Show all ${total}`}
+            </Btn>
+          )}
         </div>
-        <p className="counter" role="status" style={{ marginTop: 12 }}>
-          {counterText}
-        </p>
         {step === STEPS.length && (
           <div className="field" style={{ marginTop: 20 }}>
             <span className="legend" id="mm">
@@ -456,11 +474,8 @@ export default function OnboardingPage() {
   }
 
   return (
-    <AppShell
-      currentUser={first ? null : currentUser}
-      onSwitchedUser={loadInitialState}
-    >
-      <main className="wrap stack">
+    <AppShell currentUser={first ? null : currentUser} onSwitchedUser={loadInitialState} width={1280}>
+      <main className="wrap w-1280 stack ob">
         <div className="sec-head">
           <div>
             <h1 className="h1">{first ? 'Set Up Your Profile' : 'Profile Details'}</h1>
@@ -503,95 +518,192 @@ export default function OnboardingPage() {
               );
             })}
           </ol>
-          <p className="small" style={{ marginTop: 8, fontWeight: 700, color: 'var(--u-ink)' }}>
-            Step {step} of {STEPS.length}: {STEPS[step - 1]}
-          </p>
         </nav>
 
-        <div className="prof-grid">
-          <section className="card pad" aria-labelledby="st-h">
-            <h2 className="h2" id="st-h" ref={headingRef} tabIndex={-1} style={{ marginBottom: 14 }}>
-              {STEPS[step - 1]}
-            </h2>
-            {body}
-            {retiredDropped && (
-              <Note style={{ marginTop: 16 }}>A habit you picked is no longer offered and was removed.</Note>
-            )}
-            {error && (
-              <div style={{ marginTop: 16 }}>
-                <AlertBox title={error[0]} text={error[1]} action={error[2]} />
-              </div>
-            )}
-            <div className="edit-foot">
-              {step > 1 ? (
-                <Btn variant="btn-quiet" icon="back" onClick={() => goStep(step - 1)}>
-                  Back
-                </Btn>
-              ) : (
-                <span />
-              )}
-              {step < STEPS.length ? (
-                <div className="foot-btns">
-                  {!first && (
-                    <Btn variant="btn-outline" icon="check" busy={saving} busyLabel="Saving…" onClick={finish}>
-                      {finishLabel}
-                    </Btn>
-                  )}
-                  <Btn variant="btn-amber" onClick={() => goStep(step + 1)}>
-                    Next: {STEPS[step]}
-                  </Btn>
-                </div>
-              ) : (
-                <Btn variant="btn-amber" icon="check" busy={saving} busyLabel="Saving…" onClick={finish}>
+        <section className="card pad ob-step" aria-labelledby="st-h">
+          <p className="small ob-of">
+            Step {step} of {STEPS.length}
+          </p>
+          <h2 className="h2" id="st-h" ref={headingRef} tabIndex={-1} style={{ marginBottom: 14 }}>
+            {STEPS[step - 1]}
+          </h2>
+          {body}
+          {retiredDropped && (
+            <Note style={{ marginTop: 16 }}>A habit you picked is no longer offered and was removed.</Note>
+          )}
+          {error && (
+            <div style={{ marginTop: 16 }}>
+              <AlertBox title={error[0]} text={error[1]} action={error[2]} />
+            </div>
+          )}
+        </section>
+
+        <div className="card ob-bar">
+          {step > 1 ? (
+            <Btn variant="btn-quiet" icon="back" onClick={() => goStep(step - 1)}>
+              Back
+            </Btn>
+          ) : (
+            <span className="ob-sp" />
+          )}
+          <div className="ob-info">
+            <p className="counter" role="status">
+              {counterText}
+            </p>
+            <Btn variant="btn-text" aria-haspopup="dialog" onClick={() => setReviewOpen(true)}>
+              Review Picks
+            </Btn>
+          </div>
+          {step < STEPS.length ? (
+            <div className="foot-btns">
+              {!first && (
+                <Btn variant="btn-outline" icon="check" busy={saving} busyLabel="Saving…" onClick={finish}>
                   {finishLabel}
                 </Btn>
               )}
+              <Btn variant="btn-amber" onClick={() => goStep(step + 1)}>
+                Next<span className="ob-next-to">: {STEPS[step]}</span>
+                <Icon name="arrow" />
+              </Btn>
             </div>
-          </section>
-
-          <aside className="card pad summary" aria-labelledby="sum-h">
-            <div className="row">
-              {currentUser?.avatar_url && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img className="avatar" src={currentUser.avatar_url} width={48} height={48} alt="" />
-              )}
-              <div className="grow">
-                <h2 className="h3" id="sum-h">
-                  Your Picks
-                </h2>
-                <p className="small">{counterText}</p>
-              </div>
+          ) : (
+            <div className="foot-btns">
+              <Btn variant="btn-amber" icon="check" busy={saving} busyLabel="Saving…" onClick={finish}>
+                {finishLabel}
+              </Btn>
             </div>
-            <div style={{ marginTop: 12 }}>
-              {CATS.map((c) => {
-                const mine = sortHabits(
-                  taxonomyTags.filter((t) => t.category === c.key && picked.includes(t.slug)).map((t) => t.slug),
-                  tagMap,
-                  starredSet
-                );
-                const mineOwn = own.filter((o) => o.category === c.key);
-                return (
-                  <div key={c.key} className={`s-cat cat-${c.key}`}>
-                    <CatHead cat={c} />
-                    {mine.length || mineOwn.length ? (
-                      <HabitChips slugs={mine} tagMap={tagMap} starred={starredSet} own={mineOwn} />
-                    ) : (
-                      <p className="small">None picked yet.</p>
-                    )}
-                  </div>
-                );
-              })}
-              <div className="s-cat">
-                <p className="small">Matching Mode</p>
-                <p className="row" style={{ gap: 8, fontWeight: 700 }}>
-                  <Icon name={mode.icon} />
-                  {mode.title}
-                </p>
-              </div>
-            </div>
-          </aside>
+          )}
         </div>
+
+        <ReviewPicks open={reviewOpen} onClose={() => setReviewOpen(false)} summary={counterText}>
+          {CATS.map((c) => {
+            const mine = sortHabits(
+              taxonomyTags.filter((t) => t.category === c.key && picked.includes(t.slug)).map((t) => t.slug),
+              tagMap,
+              starredSet
+            );
+            const mineOwn = own.filter((o) => o.category === c.key);
+            return (
+              <div key={c.key} className={`s-cat cat-${c.key}`}>
+                <CatHead cat={c} />
+                {mine.length || mineOwn.length ? (
+                  <HabitChips slugs={mine} tagMap={tagMap} starred={starredSet} own={mineOwn} />
+                ) : (
+                  <p className="small">None picked yet.</p>
+                )}
+              </div>
+            );
+          })}
+          <div className="s-cat">
+            <p className="small">Matching Mode</p>
+            <p className="row" style={{ gap: 8, fontWeight: 700 }}>
+              <Icon name={mode.icon} />
+              {mode.title}
+            </p>
+          </div>
+        </ReviewPicks>
       </main>
     </AppShell>
+  );
+}
+
+/** Category tabs inside a habit step; arrow keys, Home and End move between them (roving tabindex). */
+function CatTabs({
+  cats,
+  active,
+  count,
+  onPick,
+}: {
+  cats: Cat[];
+  active: PillarCategory;
+  count: (key: PillarCategory) => number;
+  onPick: (key: PillarCategory) => void;
+}) {
+  function onKey(e: React.KeyboardEvent, i: number) {
+    const n = cats.length;
+    const next =
+      e.key === 'ArrowRight' ? (i + 1) % n
+      : e.key === 'ArrowLeft' ? (i - 1 + n) % n
+      : e.key === 'Home' ? 0
+      : e.key === 'End' ? n - 1
+      : -1;
+    if (next < 0) return;
+    e.preventDefault();
+    onPick(cats[next].key);
+    document.getElementById(`ob-tab-${cats[next].key}`)?.focus();
+  }
+  return (
+    <div className="ob-tabs" role="tablist" aria-label="Habit categories">
+      {cats.map((c, i) => {
+        const on = c.key === active;
+        return (
+          <button
+            key={c.key}
+            type="button"
+            role="tab"
+            id={`ob-tab-${c.key}`}
+            aria-selected={on}
+            aria-controls="ob-panel"
+            tabIndex={on ? 0 : -1}
+            onClick={() => onPick(c.key)}
+            onKeyDown={(e) => onKey(e, i)}
+          >
+            <Icon name={c.icon} />
+            <span className="trunc">{c.short}</span>{' '}
+            <span className="ob-count">
+              {count(c.key)}
+              <span className="sr"> picked</span>
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** "Review Picks": every pick by category and the matching mode, in a modal dialog. */
+function ReviewPicks({
+  open,
+  onClose,
+  summary,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  summary: string;
+  children: React.ReactNode;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const d = ref.current;
+    if (!d) return;
+    if (open && !d.open) d.showModal();
+    if (!open && d.open) d.close();
+  }, [open]);
+  return (
+    <dialog
+      ref={ref}
+      className="scrim"
+      aria-labelledby="rv-h"
+      onClose={onClose}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="modal summary">
+        <div className="modal-head">
+          <div>
+            <h2 className="h2" id="rv-h">
+              Your Picks
+            </h2>
+            <p className="sub">{summary}</p>
+          </div>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">
+            <Icon name="x" />
+          </button>
+        </div>
+        {children}
+      </div>
+    </dialog>
   );
 }

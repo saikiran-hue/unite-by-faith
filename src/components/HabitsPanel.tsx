@@ -6,10 +6,10 @@ import { CurrentUser, Level, TaxonomyTag } from '@/types/database';
 import { CATS } from '@/lib/cats';
 import { AlertBox, Btn, CatHead, Empty, HabitChips, Icon, Note, sortHabits } from '@/components/ubf';
 import { CategorySearch, shouldSendOwn, type OwnHabit } from '@/components/OwnHabits';
+import { habitList, TOP_N } from '@/lib/habit-list';
 
 const MIN_HABITS = 3;
 const MAX_STARRED = 3;
-const TOP_N = 12;
 const DEFAULT_LEVEL: Level = 2;
 const LEVELS: { value: Level; label: string }[] = [
   { value: 1, label: 'Casual' },
@@ -230,24 +230,8 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
         </p>
         <div className="cats" style={{ marginTop: 16 }}>
           {CATS.map((c) => {
-            const inCat = taxonomyTags.filter((t) => t.category === c.key);
-            const active = inCat.filter((t) => t.is_active !== false);
+            const { shown, groups, total } = habitList(taxonomyTags, c.key, picked);
             const open = expanded[c.key];
-            const top = [...active]
-              .sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0) || a.sort_order - b.sort_order)
-              .slice(0, TOP_N);
-            const shown = new Set(top.map((t) => t.slug));
-            // Picks outside the top list (searched, or since retired) stay visible so they can be changed.
-            const extra = inCat.filter((t) => picked.includes(t.slug) && !shown.has(t.slug));
-            const groups = new Map<string, TaxonomyTag[]>();
-            if (open) {
-              for (const t of [...active, ...extra.filter((t) => t.is_active === false)].sort(
-                (a, b) => a.sort_order - b.sort_order
-              )) {
-                const g = t.subgroup ?? '';
-                groups.set(g, [...(groups.get(g) ?? []), t]);
-              }
-            }
             return (
               <div key={c.key} className={`cat cat-${c.key}`} role="group" aria-label={c.name}>
                 <CatHead cat={c} />
@@ -264,23 +248,23 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
                   allowOwn={user.customTagsLoaded !== false}
                 />
                 {open ? (
-                  [...groups].map(([name, tags]) => (
+                  groups.map(([name, tags]) => (
                     <div key={name}>
                       {name && <h4 className="subgroup">{name}</h4>}
                       <div className="tchips">{tags.map(renderTag)}</div>
                     </div>
                   ))
                 ) : (
-                  <div className="tchips">{[...top, ...extra].map(renderTag)}</div>
+                  <div className="tchips">{shown.map(renderTag)}</div>
                 )}
-                {active.length > TOP_N && (
+                {total > TOP_N && (
                   <Btn
                     variant="btn-quiet"
                     className="more-btn"
                     aria-expanded={!!open}
                     onClick={() => setExpanded({ ...expanded, [c.key]: !open })}
                   >
-                    {open ? 'Show fewer' : `Show all ${active.length}`}
+                    {open ? 'Show fewer' : `Show all ${total}`}
                   </Btn>
                 )}
               </div>

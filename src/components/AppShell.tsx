@@ -11,14 +11,16 @@ type DemoProfile = Pick<UserProfile, 'id' | 'full_name' | 'avatar_url' | 'headli
 interface AppShellProps {
   currentUser: UserProfile | null;
   onSwitchedUser?: () => void;
+  /** Wider page container (px) for pages that spread across the screen; the top bar matches it. */
+  width?: 1280 | 1440;
   children: React.ReactNode;
 }
 
 /** Top bar from the design (brand, theme toggle, profile menu) followed by the page. */
-export function AppShell({ currentUser, onSwitchedUser, children }: AppShellProps) {
+export function AppShell({ currentUser, onSwitchedUser, width, children }: AppShellProps) {
   return (
     <>
-      <Topbar currentUser={currentUser} onSwitchedUser={onSwitchedUser} />
+      <Topbar currentUser={currentUser} onSwitchedUser={onSwitchedUser} width={width} />
       {children}
     </>
   );
@@ -27,9 +29,11 @@ export function AppShell({ currentUser, onSwitchedUser, children }: AppShellProp
 function Topbar({
   currentUser,
   onSwitchedUser,
+  width,
 }: {
   currentUser: UserProfile | null;
   onSwitchedUser?: () => void;
+  width?: 1280 | 1440;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -109,7 +113,7 @@ function Topbar({
 
   return (
     <header className="topbar">
-      <div className="wrap topbar-in">
+      <div className={`wrap topbar-in${width ? ` w-${width}` : ''}`}>
         <Link href="/" className="brand" aria-label="Unite by Faith, Home">
           <Rose size={30} />
           <span>Unite by Faith</span>
