@@ -1,151 +1,74 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserProfile } from '@/types/database';
-import { AlertBox, Btn, Icon, Rose, ThemeButton } from '@/components/ubf';
+import { AlertBox, Btn, Icon, Rose, Spinner, ThemeButton } from '@/components/ubf';
 import { CATS } from '@/lib/cats';
 import { PHOTOS, VERSES } from '@/lib/sample-content';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 
-type Mode = 'signup' | 'signin';
-type FieldId = 'name' | 'email' | 'password' | 'birth';
 type DemoProfile = Pick<UserProfile, 'id' | 'full_name' | 'avatar_url' | 'headline'>;
 
-const SERVER_FIELDS: Record<string, FieldId> = {
-  fullName: 'name',
-  email: 'email',
-  password: 'password',
-  birthDate: 'birth',
+/** Shown when Google or the callback sends the user back with ?error=. */
+const RETURN_ERRORS: Record<string, { title: string; text: string }> = {
+  google: {
+    title: 'Google sign-in didn’t finish.',
+    text: 'Try again. If it keeps happening, check that pop-ups and cookies are allowed for this site.',
+  },
+  setup: {
+    title: 'We signed you in but couldn’t set up your profile.',
+    text: 'Try again in a moment.',
+  },
 };
 
-/** The user's own calendar date as YYYY-MM-DD. */
-function localToday(): string {
-  const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+/** Google's "G" mark, as the sign-in branding guidelines require. */
+function GoogleMark() {
+  return (
+    <svg className="g-mark" viewBox="0 0 48 48" aria-hidden="true">
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+    </svg>
+  );
 }
-type Errors = Partial<Record<FieldId, string>>;
 
 export default function AuthPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<Mode>('signup');
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [birthDate, setBirthDate] = useState('');
-  // Set after mount: reading the clock during render is not allowed here.
-  const [maxBirth, setMaxBirth] = useState<string | undefined>();
+  const [redirecting, setRedirecting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [errors, setErrors] = useState<Errors>({});
   const [failure, setFailure] = useState<{ title: string; text: string } | null>(null);
-
   const [allProfiles, setAllProfiles] = useState<DemoProfile[]>([]);
   const [switcherOpen, setSwitcherOpen] = useState(false);
 
-  const create = mode === 'signup';
-  const tabRefs = useRef<Record<Mode, HTMLButtonElement | null>>({ signup: null, signin: null });
-  const focusTab = useRef<Mode | null>(null);
-  const focusField = useRef<FieldId | null>(null);
-
   useEffect(() => {
-    queueMicrotask(() => setMaxBirth(localToday()));
-    fetch('/api/auth/demo-profiles')
-      .then((r) => (r.ok ? r.json() : []))
-      .then((list: DemoProfile[]) => setAllProfiles(list))
-      .catch(() => {});
+    const code = new URLSearchParams(window.location.search).get('error');
+    if (code) queueMicrotask(() => setFailure(RETURN_ERRORS[code] ?? RETURN_ERRORS.google));
+    // Local development only: the route answers 404 in production, so the list stays hidden.
+    if (process.env.NODE_ENV !== 'production') {
+      fetch('/api/auth/demo-profiles')
+        .then((r) => (r.ok ? r.json() : []))
+        .then((list: DemoProfile[]) => setAllProfiles(list))
+        .catch(() => {});
+    }
   }, []);
 
-  // Move focus after a render, as the prototype's render(focusSel) does.
-  useEffect(() => {
-    if (focusTab.current) {
-      tabRefs.current[focusTab.current]?.focus({ preventScroll: true });
-      focusTab.current = null;
-    }
-    if (focusField.current) {
-      document.getElementById(`au-${focusField.current}`)?.focus({ preventScroll: true });
-      focusField.current = null;
-    }
-  });
-
-  function selectTab(next: Mode) {
-    setMode(next);
-    setFullName('');
-    setEmail('');
-    setPassword('');
-    setBirthDate('');
-    setErrors({});
+  async function handleGoogle() {
+    if (redirecting) return;
     setFailure(null);
-    focusTab.current = next;
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (submitting) return;
-    setFailure(null);
-
-    const next: Errors = {};
-    if (create && !fullName.trim()) next.name = 'Enter your full name.';
-    if (!/^\S+@\S+\.\S+$/.test(email.trim())) next.email = 'Enter a valid email, like you@example.com.';
-    if (password.trim().length < 6)
-      next.password = create ? 'Use at least 6 characters.' : 'Enter your password. It has at least 6 characters.';
-    if (create && !birthDate) next.birth = 'Enter your date of birth.';
-    setErrors(next);
-    const first = (['name', 'email', 'birth', 'password'] as const).find((k) => next[k]);
-    if (first) {
-      focusField.current = first;
-      return;
-    }
-
-    setSubmitting(true);
-
-    try {
-      const res = await fetch('/api/auth/switch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode,
-          fullName,
-          email,
-          password,
-          birthDate,
-          today: localToday(),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        const fieldId = typeof data.field === 'string' ? SERVER_FIELDS[data.field] : undefined;
-        if (fieldId) {
-          setErrors({ [fieldId]: data.error });
-          focusField.current = fieldId;
-          return;
-        }
-        setFailure(
-          create
-            ? {
-                title: 'We couldn’t create your account.',
-                text: `${data.error || 'Authentication failed'}. Check your details and try again, or sign in if you already have an account.`,
-              }
-            : {
-                title: 'That email and password don’t match.',
-                text: 'Check both and try again, or create an account if you are new.',
-              }
-        );
-        return;
-      }
-
-      if (mode === 'signup' || !data.onboardingCompleted) {
-        router.replace('/onboarding');
-      } else {
-        router.replace('/');
-      }
-      router.refresh();
-    } catch (err) {
-      setFailure({
-        title: 'We couldn’t reach the server.',
-        text: `${err instanceof Error ? err.message : 'Network error'}. Check your connection and try again.`,
-      });
-    } finally {
-      setSubmitting(false);
+    setRedirecting(true);
+    const { error } = await createSupabaseBrowserClient().auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: { prompt: 'select_account' },
+      },
+    });
+    // On success the browser is already leaving for Google.
+    if (error) {
+      setRedirecting(false);
+      setFailure({ title: 'We couldn’t open Google sign-in.', text: `${error.message}. Try again.` });
     }
   }
 
@@ -164,48 +87,6 @@ export default function AuthPage() {
     } finally {
       setSubmitting(false);
     }
-  }
-
-  function field(
-    id: FieldId,
-    label: string,
-    type: string,
-    placeholder: string,
-    hint: string,
-    autoComplete: string,
-    value: string,
-    onChange: (v: string) => void,
-    max?: string
-  ) {
-    const err = errors[id];
-    return (
-      <div className="field">
-        <label htmlFor={`au-${id}`}>{label}</label>
-        {hint && (
-          <span className="hint" id={`au-${id}-h`}>
-            {hint}
-          </span>
-        )}
-        <input
-          className="input"
-          id={`au-${id}`}
-          type={type}
-          autoComplete={autoComplete}
-          placeholder={placeholder}
-          value={value}
-          max={max}
-          onChange={(e) => onChange(e.target.value)}
-          aria-invalid={err ? true : undefined}
-          aria-describedby={err ? `au-${id}-e` : hint ? `au-${id}-h` : undefined}
-        />
-        {err && (
-          <span className="err" id={`au-${id}-e`} role="alert">
-            <Icon name="alert" />
-            {err}
-          </span>
-        )}
-      </div>
-    );
   }
 
   return (
@@ -255,80 +136,26 @@ export default function AuthPage() {
           <ThemeButton />
         </div>
         <div className="card auth-card">
-          <div className="tabs" role="tablist" aria-label="Account">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={create}
-              ref={(el) => {
-                tabRefs.current.signup = el;
-              }}
-              onClick={() => selectTab('signup')}
-            >
-              Create Account
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={!create}
-              ref={(el) => {
-                tabRefs.current.signin = el;
-              }}
-              onClick={() => selectTab('signin')}
-            >
-              Sign In
-            </button>
-          </div>
-          <h2 className="h2">{create ? 'Create Your Account' : 'Welcome Back'}</h2>
-          <p className="sub" style={{ marginBottom: 16 }}>
-            {create ? 'It takes a minute. Next you will pick your habits.' : 'Sign in to see your matches and chats.'}
+          <h2 className="h2">Welcome to Unite by Faith</h2>
+          <p className="sub" style={{ marginBottom: 20 }}>
+            Sign in with your Google account. New here? The same button creates your account.
           </p>
-          <form className="form" onSubmit={handleSubmit} noValidate>
+          <div className="form">
             {failure && <AlertBox title={failure.title} text={failure.text} />}
-            {create && field('name', 'Full Name', 'text', 'e.g. Priya Mathew', '', 'name', fullName, setFullName)}
-            {field('email', 'Email', 'email', 'you@example.com', '', 'email', email, setEmail)}
-            {create &&
-              field(
-                'birth',
-                'Date of Birth',
-                'date',
-                '',
-                'You must be 18 or older. We keep this private.',
-                'bday',
-                birthDate,
-                setBirthDate,
-                maxBirth
-              )}
-            {field(
-              'password',
-              'Password',
-              'password',
-              '',
-              create ? 'At least 6 characters.' : '',
-              create ? 'new-password' : 'current-password',
-              password,
-              setPassword
-            )}
-            <Btn
-              type="submit"
-              variant={create ? 'btn-amber block' : 'btn-indigo block'}
-              busy={submitting}
-              busyLabel={create ? 'Creating Account…' : 'Signing In…'}
-            >
-              {create ? 'Create Account' : 'Sign In'}
-            </Btn>
-          </form>
-          <p className="small" style={{ marginTop: 14, textAlign: 'center' }}>
-            {create ? 'Already have an account?' : 'New here?'}{' '}
             <button
               type="button"
-              className="btn btn-text"
-              style={{ minHeight: 44, padding: '0 4px' }}
-              onClick={() => selectTab(create ? 'signin' : 'signup')}
+              className="btn btn-google block"
+              onClick={handleGoogle}
+              aria-busy={redirecting || undefined}
+              disabled={redirecting}
             >
-              {create ? 'Sign In' : 'Create Account'}
+              {redirecting ? <Spinner /> : <GoogleMark />}
+              {redirecting ? 'Opening Google…' : 'Continue with Google'}
             </button>
-          </p>
+            <p className="small" style={{ textAlign: 'center' }}>
+              We only get your name, email and photo from Google.
+            </p>
+          </div>
         </div>
 
         {allProfiles.length > 0 && (

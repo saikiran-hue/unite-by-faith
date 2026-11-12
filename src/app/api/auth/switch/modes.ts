@@ -1,4 +1,4 @@
-import { ageOn, isAdult } from '@/lib/age';
+import { checkBirthDate } from '@/lib/age-gate';
 
 export type SignupField = 'birthDate' | 'email' | 'fullName' | 'password';
 
@@ -8,8 +8,6 @@ export type SignupResult =
       value: { fullName: string; email: string; password: string; birthDate: string };
     }
   | { ok: false; field: SignupField; message: string };
-
-const BAD_BIRTH_DATE = 'Enter your real date of birth.';
 
 /** Checks the sign-up body. `today` is the user's calendar date, read via its UTC fields. */
 export function validateSignup(body: unknown, today: Date): SignupResult {
@@ -27,20 +25,8 @@ export function validateSignup(body: unknown, today: Date): SignupResult {
     return { ok: false, field: 'password', message: 'Use at least 6 characters.' };
   }
 
-  let age: number;
-  try {
-    age = ageOn(birthDate, today);
-  } catch {
-    return { ok: false, field: 'birthDate', message: BAD_BIRTH_DATE };
-  }
-  if (age < 0) return { ok: false, field: 'birthDate', message: BAD_BIRTH_DATE };
-  if (!isAdult(birthDate, today)) {
-    return {
-      ok: false,
-      field: 'birthDate',
-      message: 'You need to be 18 or older to join Unite by Faith.',
-    };
-  }
+  const birth = checkBirthDate(birthDate, today);
+  if (!birth.ok) return { ok: false, field: 'birthDate', message: birth.message };
 
   return { ok: true, value: { fullName, email, password, birthDate } };
 }

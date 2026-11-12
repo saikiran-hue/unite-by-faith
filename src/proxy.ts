@@ -1,10 +1,13 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { needsAgeCheck } from '@/lib/age-gate';
 
 /**
  * Refreshes the Supabase session cookies on every request and sends page
  * requests without a signed-in user to /auth. API routes are not redirected:
  * they answer 401 { error: 'signed_out' } themselves via requireUserId().
+ * A Google account that has not confirmed it is 18+ can only reach the age check:
+ * pages redirect to /auth/age, other API routes answer 403 { error: 'age_required' }.
  */
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -40,6 +43,23 @@ export async function proxy(request: NextRequest) {
     pathname === '/auth' ||
     pathname.startsWith('/auth/') ||
     pathname.startsWith('/api/');
+
+  const keepCookies = (res: NextResponse) => {
+    response.cookies.getAll().forEach((c) => res.cookies.set(c.name, c.value));
+    return res;
+  };
+
+  if (user && needsAgeCheck(user)) {
+    const allowed =
+      pathname === '/auth/age' || pathname === '/auth/callback' || pathname.startsWith('/api/auth/');
+    if (!allowed) {
+      return keepCookies(
+        pathname.startsWith('/api/')
+          ? NextResponse.json({ error: 'age_required' }, { status: 403 })
+          : NextResponse.redirect(new URL('/auth/age', request.url))
+      );
+    }
+  }
 
   if (!user && !open) {
     const redirect = NextResponse.redirect(new URL('/auth', request.url));

@@ -405,6 +405,11 @@ html[data-theme="dark"] { background: #0a0a0b; }
 .ubf .auth-form { position: relative; display: grid; gap: 12px; align-content: center; justify-items: center; padding: 0 0 28px; }
 .ubf .auth-tools { justify-self: end; }
 .ubf .auth-card { width: 100%; max-width: 440px; padding: 16px; }
+.ubf .btn-google { background: #fff; color: #1f1f1f; box-shadow: inset 0 0 0 1px #747775; font-family: Roboto, var(--sans); font-weight: 500; }
+.ubf .btn-google:hover { background: #f8f9fa; }
+[data-theme="dark"] .ubf .btn-google, .ubf[data-theme="dark"] .btn-google { background: #131314; color: #e3e3e3; box-shadow: inset 0 0 0 1px #8e918f; }
+[data-theme="dark"] .ubf .btn-google:hover, .ubf[data-theme="dark"] .btn-google:hover { background: #1f1f20; }
+.ubf .btn-google .g-mark { width: 18px; height: 18px; flex: none; }
 .ubf .tabs { display: grid; grid-template-columns: 1fr 1fr; background: var(--u-subtle); border-radius: 999px; padding: 4px; gap: 4px; margin-bottom: 24px; }
 .ubf .tabs button { min-height: 44px; border: 0; background: transparent; border-radius: 999px; font-weight: 600; font-size: 14px; color: var(--u-mute); transition: background-color .2s ease, color .2s ease; }
 .ubf .tabs button[aria-selected="true"] { background: var(--u-raised); color: var(--u-ink); box-shadow: var(--u-sh-1); }

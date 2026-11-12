@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { devAuthEnabled } from '@/lib/dev-auth';
 
-/** Public list of demo accounts for the sign-in screen. Never includes real users. */
+/** Demo accounts for the local sign-in screen. Never includes real users; 404 in production. */
 export async function GET() {
+  if (!devAuthEnabled()) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   const admin = createSupabaseAdminClient();
   const { data, error } = await admin
     .from('profiles')

@@ -3,13 +3,8 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { defaultAgeRange, ageOn } from '@/lib/age';
 import { resolveToday, validateSignup } from './modes';
-
-const AVATAR_POOL = [
-  'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=240&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=240&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=240&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=240&auto=format&fit=crop&q=80',
-];
+import { devAuthEnabled } from '@/lib/dev-auth';
+import { newProfileRow } from '@/lib/new-profile';
 
 function fail(status: number, error: string, field?: string) {
   return NextResponse.json(field ? { error, field } : { error }, { status });
@@ -35,6 +30,9 @@ export async function POST(req: NextRequest) {
       await supabase.auth.signOut();
       return NextResponse.json({ ok: true });
     }
+
+    // Everything below is local development only; production is Google sign-in.
+    if (!devAuthEnabled()) return fail(404, 'Not found');
 
     // Demo accounts only: sign in as a seeded demo profile.
     if (body.mode === 'demo') {
@@ -84,13 +82,6 @@ export async function POST(req: NextRequest) {
       if (!checked.ok) return fail(400, checked.message, checked.field);
       const { fullName, email, password, birthDate } = checked.value;
 
-      const handleBase = fullName
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '_')
-        .replace(/^_|_$/g, '')
-        .slice(0, 18);
-      const displayHandle = `${handleBase || 'believer'}_${Math.floor(100 + Math.random() * 899)}`;
-
       const { data: createdAuth, error: createErr } = await admin.auth.admin.createUser({
         email,
         password,
@@ -107,27 +98,11 @@ export async function POST(req: NextRequest) {
       }
 
       const newUserId = createdAuth.user.id;
-      const randomAvatar = AVATAR_POOL[Math.floor(Math.random() * AVATAR_POOL.length)];
       const range = defaultAgeRange(ageOn(birthDate, today));
 
       let setupError: string | null = null;
       try {
-        const { error: profErr } = await admin.from('profiles').upsert({
-          id: newUserId,
-          full_name: fullName,
-          display_handle: displayHandle,
-          avatar_url: randomAvatar,
-          headline: 'Christian Friend & Community Builder',
-          bio: 'Excited to connect in 3–4 member fellowship pods and 1v1 matches!',
-          denomination_or_tradition: 'Non-Denominational',
-          church_or_fellowship: '',
-          location_city: 'Bengaluru, IN',
-          location_timezone: 'Asia/Kolkata',
-          years_in_faith: 'Growing Believer',
-          fellowship_mode: 'both',
-          onboarding_completed: false,
-          is_demo_account: false,
-        });
+        const { error: profErr } = await admin.from('profiles').upsert(newProfileRow(newUserId, fullName));
         const { error: privErr } = profErr
           ? { error: null }
           : await admin.from('profile_private').insert({
