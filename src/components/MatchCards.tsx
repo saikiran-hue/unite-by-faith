@@ -23,6 +23,8 @@ export interface DuoResult {
     tradition: { id: string; name: string } | null;
     tags: { slug: string }[];
   };
+  /** The partner's personal topics: shared ones first, then a couple of others. */
+  topics?: { label: string; shared: boolean }[];
   existing_chat_room_id: string | null;
   score: number;
   breakdown: Breakdown;
@@ -79,6 +81,21 @@ export function DuoCard({
       </div>
       <ScoreBars breakdown={match.breakdown} />
       <ReasonChips reasons={match.reasons} tagMap={tagMap} names={{ tradition: p.tradition?.name }} />
+      {match.topics && match.topics.length > 0 && (
+        <div className="m-topics">
+          <p className="small m-topics-h" id={`mt-${p.id}`}>
+            Personal Topics
+          </p>
+          <ul className="chips" aria-labelledby={`mt-${p.id}`}>
+            {match.topics.map((t) => (
+              <li key={t.label} className={`chip${t.shared ? ' shared' : ''}`}>
+                {t.label}
+                {t.shared && <span className="sr"> (you share this)</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {match.existing_chat_room_id ? (
         <Btn variant="btn-outline indigo block" icon="chat" onClick={() => onConnect(match)}>
           Continue with {first}

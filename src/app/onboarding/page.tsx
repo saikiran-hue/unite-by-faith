@@ -9,6 +9,7 @@ import { MATCH_SPLIT } from '@/lib/matching/pillar-weights';
 import { LifeFitFields } from '@/components/LifeFitFields';
 import { shouldSendOwn, type OwnHabit } from '@/components/OwnHabits';
 import { HabitPicker, MAX_STARRED } from '@/components/HabitPicker';
+import { PersonalTopics, shouldSendTopics } from '@/components/PersonalTopics';
 import {
   FIELD_TO_ID,
   LIFE_FIT_ORDER,
@@ -53,6 +54,7 @@ export default function OnboardingPage() {
   const [starred, setStarred] = useState<string[]>([]);
   const [retiredDropped, setRetiredDropped] = useState(false);
   const [own, setOwn] = useState<OwnHabit[]>([]);
+  const [personal, setPersonal] = useState<string[]>([]);
   // The habit steps show one category at a time; each step falls back to its first category.
   const [tab, setTab] = useState<PillarCategory>('faith');
   const [expanded, setExpanded] = useState<Partial<Record<PillarCategory, boolean>>>({});
@@ -77,6 +79,7 @@ export default function OnboardingPage() {
     setPicked(kept.map((t) => t.tag_slug));
     setStarred(kept.filter((t) => t.is_priority).map((t) => t.tag_slug));
     setOwn((u?.customTags ?? []).map((c) => ({ category: c.category, label: c.label })));
+    setPersonal((u?.personalTopics ?? []).map((t) => t.label));
   }
 
   const loadInitialState = useCallback(async () => {
@@ -179,6 +182,8 @@ export default function OnboardingPage() {
     picked.length !== savedTags.size ||
     picked.some((slug) => !savedTags.has(slug) || savedTags.get(slug)?.is_priority !== starred.includes(slug));
   const savedOwn = currentUser?.customTags ?? [];
+  // Hidden when personal topics could not be loaded, so a save can't clear them.
+  const allowPersonal = currentUser?.personalTopicsLoaded === true;
   const finishLabel = first ? 'Finish Setup' : 'Save Profile';
 
   async function finish() {
@@ -241,6 +246,7 @@ export default function OnboardingPage() {
             : {}),
           // Own habits only when changed or unmapped, and never if they failed to load (see shouldSendOwn).
           ...(shouldSendOwn(own, savedOwn, currentUser?.customTagsLoaded !== false) ? { customTags: own } : {}),
+          ...(shouldSendTopics(personal, currentUser?.personalTopics ?? [], allowPersonal) ? { personalTopics: personal } : {}),
         }),
       });
       if (res.status === 401) {
@@ -255,6 +261,7 @@ export default function OnboardingPage() {
           else if (fe.field === 'headline') showFieldError('headline', fe.message);
           else if (FIELD_TO_ID[fe.field]) showLifeFitErrors({ [FIELD_TO_ID[fe.field]]: fe.message });
           else if (fe.field === 'customTags') setError([fe.message, `Change your own habits, then tap ${finishLabel} again.`]);
+          else if (fe.field === 'personalTopics') setError([fe.message, `Change your personal topics, then tap ${finishLabel} again.`]);
           else setError([fe.message, `Check ${fe.field}, then tap ${finishLabel} again.`]);
         } else {
           setError(failed);
@@ -401,6 +408,33 @@ export default function OnboardingPage() {
             headExtra={<span className="counter ob-picked">{catCount(c.key)} picked</span>}
           />
         </div>
+        {step === STEPS.length && allowPersonal && (
+          <section className="cat ob-personal" style={{ marginTop: 20 }} aria-labelledby="ob-pt-h">
+            <div className="cat-head">
+              <span className="cat-ic">
+                <Icon name="bulb" />
+              </span>
+              <div className="grow">
+                <h3 className="cat-name" id="ob-pt-h">
+                  Personal
+                </h3>
+                <p className="small" style={{ fontSize: 12 }}>
+                  Optional. Things you are into, in your own words.
+                </p>
+              </div>
+            </div>
+            <div style={{ marginTop: 14 }}>
+              <PersonalTopics
+                id="ob-pt"
+                topics={personal}
+                setTopics={(next) => {
+                  setPersonal(next);
+                  setError(null);
+                }}
+              />
+            </div>
+          </section>
+        )}
         {step === STEPS.length && (
           <div className="field" style={{ marginTop: 20 }}>
             <span className="legend" id="mm">

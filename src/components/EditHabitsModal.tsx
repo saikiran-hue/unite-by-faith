@@ -6,7 +6,8 @@ import type { CurrentUser, Level, TaxonomyTag } from '@/types/database';
 import { AlertBox, Btn, Icon, Note } from '@/components/ubf';
 import { shouldSendOwn } from '@/components/OwnHabits';
 import { DEFAULT_LEVEL, HabitPicker, MAX_STARRED } from '@/components/HabitPicker';
-import { EDIT_STEPS, isDirty, stepForError, type HabitDraft } from '@/lib/edit-habits';
+import { PersonalTopics, shouldSendTopics } from '@/components/PersonalTopics';
+import { editSteps, isDirty, stepForError, type HabitDraft } from '@/lib/edit-habits';
 
 const MIN_HABITS = 3;
 
@@ -22,12 +23,15 @@ interface EditHabitsModalProps {
   onClose: () => void;
 }
 
-/** Edit Habits: one category per step in a modal dialog. Reads the saved habits on mount. */
+/** Edit Habits: one category per step, then Personal, in a modal dialog. Reads the saved habits on mount. */
 export function EditHabitsModal({ user, taxonomyTags, tagMap, initialStep = 0, onSaved, onClose }: EditHabitsModalProps) {
   const router = useRouter();
-  const steps = EDIT_STEPS;
+  // Personal is left out when topics could not be loaded, so a save can't clear them.
+  const allowPersonal = user.personalTopicsLoaded === true;
+  const steps = editSteps(allowPersonal);
   const savedOwn = user.customTags ?? [];
   const allowOwn = user.customTagsLoaded !== false;
+  const savedTopics = user.personalTopics ?? [];
 
   // Snapshot at open, without retired habits (saving removes them).
   const [start] = useState<HabitDraft & { retired: boolean }>(() => {
@@ -40,6 +44,7 @@ export function EditHabitsModal({ user, taxonomyTags, tagMap, initialStep = 0, o
         user.tags.filter((t) => keep(t.tag_slug)).map((t) => [t.tag_slug, (t.level ?? DEFAULT_LEVEL) as Level])
       ),
       own: savedOwn.map((c) => ({ category: c.category, label: c.label })),
+      personal: savedTopics.map((t) => t.label),
       retired: slugs.some((s) => !keep(s)),
     };
   });
@@ -47,8 +52,9 @@ export function EditHabitsModal({ user, taxonomyTags, tagMap, initialStep = 0, o
   const [starred, setStarred] = useState(start.starred);
   const [levels, setLevels] = useState(start.levels);
   const [own, setOwn] = useState(start.own);
+  const [personal, setPersonal] = useState(start.personal);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [step, setStep] = useState(initialStep);
+  const [step, setStep] = useState(Math.min(initialStep, steps.length - 1));
   const [saving, setSaving] = useState(false);
   const [starHint, setStarHint] = useState(false);
   const [error, setError] = useState<[string, string] | null>(null);
@@ -95,7 +101,7 @@ export function EditHabitsModal({ user, taxonomyTags, tagMap, initialStep = 0, o
     wasConfirming.current = confirming;
   }, [confirming]);
 
-  const dirty = isDirty({ picked, starred, levels, own }, start);
+  const dirty = isDirty({ picked, starred, levels, own, personal }, start);
 
   function moveTo(i: number) {
     if (i === step) return;
@@ -193,6 +199,8 @@ export function EditHabitsModal({ user, taxonomyTags, tagMap, initialStep = 0, o
           })),
           // Own habits only when changed or unmapped, and never if they failed to load (see shouldSendOwn).
           ...(shouldSendOwn(own, savedOwn, allowOwn) ? { customTags: own } : {}),
+          // Personal topics only when changed or not yet embedded, and never if they failed to load.
+          ...(shouldSendTopics(personal, savedTopics, allowPersonal) ? { personalTopics: personal } : {}),
         }),
       });
       if (res.status === 401) {
@@ -297,6 +305,25 @@ export function EditHabitsModal({ user, taxonomyTags, tagMap, initialStep = 0, o
               <AlertBox title={error[0]} text={error[1]} />
             </div>
           )}
+          {s.kind === 'personal' ? (
+            <>
+              <p className="sub" style={{ marginBottom: 12 }}>
+                Things you are into, in your own words, such as a period of history or a language you are learning.
+                We match them by meaning, and they make good conversation starters.
+              </p>
+              <div className="hm-panel">
+                <PersonalTopics
+                  id="hm-pt"
+                  topics={personal}
+                  setTopics={(next) => {
+                    setPersonal(next);
+                    setError(null);
+                  }}
+                />
+              </div>
+            </>
+          ) : (
+          <>
           <p className="sub" style={{ marginBottom: 12 }}>
             Tap a habit to pick it. Tap its star to mark up to 3 as most important. Starred habits count double.
           </p>
@@ -321,6 +348,8 @@ export function EditHabitsModal({ user, taxonomyTags, tagMap, initialStep = 0, o
               levels={{ value: levels, onChange: (slug, v) => setLevels({ ...levels, [slug]: v }) }}
             />
           </div>
+          </>
+          )}
           {start.retired && (
             <Note style={{ marginTop: 16 }}>A habit you picked is no longer offered and was removed.</Note>
           )}

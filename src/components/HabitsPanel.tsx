@@ -5,7 +5,7 @@ import { CurrentUser, Level, TaxonomyTag } from '@/types/database';
 import { CATS } from '@/lib/cats';
 import { Btn, CatHead, Empty, HabitChips, Icon, Note, sortHabits } from '@/components/ubf';
 import { EditHabitsModal } from '@/components/EditHabitsModal';
-import { EDIT_STEPS } from '@/lib/edit-habits';
+import { EDIT_STEPS, PERSONAL_STEP } from '@/lib/edit-habits';
 
 const DEFAULT_LEVEL: Level = 2;
 
@@ -41,6 +41,7 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
   const savedStarred = new Set(user.tags.filter((t) => t.is_priority).map((t) => t.tag_slug));
   const savedLevels = new Map(user.tags.map((t) => [t.tag_slug, (t.level ?? DEFAULT_LEVEL) as Level]));
   const savedOwn = user.customTags ?? [];
+  const savedTopics = user.personalTopicsLoaded ? user.personalTopics ?? [] : [];
 
   const openEditor = (step: number, opener: string) => setEditing({ step, opener });
 
@@ -145,6 +146,39 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
               </div>
             );
           })}
+          {savedTopics.length > 0 && (
+            <div className="cat spot cat-personal">
+              <div className="cat-head">
+                <span className="cat-ic">
+                  <Icon name="bulb" />
+                </span>
+                <div className="grow">
+                  <h3 className="cat-name">Personal</h3>
+                  <p className="small" style={{ fontSize: 12 }}>
+                    Your matches can see these
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="icon-btn cat-edit"
+                  id={`hab-edit-${PERSONAL_STEP}`}
+                  aria-haspopup="dialog"
+                  aria-label="Edit Personal"
+                  title="Edit Personal"
+                  onClick={() => openEditor(PERSONAL_STEP, `hab-edit-${PERSONAL_STEP}`)}
+                >
+                  <Icon name="pencil" />
+                </button>
+              </div>
+              <ul className="chips" style={{ marginTop: 14 }}>
+                {savedTopics.map((t) => (
+                  <li key={t.label} className="chip">
+                    {t.label}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </section>
       {modal}

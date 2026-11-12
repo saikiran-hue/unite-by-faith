@@ -225,6 +225,16 @@ html[data-theme="dark"] { background: #0a0a0b; }
 .ubf .tchip .t-x:hover { color: var(--u-ink); }
 .ubf .tchip .t-x:focus-visible { outline-offset: -3px; }
 .ubf .own-hint { padding-left: 16px; font-size: 12px; color: var(--u-mute); }
+/* Personal topics: free-text input, removable chips; a full-width tile on home */
+.ubf .pt-row { display: flex; gap: 8px; align-items: center; }
+.ubf .pt-row .input { flex: 1 1 auto; min-width: 0; }
+.ubf .pt-row .btn { flex: none; }
+.ubf .pt-count { padding-left: 4px; }
+.ubf .pt-list { margin-top: 12px; }
+.ubf .cats .cat-personal { grid-column: 1 / -1; }
+.ubf .m-topics { display: grid; gap: 6px; }
+.ubf .m-topics-h { font-size: 12px; font-weight: 600; padding-left: 4px; }
+.ubf .chip.shared { background: var(--grad); color: var(--u-on-accent); box-shadow: var(--glow); }
 .ubf .counter { font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; }
 .ubf .foot-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
 
