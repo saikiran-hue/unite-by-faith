@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { requireUserId } from '@/lib/session';
-import { buildProfileUpdate } from '@/lib/profile-update';
+import { buildProfileUpdate, CUSTOM_CLASH_MESSAGE, findCatalogueClash } from '@/lib/profile-update';
+import { mapCustomLabels } from '@/lib/matching/custom-map';
 
 const invalid = (field: string, message: string) =>
   NextResponse.json({ error: { field, message } }, { status: 400 });
@@ -66,6 +67,37 @@ export async function POST(req: NextRequest) {
       }));
     }
 
+    // Own habits: reject exact catalogue labels, then map new or changed ones before writing anything.
+    let customRows: { user_id: string; category: string; label: string; mapped_slugs: string[] }[] | null = null;
+    if (update.customTags) {
+      const custom = update.customTags;
+      if (custom.length > 0) {
+        const { data, error } = await admin
+          .from('taxonomy_tags')
+          .select('label, category, is_active')
+          .in('category', [...new Set(custom.map((c) => c.category))]);
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+        if (findCatalogueClash(custom, data ?? [])) return invalid('customTags', CUSTOM_CLASH_MESSAGE);
+      }
+      const { data: existing, error: exErr } = await admin
+        .from('user_custom_tags')
+        .select('category, label, mapped_slugs')
+        .eq('user_id', userId);
+      if (exErr) return NextResponse.json({ error: exErr.message }, { status: 500 });
+      const key = (category: string, label: string) => `${category}:${label.trim().toLowerCase()}`;
+      const stored = new Map((existing ?? []).map((r) => [key(r.category, r.label), r.mapped_slugs as string[]]));
+      // Unchanged labels keep their stored mapping, so only new words are embedded.
+      const fresh = custom.filter((c) => !stored.has(key(c.category, c.label)));
+      const mapped = await mapCustomLabels(admin, fresh);
+      const freshMap = new Map(fresh.map((c, i) => [key(c.category, c.label), mapped[i]]));
+      customRows = custom.map((c) => ({
+        user_id: userId,
+        category: c.category,
+        label: c.label,
+        mapped_slugs: stored.get(key(c.category, c.label)) ?? freshMap.get(key(c.category, c.label)) ?? [],
+      }));
+    }
+
     if (Object.keys(update.profile).length > 0) {
       const { error } = await admin
         .from('profiles')
@@ -91,6 +123,15 @@ export async function POST(req: NextRequest) {
       if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 });
       if (tagRows.length > 0) {
         const { error } = await admin.from('user_tags').insert(tagRows);
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+    }
+
+    if (customRows) {
+      const { error: delErr } = await admin.from('user_custom_tags').delete().eq('user_id', userId);
+      if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 });
+      if (customRows.length > 0) {
+        const { error } = await admin.from('user_custom_tags').insert(customRows);
         if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       }
     }

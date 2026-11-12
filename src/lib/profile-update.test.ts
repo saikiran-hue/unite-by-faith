@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { buildProfileUpdate } from './profile-update';
+import {
+  buildProfileUpdate,
+  CUSTOM_CLASH_MESSAGE,
+  findCatalogueClash,
+  titleCaseLabel,
+  validCustomLabel,
+} from './profile-update';
 
 const tag = (slug: string, isPriority = false, level = 2) => ({ slug, category: 'faith', level, isPriority });
 
@@ -83,5 +89,77 @@ describe('buildProfileUpdate', () => {
     expect(buildProfileUpdate({ ageMax: 100 })).toMatchObject({ error: { field: 'ageMax' } });
     expect(buildProfileUpdate({ ageMin: 100 })).toMatchObject({ error: { field: 'ageMin' } });
     expect(buildProfileUpdate({ ageMax: 99 })).toMatchObject({ private: { age_max: 99 } });
+  });
+});
+
+describe('customTags', () => {
+  const ct = (label: string, category = 'hobbies') => ({ category, label });
+  const parse = (customTags: unknown) => buildProfileUpdate({ customTags });
+
+  it('is left out when not sent', () => {
+    const r = buildProfileUpdate({ fullName: 'A' });
+    expect('error' in r || r.customTags).toBeFalsy();
+  });
+  it('trims and collapses whitespace', () => {
+    expect(parse([ct('  Bonsai   Trees ')])).toMatchObject({ customTags: [{ category: 'hobbies', label: 'Bonsai Trees' }] });
+  });
+  it('accepts an empty list (clears the set)', () => {
+    expect(parse([])).toMatchObject({ customTags: [] });
+  });
+  it('rejects labels under 2 or over 40 characters', () => {
+    expect(parse([ct(' a ')])).toMatchObject({ error: { field: 'customTags' } });
+    expect(parse([ct('x'.repeat(41))])).toMatchObject({ error: { field: 'customTags' } });
+    expect(parse([ct('x'.repeat(40))])).not.toHaveProperty('error');
+  });
+  it('rejects a bad category or a non-text label', () => {
+    expect(parse([ct('Bonsai', 'food')])).toMatchObject({ error: { field: 'customTags' } });
+    expect(parse([{ category: 'hobbies', label: 4 }])).toMatchObject({ error: { field: 'customTags' } });
+    expect(parse('Bonsai')).toMatchObject({ error: { field: 'customTags' } });
+  });
+  it('rejects duplicates in a category, ignoring case, but allows the same words in another', () => {
+    expect(parse([ct('Bonsai'), ct('bonsai ')])).toMatchObject({ error: { field: 'customTags' } });
+    expect(parse([ct('Bonsai'), ct('Bonsai', 'tastes')])).not.toHaveProperty('error');
+  });
+  it('caps at 5 per category and 12 in all', () => {
+    const five = ['Aa', 'Bb', 'Cc', 'Dd', 'Ee'];
+    expect(parse(five.map((l) => ct(l)))).not.toHaveProperty('error');
+    expect(parse([...five, 'Ff'].map((l) => ct(l)))).toMatchObject({ error: { field: 'customTags' } });
+    const twelve = ['faith', 'hobbies', 'tastes'].flatMap((c) => ['Aa', 'Bb', 'Cc', 'Dd'].map((l) => ct(l, c)));
+    expect(parse(twelve)).not.toHaveProperty('error');
+    expect(parse([...twelve, ct('Zz', 'skills')])).toMatchObject({ error: { field: 'customTags' } });
+  });
+});
+
+describe('findCatalogueClash', () => {
+  const catalogue = [
+    { label: 'Gardening', category: 'hobbies' },
+    { label: 'Choir', category: 'faith', is_active: false },
+  ];
+  it('finds an exact same-category match, ignoring case', () => {
+    expect(findCatalogueClash([{ category: 'hobbies', label: 'gardening' }], catalogue)).toEqual({
+      category: 'hobbies',
+      label: 'gardening',
+    });
+  });
+  it('ignores other categories, retired habits and near matches', () => {
+    expect(findCatalogueClash([{ category: 'tastes', label: 'Gardening' }], catalogue)).toBeNull();
+    expect(findCatalogueClash([{ category: 'faith', label: 'Choir' }], catalogue)).toBeNull();
+    expect(findCatalogueClash([{ category: 'hobbies', label: 'Gardening Club' }], catalogue)).toBeNull();
+  });
+  it('carries the agreed message', () => {
+    expect(CUSTOM_CLASH_MESSAGE).toBe('That one is already in the list — pick it above.');
+  });
+});
+
+describe('titleCaseLabel', () => {
+  it('capitalises each word and keeps the rest as typed', () => {
+    expect(titleCaseLabel('  bonsai   trees ')).toBe('Bonsai Trees');
+    expect(titleCaseLabel('rust programming')).toBe('Rust Programming');
+    expect(titleCaseLabel('learning TypeScript')).toBe('Learning TypeScript');
+  });
+  it('validCustomLabel checks the cleaned length', () => {
+    expect(validCustomLabel(' a ')).toBe(false);
+    expect(validCustomLabel('ab')).toBe(true);
+    expect(validCustomLabel('x'.repeat(41))).toBe(false);
   });
 });

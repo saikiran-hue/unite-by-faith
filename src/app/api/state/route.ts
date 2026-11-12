@@ -4,6 +4,7 @@ import { requireUserId } from '@/lib/session';
 import { PUBLIC_CARD_COLUMNS, TAXONOMY_COLUMNS } from '@/lib/taxonomy';
 import {
   CurrentUser,
+  CustomTag,
   PodMemberProfile,
   ProfilePrivate,
   TaxonomyTag,
@@ -31,6 +32,7 @@ export async function GET() {
       { data: duoRows, error: duoError },
       { data: privateRow, error: privError },
       { data: traditionRows, error: tradError },
+      { data: customRows, error: customError },
     ] = await Promise.all([
       admin
         .from('taxonomy_tags')
@@ -51,7 +53,15 @@ export async function GET() {
         .eq('user_id', userId)
         .maybeSingle(),
       admin.from('traditions').select('id, name, family, sort_order').order('sort_order', { ascending: true }),
+      admin
+        .from('user_custom_tags')
+        .select('id, category, label, mapped_slugs')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true })
+        .order('label', { ascending: true }),
     ]);
+    // Own habits are optional extras: a failed read (e.g. before migration 0014) shows none rather than failing the page.
+    if (customError) console.error('user_custom_tags read failed', customError.message);
 
     const firstError =
       taxError || profError || tagError || seatError || duoError || privError || tradError;
@@ -69,9 +79,20 @@ export async function GET() {
     }
     const profile: UserProfile = { ...profileRow, tags: (userTagRows || []) as UserTag[] };
 
+    const labelOf = new Map(taxonomyTags.map((t) => [t.slug, t.label]));
+    const customTags: CustomTag[] = ((customError ? [] : customRows) ?? []).map((r) => ({
+      id: r.id as string,
+      category: r.category as CustomTag['category'],
+      label: r.label as string,
+      mapped: ((r.mapped_slugs ?? []) as string[]).flatMap((slug) =>
+        labelOf.has(slug) ? [{ slug, label: labelOf.get(slug)! }] : []
+      ),
+    }));
     const currentUser: CurrentUser = {
       ...profile,
       private: (privateRow as ProfilePrivate | null) ?? null,
+      customTags,
+      customTagsLoaded: !customError,
     };
 
     let city: { id: number; name: string; country_code: string } | null = null;

@@ -4,6 +4,12 @@ export const TEXT_MIN = 0.35;
  * genuine matches scored 0.879-0.944 at top-1, unrelated or nonsense queries 0.785-0.823.
  */
 export const MEANING_MIN = 0.85;
+/**
+ * Raw gte-small cosine floor for mapping a member's own habit to catalogue habits in the same category
+ * (task-B report): right maps scored 0.873-0.948,
+ * clearly wrong ones up to 0.860 (ping pong -> pickleball in slot 2). Errs on mapping fewer rather than wrong.
+ */
+export const CUSTOM_MAP_MIN = 0.87;
 const TEXT_LIMIT = 8;
 const MEANING_LIMIT = 3;
 

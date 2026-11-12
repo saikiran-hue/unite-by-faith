@@ -54,6 +54,14 @@ export interface UserTag {
   level?: Level;
 }
 
+/** A habit in the member's own words, with the catalogue habits it was matched like (may be empty). */
+export interface CustomTag {
+  id: string;
+  category: PillarCategory;
+  label: string;
+  mapped: { slug: string; label: string }[];
+}
+
 export interface UserProfile {
   id: string;
   full_name: string;
@@ -94,6 +102,9 @@ export interface ProfilePrivate {
 /** The signed-in viewer: their public profile plus their own private row (or null). */
 export interface CurrentUser extends UserProfile {
   private: ProfilePrivate | null;
+  customTags: CustomTag[];
+  /** False when own habits could not be read; the editors then hide "Add your own" so a save can't clear them. */
+  customTagsLoaded: boolean;
 }
 
 export interface DuoChat {

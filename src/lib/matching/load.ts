@@ -68,6 +68,29 @@ interface UserTagRow {
   is_priority: boolean;
 }
 
+interface CustomTagRow {
+  user_id: string;
+  category: PillarCategory;
+  mapped_slugs: string[] | null;
+}
+
+/**
+ * Adds the catalogue habits a person's own habits were matched like, as implied picks: Casual, not starred,
+ * and only where the slug is not already an explicit pick (the explicit pick wins).
+ */
+export function withImpliedPicks(explicit: TagPick[], custom: Pick<CustomTagRow, 'category' | 'mapped_slugs'>[]): TagPick[] {
+  const out = [...explicit];
+  const have = new Set(explicit.map((t) => t.slug));
+  for (const c of custom) {
+    for (const slug of c.mapped_slugs ?? []) {
+      if (have.has(slug)) continue;
+      have.add(slug);
+      out.push({ slug, category: c.category, level: 1, starred: false });
+    }
+  }
+  return out;
+}
+
 /** Minutes east of UTC for an IANA timezone right now (for example Asia/Kolkata is 330). */
 export function tzOffsetMinutes(timeZone: string, at: Date = new Date()): number {
   try {
@@ -122,7 +145,7 @@ export async function loadPeople(admin: SupabaseClient, ids: string[]): Promise<
   const out = new Map<string, LoadedPerson>();
   if (ids.length === 0) return out;
 
-  const [profiles, privateRows, tagRows] = await Promise.all([
+  const [profiles, privateRows, tagRows, customRows] = await Promise.all([
     fetchChunked<ProfileRow, string>(ids, (c, a, b) =>
       admin
         .from('profiles')
@@ -150,6 +173,19 @@ export async function loadPeople(admin: SupabaseClient, ids: string[]): Promise<
         .order('tag_slug')
         .range(a, b) as never,
     ),
+    // Own habits only add implied picks, so a failed read (e.g. before migration 0014) must not break matching.
+    fetchChunked<CustomTagRow, string>(ids, (c, a, b) =>
+      admin
+        .from('user_custom_tags')
+        .select('user_id, category, mapped_slugs')
+        .in('user_id', c)
+        .order('user_id')
+        .order('id')
+        .range(a, b) as never,
+    ).catch((e) => {
+      console.error('user_custom_tags read failed; matching without own habits', e);
+      return [] as CustomTagRow[];
+    }),
   ]);
   const privates = new Map(privateRows.map((r) => [r.user_id, r]));
 
@@ -173,6 +209,13 @@ export async function loadPeople(admin: SupabaseClient, ids: string[]): Promise<
     tagsByUser.set(t.user_id, list);
   }
 
+  const customByUser = new Map<string, CustomTagRow[]>();
+  for (const t of customRows) {
+    const list = customByUser.get(t.user_id) ?? [];
+    list.push(t);
+    customByUser.set(t.user_id, list);
+  }
+
   const today = new Date();
   for (const p of profiles) {
     const priv = privates.get(p.id);
@@ -191,12 +234,14 @@ export async function loadPeople(admin: SupabaseClient, ids: string[]): Promise<
 
     const trad = p.tradition_id ? traditions.get(p.tradition_id) : undefined;
     const rows = tagsByUser.get(p.id) ?? [];
-    const tags: TagPick[] = rows.map((t) => ({
+    const explicit: TagPick[] = rows.map((t) => ({
       slug: t.tag_slug,
       category: t.category,
       level: t.level as TagPick['level'],
       starred: t.is_priority,
     }));
+    // Implied picks feed scoring only; pub.tags stays what the person actually picked.
+    const tags = withImpliedPicks(explicit, customByUser.get(p.id) ?? []);
     out.set(p.id, {
       match: {
         id: p.id,

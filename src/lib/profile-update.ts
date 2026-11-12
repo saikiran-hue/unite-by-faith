@@ -35,10 +35,16 @@ export interface TagInput {
   isPriority: boolean;
 }
 
+export interface CustomTagInput {
+  category: PillarCategory;
+  label: string;
+}
+
 export type ProfileUpdate = {
   profile: Partial<ProfileColumns>;
   private: Partial<PrivateColumns>;
   tags?: TagInput[];
+  customTags?: CustomTagInput[];
 };
 export type ProfileUpdateError = { error: { field: string; message: string } };
 
@@ -66,6 +72,11 @@ const DISTANCES: readonly number[] = [10, 25, 50, 100];
 const MAX_TAGS = 30;
 const MAX_STARRED = 3;
 const MAX_LANGUAGES = 6;
+export const CUSTOM_MIN_CHARS = 2;
+export const CUSTOM_MAX_CHARS = 40;
+export const MAX_CUSTOM_PER_CATEGORY = 5;
+export const MAX_CUSTOM_TOTAL = 12;
+export const CUSTOM_CLASH_MESSAGE = 'That one is already in the list — pick it above.';
 
 // [column, max length, error message when empty (null = may be empty)]
 const STRING_RULES: Record<string, [number, string | null]> = {
@@ -128,6 +139,58 @@ function parseTags(raw: unknown, legacy: boolean): TagInput[] | ProfileUpdateErr
   }
   if (starred > MAX_STARRED) return bad(field, `Star at most ${MAX_STARRED} tags.`);
   return out;
+}
+
+/** Trims and collapses inner whitespace. */
+export const cleanCustomLabel = (s: string) => s.trim().replace(/\s+/g, ' ');
+
+/** How an own habit is stored: cleaned, first letter of each word capitalised, the rest kept as typed. */
+export const titleCaseLabel = (s: string) => cleanCustomLabel(s).replace(/(^|\s)(\S)/g, (_, sp, c) => sp + c.toUpperCase());
+
+/** True when a typed own habit is a valid length once cleaned. */
+export const validCustomLabel = (s: string) => {
+  const n = cleanCustomLabel(s).length;
+  return n >= CUSTOM_MIN_CHARS && n <= CUSTOM_MAX_CHARS;
+};
+
+function parseCustomTags(raw: unknown): CustomTagInput[] | ProfileUpdateError {
+  const field = 'customTags';
+  if (!Array.isArray(raw)) return bad(field, 'Your own habits must be a list.');
+  if (raw.length > MAX_CUSTOM_TOTAL) return bad(field, `Add at most ${MAX_CUSTOM_TOTAL} of your own.`);
+  const seen = new Set<string>();
+  const perCategory = new Map<string, number>();
+  const out: CustomTagInput[] = [];
+  for (const t of raw) {
+    if (typeof t !== 'object' || t === null) return bad(field, 'Each of your own habits must be an object.');
+    const r = t as Record<string, unknown>;
+    if (typeof r.category !== 'string' || !CATEGORIES.includes(r.category)) {
+      return bad(field, 'Each of your own habits needs a valid category.');
+    }
+    if (typeof r.label !== 'string') return bad(field, 'Each of your own habits needs a name.');
+    const label = cleanCustomLabel(r.label);
+    if (label.length < CUSTOM_MIN_CHARS || label.length > CUSTOM_MAX_CHARS) {
+      return bad(field, `Keep each of your own habits to ${CUSTOM_MIN_CHARS} to ${CUSTOM_MAX_CHARS} characters.`);
+    }
+    const key = `${r.category}:${label.toLowerCase()}`;
+    if (seen.has(key)) return bad(field, `You added “${label}” twice.`);
+    seen.add(key);
+    const n = (perCategory.get(r.category) ?? 0) + 1;
+    if (n > MAX_CUSTOM_PER_CATEGORY) return bad(field, `Add at most ${MAX_CUSTOM_PER_CATEGORY} of your own in each group.`);
+    perCategory.set(r.category, n);
+    out.push({ category: r.category as PillarCategory, label });
+  }
+  return out;
+}
+
+/** The first custom label that exactly matches (ignoring case) an active catalogue label in its category, or null. */
+export function findCatalogueClash(
+  custom: CustomTagInput[],
+  catalogue: { label: string; category: string; is_active?: boolean }[],
+): CustomTagInput | null {
+  const labels = new Set(
+    catalogue.filter((t) => t.is_active !== false).map((t) => `${t.category}:${cleanCustomLabel(t.label).toLowerCase()}`),
+  );
+  return custom.find((c) => labels.has(`${c.category}:${c.label.toLowerCase()}`)) ?? null;
 }
 
 /** Maps a request body to column updates. Only keys present in the body are included. */
@@ -222,6 +285,11 @@ export function buildProfileUpdate(body: unknown): ProfileUpdate | ProfileUpdate
     const tags = parseTags(b[tagKey], tagKey === 'selectedTags');
     if ('error' in tags) return tags;
     result.tags = tags;
+  }
+  if (has('customTags')) {
+    const custom = parseCustomTags(b.customTags);
+    if ('error' in custom) return custom;
+    result.customTags = custom;
   }
   return result;
 }

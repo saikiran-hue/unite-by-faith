@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { fetchChunked, tzOffsetMinutes } from './load';
+import { fetchChunked, tzOffsetMinutes, withImpliedPicks } from './load';
+import { interestSimilarity, scorePair, type MatchPerson, type ScoreContext, type TagPick } from './score';
 
 describe('fetchChunked', () => {
   it('returns every row across chunks and pages with no duplicates', async () => {
@@ -42,3 +43,77 @@ describe('tzOffsetMinutes', () => {
   });
   it('is 0 for UTC', () => expect(tzOffsetMinutes('UTC', winter)).toBe(0));
 });
+
+describe('withImpliedPicks', () => {
+  const ctx: ScoreContext = {
+    neighbors: new Map(),
+    popularity: new Map(),
+    activeUsers: 100,
+    weights: {
+      version: 1,
+      total: { faith: 0.4, interests: 0.35, life: 0.25 },
+      faith: { tags: 0.6, tradition: 0.25, stage: 0.15 },
+      interests: { hobbies: 0.4, tastes: 0.35, skills: 0.25 },
+      life: { stage: 0.35, availability: 0.35, place: 0.15, age: 0.15 },
+      pod: { min: 0.5, mean: 0.3, anchor: 0.2 },
+      neighborMin: 0.6,
+      relatedCap: 0.7,
+      onlineTzMaxMin: 180,
+    },
+  };
+  const pick = (slug: string, level: TagPick['level'] = 2, starred = false): TagPick => ({
+    slug,
+    category: 'hobbies',
+    level,
+    starred,
+  });
+
+  it('adds mapped slugs as Casual, unstarred picks', () => {
+    const tags = withImpliedPicks([pick('hiking')], [{ category: 'hobbies', mapped_slugs: ['gardening'] }]);
+    expect(tags).toEqual([pick('hiking'), { slug: 'gardening', category: 'hobbies', level: 1, starred: false }]);
+  });
+
+  it('keeps the explicit pick when the same slug is also implied, and dedupes across own habits', () => {
+    const tags = withImpliedPicks(
+      [pick('gardening', 3, true)],
+      [
+        { category: 'hobbies', mapped_slugs: ['gardening', 'plants'] },
+        { category: 'hobbies', mapped_slugs: ['plants'] },
+        { category: 'hobbies', mapped_slugs: null },
+      ],
+    );
+    expect(tags).toEqual([pick('gardening', 3, true), { slug: 'plants', category: 'hobbies', level: 1, starred: false }]);
+  });
+
+  it('an own "Bonsai Trees" mapped to gardening shares a signal with someone who picked Gardening', () => {
+    const bonsai = withImpliedPicks([pick('chess')], [{ category: 'hobbies', mapped_slugs: ['gardening'] }]);
+    const gardener = [pick('gardening'), pick('running')];
+    const withOwn = interestSimilarity(bonsai, gardener, ctx) ?? 0;
+    const without = interestSimilarity([pick('chess')], gardener, ctx) ?? 0;
+    expect(withOwn).toBeGreaterThan(without);
+    const viewer = person('v', bonsai);
+    const other = person('g', gardener);
+    expect(scorePair(viewer, other, ctx).reasons).toContainEqual({ kind: 'shared_tag', slug: 'gardening' });
+  });
+});
+
+function person(id: string, tags: TagPick[]): MatchPerson {
+  return {
+    id,
+    isDemo: false,
+    tags,
+    traditionId: 'baptist',
+    traditionFamily: 'evangelical',
+    faithStage: 'growing',
+    lifeStage: 'early_career',
+    availability: ['weekday_evening'],
+    age: 30,
+    cityId: 1,
+    cityName: 'Kochi',
+    lat: 10,
+    lng: 76,
+    tzOffsetMin: 330,
+    meetMode: 'both',
+    maxDistanceKm: 25,
+  };
+}
