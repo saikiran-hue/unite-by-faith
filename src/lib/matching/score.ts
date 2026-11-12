@@ -224,7 +224,9 @@ function buildReasons(
 
   const reasons: Reason[] = [];
   for (const s of shared) reasons.push({ kind: 'shared_tag', slug: s.slug });
-  for (const t of topics) reasons.push({ kind: 'shared_topic', mine: t.mine, theirs: t.theirs, same: t.same });
+  // One topic reason: the card's Personal Topics row already lists every shared topic.
+  const t = topics[0];
+  if (t) reasons.push({ kind: 'shared_topic', mine: t.mine, theirs: t.theirs, same: t.same });
   for (const r of relatedList) reasons.push({ kind: 'related_tag', mine: r.mine, theirs: r.theirs });
   if (T !== null && T >= 0.6) {
     reasons.push({ kind: 'tradition', same: T === 1, family: a.traditionFamily ?? b.traditionFamily ?? '' });

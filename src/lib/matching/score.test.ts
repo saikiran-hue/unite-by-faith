@@ -276,7 +276,16 @@ describe('personal topics', () => {
     expect(r.reasons[3]).toEqual({ kind: 'shared_topic', mine: 'World War 2', theirs: 'World War 2', same: true });
   });
   it('pods inherit it through the best member', () => {
-    const pod = scorePod(a, [{ ...b, topics: [{ label: 'WW2 History', vec: v(15) }] }], [], ctx());
+    const c2 = { ...b, id: 'c' };
+    const plain = scorePod(a, [b, c2], [], ctx());
+    const pod = scorePod(a, [{ ...b, topics: [{ label: 'WW2 History', vec: v(15) }] }, c2], [], ctx());
     expect(pod.reasons.some((r) => r.kind === 'shared_topic')).toBe(true);
+    expect(pod.breakdown.interests).toBeGreaterThan(plain.breakdown.interests);
+    expect(pod.score).toBeGreaterThanOrEqual(plain.score);
+  });
+  it('gives one topic reason even with several shared topics', () => {
+    const many = [{ label: 'World War 2', vec: v(0) }, { label: 'Opera', vec: v(90) }];
+    const r = scorePair({ ...a, topics: many }, { ...b, topics: many }, ctx());
+    expect(r.reasons.filter((x) => x.kind === 'shared_topic')).toHaveLength(1);
   });
 });
