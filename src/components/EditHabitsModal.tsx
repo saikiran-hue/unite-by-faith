@@ -216,8 +216,21 @@ export function EditHabitsModal({ user, taxonomyTags, tagMap, initialStep = 0, o
         requestClose();
       }}
       onKeyDown={(e) => {
+        if (e.defaultPrevented) return;
+        if (e.key === 'Tab') {
+          // Keep Tab inside the dialog: wrap from the last control to the first and back.
+          const all = [...e.currentTarget.querySelectorAll<HTMLElement>('button, input, [tabindex="0"]')].filter(
+            (el) => el.tabIndex >= 0 && !el.closest('[inert]') && !(el as HTMLButtonElement).disabled && el.offsetParent !== null
+          );
+          const edge = e.shiftKey ? all[0] : all[all.length - 1];
+          if (document.activeElement === edge) {
+            e.preventDefault();
+            (e.shiftKey ? all[all.length - 1] : all[0])?.focus();
+          }
+          return;
+        }
         // Handle Escape here: Chrome only lets a page cancel the dialog's own Escape once.
-        if (e.key !== 'Escape' || e.defaultPrevented) return;
+        if (e.key !== 'Escape') return;
         e.preventDefault();
         requestClose();
       }}

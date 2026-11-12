@@ -381,7 +381,7 @@ html:has(dialog.hm-scrim[open]) { overflow: hidden; }
   .ubf .hm-foot .hm-next { order: 2; margin-left: 0; }
   .ubf .hm-confirm .hm-count { order: 0; }
 }
-.ubf .cat .cat-edit { width: 40px; height: 40px; background: var(--u-surface); box-shadow: none; margin-right: -4px; }
+.ubf .cat .cat-edit { background: var(--u-surface); box-shadow: none; margin-right: -4px; }
 .ubf .cat .cat-edit svg.ic { width: 15px; height: 15px; }
 /* App: theme toggle shows the right icon before hydration (no one-frame flash) */
 .ubf .icon-btn svg.th-sun, [data-theme="dark"] .ubf .icon-btn svg.th-moon { display: none; }
