@@ -545,6 +545,16 @@ html:has(.ubf .ob-bar) { scroll-padding-bottom: 160px; }
 @container app (min-width: 1024px) {
   .ubf .wrap.w-1280, .ubf .wrap.w-1440 { padding-left: 32px; padding-right: 32px; }
 }
+/* App: Home spreads into two columns. Search results sit under My Habits (left), next to the buttons that ran them */
+@container app (min-width: 1100px) {
+  .ubf .home { grid-template-columns: minmax(0, 1.6fr) minmax(360px, 1fr); grid-template-rows: auto auto 1fr; grid-template-areas: "hab act" "hab lists" "res lists"; column-gap: 16px; align-items: start; }
+  .ubf .home-hab { grid-area: hab; }
+  .ubf .home-act { grid-area: act; }
+  .ubf .home-res { grid-area: res; }
+  .ubf .home-lists { grid-area: lists; }
+  .ubf .home .actions, .ubf .home .lists { grid-template-columns: minmax(0, 1fr); }
+  .ubf .home .cats.four, .ubf .home .results-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 @container app (min-width: 1160px) {
   .ubf .chat-head { margin: 0 auto; }
 }

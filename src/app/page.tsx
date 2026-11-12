@@ -160,8 +160,8 @@ export default function Home() {
 
   if (!loading && !currentUser) {
     return (
-      <AppShell currentUser={null}>
-        <main className="wrap stack">
+      <AppShell currentUser={null} width={1440}>
+        <main className="wrap w-1440 stack">
           <AlertBox
             title="We couldn’t load your habits."
             text="Check your connection, then tap Try Again. Nothing was lost."
@@ -174,8 +174,8 @@ export default function Home() {
 
   if (loading || !currentUser) {
     return (
-      <AppShell currentUser={null}>
-        <main className="wrap stack">
+      <AppShell currentUser={null} width={1440}>
+        <main className="wrap w-1440 stack">
           <section className="card pad" aria-busy="true">
             <p className="sr" role="status">
               Loading your habits…
@@ -213,6 +213,7 @@ export default function Home() {
   return (
     <AppShell
       currentUser={currentUser}
+      width={1440}
       onSwitchedUser={() => {
         setSearch(null);
         setToast(null);
@@ -220,25 +221,27 @@ export default function Home() {
         void refresh();
       }}
     >
-      <main className="wrap stack">
+      <main className="wrap w-1440 stack home">
         <h1 className="sr">Find friends who share your habits</h1>
 
-        <HabitsPanel
-          key={currentUser.id}
-          user={currentUser}
-          taxonomyTags={taxonomyTags}
-          tagMap={tagMap}
-          saved={saved}
-          editSignal={editSignal}
-          onSaved={async () => {
-            await refresh();
-            setSearch(null);
-            setToast(null);
-            setSaved(true);
-          }}
-        />
+        <div className="home-hab">
+          <HabitsPanel
+            key={currentUser.id}
+            user={currentUser}
+            taxonomyTags={taxonomyTags}
+            tagMap={tagMap}
+            saved={saved}
+            editSignal={editSignal}
+            onSaved={async () => {
+              await refresh();
+              setSearch(null);
+              setToast(null);
+              setSaved(true);
+            }}
+          />
+        </div>
 
-        <div>
+        <div className="home-act">
           <div className="actions" role="group" aria-label="Find friends">
             <BigBtn
               cls="btn-indigo"
@@ -283,7 +286,12 @@ export default function Home() {
         </div>
 
         {search && (
-          <section aria-labelledby="res-h" aria-busy={search.status === 'loading'} style={{ display: 'grid', gap: 12 }}>
+          <section
+            className="home-res"
+            aria-labelledby="res-h"
+            aria-busy={search.status === 'loading'}
+            style={{ display: 'grid', gap: 12 }}
+          >
             <div className="sec-head res-head">
               <div>
                 <h2 className="h2" id="res-h" tabIndex={-1} ref={resultsHeadingRef}>
@@ -416,7 +424,7 @@ export default function Home() {
           </section>
         )}
 
-        <div className="lists">
+        <div className="lists home-lists">
           <section className="card" aria-labelledby="l1">
             <div className="list-head">
               <h2 className="h3" id="l1">
