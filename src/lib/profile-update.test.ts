@@ -3,6 +3,7 @@ import {
   buildProfileUpdate,
   CUSTOM_CLASH_MESSAGE,
   findCatalogueClash,
+  parsePersonalTopics,
   titleCaseLabel,
   validCustomLabel,
 } from './profile-update';
@@ -169,5 +170,24 @@ describe('titleCaseLabel', () => {
     expect(validCustomLabel('ab')).toBe(true);
     expect(validCustomLabel('x'.repeat(41))).toBe(false);
     expect(validCustomLabel('\u200B\u200B')).toBe(false);
+  });
+});
+
+describe('parsePersonalTopics', () => {
+  it('cleans labels and keeps order', () => {
+    expect(parsePersonalTopics(['  World\u200b  War 2 ', 'Learning English'])).toEqual(['World War 2', 'Learning English']);
+    expect(buildProfileUpdate({ personalTopics: [] })).toMatchObject({ personalTopics: [] });
+  });
+  it('rejects too short, too long, no letter or digit, duplicates and more than 10', () => {
+    expect(parsePersonalTopics(['a'])).toHaveProperty('error.field', 'personalTopics');
+    expect(parsePersonalTopics(['x'.repeat(41)])).toHaveProperty('error');
+    expect(parsePersonalTopics(['--'])).toHaveProperty('error');
+    expect(parsePersonalTopics(['Chess', 'chess'])).toHaveProperty('error.message', 'You added “chess” twice.');
+    expect(parsePersonalTopics(Array.from({ length: 11 }, (_, i) => `Topic ${i}`))).toHaveProperty('error');
+    expect(parsePersonalTopics('Chess')).toHaveProperty('error');
+    expect(parsePersonalTopics([3])).toHaveProperty('error');
+  });
+  it('NFC-normalises so composed and decomposed forms are one topic', () => {
+    expect(parsePersonalTopics(['Caf\u00e9 Church', 'Cafe\u0301 church'])).toHaveProperty('error');
   });
 });

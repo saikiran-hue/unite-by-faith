@@ -105,6 +105,15 @@ export interface CurrentUser extends UserProfile {
   customTags: CustomTag[];
   /** False when own habits could not be read; the editors then hide "Add your own" so a save can't clear them. */
   customTagsLoaded: boolean;
+  /** Personal topics in saved order. `embedded` is false when matching has no embedding for it yet. */
+  personalTopics: PersonalTopicSaved[];
+  /** False when personal topics could not be read (e.g. before migration 0015); the Personal section is then hidden. */
+  personalTopicsLoaded: boolean;
+}
+
+export interface PersonalTopicSaved {
+  label: string;
+  embedded: boolean;
 }
 
 export interface DuoChat {

@@ -3,6 +3,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { requireUserId } from '@/lib/session';
 import { buildProfileUpdate, CUSTOM_CLASH_MESSAGE, findCatalogueClash } from '@/lib/profile-update';
 import { mapCustomLabels, planCustomRows } from '@/lib/matching/custom-map';
+import { topicRowsForSave } from '@/lib/matching/personal';
 
 const invalid = (field: string, message: string) =>
   NextResponse.json({ error: { field, message } }, { status: 400 });
@@ -90,6 +91,19 @@ export async function POST(req: NextRequest) {
       customRows = custom.map((c) => ({ category: c.category, label: c.label, mapped_slugs: plan.mappedFor(c, mapped) }));
     }
 
+    // Personal topics: embed new labels and ones stored without an embedding, before writing anything.
+    let topicRows: { label: string; embedding: string | null }[] | null = null;
+    if (update.personalTopics) {
+      const labels = update.personalTopics;
+      const { data: embedded, error: tErr } = await admin
+        .from('user_personal_topics')
+        .select('label')
+        .eq('user_id', userId)
+        .not('embedding', 'is', null);
+      if (tErr) return NextResponse.json({ error: tErr.message }, { status: 500 });
+      topicRows = await topicRowsForSave(labels, (embedded ?? []).map((r) => r.label as string));
+    }
+
     if (Object.keys(update.profile).length > 0) {
       const { error } = await admin
         .from('profiles')
@@ -122,6 +136,11 @@ export async function POST(req: NextRequest) {
     if (customRows) {
       // One transaction: a failed insert can't leave the member with none, and double submits don't collide.
       const { error } = await admin.rpc('replace_user_custom_tags', { uid: userId, rows: customRows });
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    if (topicRows) {
+      const { error } = await admin.rpc('replace_user_personal_topics', { uid: userId, rows: topicRows });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     }
 

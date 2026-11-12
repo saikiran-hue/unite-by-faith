@@ -45,6 +45,7 @@ export type ProfileUpdate = {
   private: Partial<PrivateColumns>;
   tags?: TagInput[];
   customTags?: CustomTagInput[];
+  personalTopics?: string[];
 };
 export type ProfileUpdateError = { error: { field: string; message: string } };
 
@@ -76,6 +77,7 @@ export const CUSTOM_MIN_CHARS = 2;
 export const CUSTOM_MAX_CHARS = 40;
 export const MAX_CUSTOM_PER_CATEGORY = 5;
 export const MAX_CUSTOM_TOTAL = 12;
+export const MAX_PERSONAL_TOPICS = 10;
 export const CUSTOM_CLASH_MESSAGE = 'That one is already in the list — pick it above.';
 
 // [column, max length, error message when empty (null = may be empty)]
@@ -193,6 +195,27 @@ function parseCustomTags(raw: unknown): CustomTagInput[] | ProfileUpdateError {
   return out;
 }
 
+/** Personal topics: up to 10 labels, cleaned and checked like own habits, no repeats (ignoring case). */
+export function parsePersonalTopics(raw: unknown): string[] | ProfileUpdateError {
+  const field = 'personalTopics';
+  if (!Array.isArray(raw)) return bad(field, 'Personal topics must be a list.');
+  if (raw.length > MAX_PERSONAL_TOPICS) return bad(field, `Add at most ${MAX_PERSONAL_TOPICS} personal topics.`);
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const t of raw) {
+    if (typeof t !== 'string') return bad(field, 'Each personal topic must be text.');
+    const label = cleanCustomLabel(t);
+    if (!validCustomLabel(label)) {
+      return bad(field, `Use ${CUSTOM_MIN_CHARS} to ${CUSTOM_MAX_CHARS} characters, with a letter or number, for each personal topic.`);
+    }
+    const key = label.toLowerCase();
+    if (seen.has(key)) return bad(field, `You added “${label}” twice.`);
+    seen.add(key);
+    out.push(label);
+  }
+  return out;
+}
+
 /** The first custom label that exactly matches (ignoring case) an active catalogue label in its category, or null. */
 export function findCatalogueClash(
   custom: CustomTagInput[],
@@ -301,6 +324,11 @@ export function buildProfileUpdate(body: unknown): ProfileUpdate | ProfileUpdate
     const custom = parseCustomTags(b.customTags);
     if ('error' in custom) return custom;
     result.customTags = custom;
+  }
+  if (has('personalTopics')) {
+    const topics = parsePersonalTopics(b.personalTopics);
+    if ('error' in topics) return topics;
+    result.personalTopics = topics;
   }
   return result;
 }

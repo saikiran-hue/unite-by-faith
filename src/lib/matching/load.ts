@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { ageOn } from '@/lib/age';
 import type { FaithStage, LifeStage, MeetMode, PillarCategory, Slot } from '@/types/database';
+import { parseVector, type PersonalTopic } from './personal';
 import { lifeFitMissing } from './rank';
 import type { MatchPerson, MatchWeights, ScoreContext, TagPick } from './score';
 
@@ -19,6 +20,8 @@ export interface PublicPerson {
   availability: Slot[];
   languages: string[];
   tags: { slug: string; category: PillarCategory; level: number; priority: boolean }[];
+  /** Personal topics in the member's words (matches can see them). */
+  personal_topics: string[];
 }
 
 export interface LoadedPerson {
@@ -72,6 +75,12 @@ interface CustomTagRow {
   user_id: string;
   category: PillarCategory;
   mapped_slugs: string[] | null;
+}
+
+interface TopicRow {
+  user_id: string;
+  label: string;
+  embedding: string | null;
 }
 
 /**
@@ -145,7 +154,7 @@ export async function loadPeople(admin: SupabaseClient, ids: string[]): Promise<
   const out = new Map<string, LoadedPerson>();
   if (ids.length === 0) return out;
 
-  const [profiles, privateRows, tagRows, customRows] = await Promise.all([
+  const [profiles, privateRows, tagRows, customRows, topicRows] = await Promise.all([
     fetchChunked<ProfileRow, string>(ids, (c, a, b) =>
       admin
         .from('profiles')
@@ -186,6 +195,20 @@ export async function loadPeople(admin: SupabaseClient, ids: string[]): Promise<
       console.error('user_custom_tags read failed; matching without own habits', e);
       return [] as CustomTagRow[];
     }),
+    // Personal topics are extras too: a failed read (e.g. before migration 0015) matches without them.
+    fetchChunked<TopicRow, string>(ids, (c, a, b) =>
+      admin
+        .from('user_personal_topics')
+        .select('user_id, label, embedding')
+        .in('user_id', c)
+        .order('user_id')
+        .order('created_at')
+        .order('id')
+        .range(a, b) as never,
+    ).catch((e) => {
+      console.error('user_personal_topics read failed; matching without personal topics', e);
+      return [] as TopicRow[];
+    }),
   ]);
   const privates = new Map(privateRows.map((r) => [r.user_id, r]));
 
@@ -214,6 +237,13 @@ export async function loadPeople(admin: SupabaseClient, ids: string[]): Promise<
     const list = customByUser.get(t.user_id) ?? [];
     list.push(t);
     customByUser.set(t.user_id, list);
+  }
+
+  const topicsByUser = new Map<string, PersonalTopic[]>();
+  for (const t of topicRows) {
+    const list = topicsByUser.get(t.user_id) ?? [];
+    list.push({ label: t.label, vec: parseVector(t.embedding) });
+    topicsByUser.set(t.user_id, list);
   }
 
   const today = new Date();
@@ -260,6 +290,7 @@ export async function loadPeople(admin: SupabaseClient, ids: string[]): Promise<
         tzOffsetMin: tzOffsetMinutes(city.timezone, today),
         meetMode: p.meet_mode,
         maxDistanceKm: priv.max_distance_km ?? 25,
+        topics: topicsByUser.get(p.id) ?? [],
       },
       // Explicit allow-list: never spread the rows above.
       pub: {
@@ -276,6 +307,7 @@ export async function loadPeople(admin: SupabaseClient, ids: string[]): Promise<
         availability: p.availability ?? [],
         languages,
         tags: rows.map((t) => ({ slug: t.tag_slug, category: t.category, level: t.level, priority: t.is_priority })),
+        personal_topics: (topicsByUser.get(p.id) ?? []).map((t) => t.label),
       },
     });
   }

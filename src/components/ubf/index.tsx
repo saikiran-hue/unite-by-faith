@@ -365,7 +365,7 @@ export function ReasonChips({
   return (
     <ul className="chips">
       {reasons.slice(0, 4).map((r, i) => (
-        <li key={i} className={`chip${r.kind === 'related_tag' ? ' dashed' : ''}`}>
+        <li key={i} className={`chip${r.kind === 'related_tag' || (r.kind === 'shared_topic' && !r.same) ? ' dashed' : ''}`}>
           {reasonText(r, tagMap, names)}
         </li>
       ))}
@@ -392,6 +392,8 @@ export function reasonText(r: Reason, tagMap: Map<string, TaxonomyTag>, names?: 
       return `You both love ${label(r.slug)}`;
     case 'related_tag':
       return `Your ${label(r.mine)}, their ${label(r.theirs)}`;
+    case 'shared_topic':
+      return r.same ? `You both follow ${r.mine}` : `Your ${r.mine}, their ${r.theirs}`;
     case 'tradition':
       return r.same && names?.tradition ? `Both ${names.tradition}` : `Both ${humanize(r.family)} traditions`;
     case 'life': {

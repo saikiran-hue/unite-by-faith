@@ -3,6 +3,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { requireUserId } from '@/lib/session';
 import { fetchChunked, loadPeople, loadScoreContext, loadViewerLifeFit, type LoadedPerson } from '@/lib/matching/load';
 import { rankDuos, rankPods } from '@/lib/matching/rank';
+import { cardTopics, sharedTopics } from '@/lib/matching/personal';
 import type { PairScore } from '@/lib/matching/score';
 import { pickEmptyReason, type FilterCount } from '@/lib/matching/empty-reason';
 
@@ -65,11 +66,17 @@ export async function GET(req: NextRequest) {
           if (r.chat_room_id) rooms.set(r.user_a_id, r.chat_room_id);
         }
       }
-      results = ranked.map((r) => ({
-        partner: (people.get(r.userId) as LoadedPerson).pub,
-        existing_chat_room_id: rooms.get(r.userId) ?? null,
-        ...scoreFields(r),
-      }));
+      results = ranked.map((r) => {
+        const person = people.get(r.userId) as LoadedPerson;
+        const { personal_topics, ...partner } = person.pub;
+        return {
+          partner,
+          // Shared personal topics first, then a couple of others.
+          topics: cardTopics(personal_topics, sharedTopics(viewer.match.topics, person.match.topics)),
+          existing_chat_room_id: rooms.get(r.userId) ?? null,
+          ...scoreFields(r),
+        };
+      });
       events = ranked.map((r) => ({ target_id: r.userId, score: r.score, breakdown: r.breakdown, weights_version: r.weightsVersion }));
       return await respond(kind, results, events, labels, ids.length === 0);
     }

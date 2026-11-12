@@ -241,3 +241,42 @@ function distanceKm(a: MatchPerson, b: MatchPerson): number {
   const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(h));
 }
+
+describe('personal topics', () => {
+  const v = (deg: number) => {
+    const x = new Float32Array(384);
+    x[0] = Math.cos((deg * Math.PI) / 180);
+    x[1] = Math.sin((deg * Math.PI) / 180);
+    return x;
+  };
+  const a = person({ id: 'a', topics: [{ label: 'World War 2', vec: v(0) }] });
+  const b = person({ id: 'b', tags: [pick('prayer', 'faith'), pick('chess'), pick('opera', 'tastes')], cityId: 2, lat: 51.5, lng: -0.12 });
+
+  it('leaves the score unchanged when nothing is shared', () => {
+    const none = scorePair(person({ id: 'a' }), b, ctx());
+    const unrelated = scorePair(a, { ...b, topics: [{ label: 'Gardening', vec: v(90) }] }, ctx());
+    expect(unrelated.score).toBe(none.score);
+    expect(unrelated.breakdown).toEqual(none.breakdown);
+    expect(unrelated.reasons.some((r) => r.kind === 'shared_topic')).toBe(false);
+  });
+  it('a shared topic raises Interests a little and gives a reason in the viewer’s words', () => {
+    const base = scorePair(a, b, ctx());
+    const with1 = scorePair(a, { ...b, topics: [{ label: 'WW2 History', vec: v(15) }] }, ctx());
+    expect(with1.breakdown.interests - base.breakdown.interests).toBe(5);
+    expect(with1.breakdown.faith).toBe(base.breakdown.faith);
+    expect(with1.breakdown.lifeFit).toBe(base.breakdown.lifeFit);
+    expect(with1.score).toBeGreaterThan(base.score);
+    expect(with1.score - base.score).toBeLessThanOrEqual(2);
+    expect(with1.reasons).toContainEqual({ kind: 'shared_topic', mine: 'World War 2', theirs: 'WW2 History', same: true });
+  });
+  it('keeps a slot for a shared topic behind four shared habits', () => {
+    const tags = [pick('prayer', 'faith'), pick('hiking'), pick('jazz', 'tastes'), pick('coding', 'skills'), pick('chess')];
+    const r = scorePair({ ...a, tags }, { ...b, tags, topics: [{ label: 'World War 2', vec: v(0) }] }, ctx());
+    expect(r.reasons).toHaveLength(4);
+    expect(r.reasons[3]).toEqual({ kind: 'shared_topic', mine: 'World War 2', theirs: 'World War 2', same: true });
+  });
+  it('pods inherit it through the best member', () => {
+    const pod = scorePod(a, [{ ...b, topics: [{ label: 'WW2 History', vec: v(15) }] }], [], ctx());
+    expect(pod.reasons.some((r) => r.kind === 'shared_topic')).toBe(true);
+  });
+});

@@ -33,6 +33,7 @@ export async function GET() {
       { data: privateRow, error: privError },
       { data: traditionRows, error: tradError },
       { data: customRows, error: customError },
+      { data: topicRows, error: topicError },
     ] = await Promise.all([
       admin
         .from('taxonomy_tags')
@@ -59,9 +60,18 @@ export async function GET() {
         .eq('user_id', userId)
         .order('created_at', { ascending: true })
         .order('label', { ascending: true }),
+      // Only whether each has an embedding: vectors never go to the browser.
+      admin
+        .from('user_personal_topics')
+        .select('label, embedded:embedding')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true }),
     ]);
     // Own habits are optional extras: a failed read (e.g. before migration 0014) shows none rather than failing the page.
     if (customError) console.error('user_custom_tags read failed', customError.message);
+    // Same for personal topics (before migration 0015): the Personal section is hidden.
+    if (topicError) console.error('user_personal_topics read failed', topicError.message);
 
     const firstError =
       taxError || profError || tagError || seatError || duoError || privError || tradError;
@@ -93,6 +103,11 @@ export async function GET() {
       private: (privateRow as ProfilePrivate | null) ?? null,
       customTags,
       customTagsLoaded: !customError,
+      personalTopics: ((topicError ? [] : topicRows) ?? []).map((r) => ({
+        label: r.label as string,
+        embedded: r.embedded != null,
+      })),
+      personalTopicsLoaded: !topicError,
     };
 
     let city: { id: number; name: string; country_code: string } | null = null;

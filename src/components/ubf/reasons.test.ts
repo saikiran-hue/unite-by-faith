@@ -16,6 +16,14 @@ describe('reasonText', () => {
       'Your Hiking, their Trail running',
     );
   });
+  it('shared personal topic, near-identical and related', () => {
+    expect(reasonText({ kind: 'shared_topic', mine: 'World War 2', theirs: 'WW2 History', same: true }, tagMap)).toBe(
+      'You both follow World War 2',
+    );
+    expect(reasonText({ kind: 'shared_topic', mine: 'World War 2', theirs: 'World War 1', same: false }, tagMap)).toBe(
+      'Your World War 2, their World War 1',
+    );
+  });
   it('same tradition uses the tradition name', () => {
     expect(
       reasonText({ kind: 'tradition', same: true, family: 'baptist' }, tagMap, { tradition: 'Baptist' }),

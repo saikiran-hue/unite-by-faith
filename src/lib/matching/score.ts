@@ -1,3 +1,4 @@
+import { sharedTopics, withTopicBonus, type PersonalTopic, type SharedTopic } from './personal';
 import type { FaithStage, LifeStage, Level, MeetMode, PillarCategory, Slot } from '@/types/database';
 
 export interface TagPick {
@@ -23,6 +24,8 @@ export interface MatchPerson {
   tzOffsetMin: number;
   meetMode: MeetMode;
   maxDistanceKm: number;
+  /** Personal topics with their embeddings; absent or empty when the member has none. */
+  topics?: PersonalTopic[];
 }
 export interface MatchWeights {
   version: number;
@@ -44,6 +47,7 @@ export interface ScoreContext {
 export type Reason =
   | { kind: 'shared_tag'; slug: string }
   | { kind: 'related_tag'; mine: string; theirs: string }
+  | { kind: 'shared_topic'; mine: string; theirs: string; same: boolean }
   | { kind: 'tradition'; same: boolean; family: string }
   | { kind: 'life'; detail: 'same_stage' | 'availability' | 'same_city' | 'distance'; value?: string };
 export interface PairScore {
@@ -185,7 +189,14 @@ function ageScore(a: number, b: number): number {
 
 const byCategory = (picks: TagPick[], c: PillarCategory) => picks.filter((p) => p.category === c);
 
-function buildReasons(a: MatchPerson, b: MatchPerson, T: number | null, place: Place, ctx: ScoreContext): Reason[] {
+function buildReasons(
+  a: MatchPerson,
+  b: MatchPerson,
+  T: number | null,
+  place: Place,
+  ctx: ScoreContext,
+  topics: SharedTopic[],
+): Reason[] {
   const shared: { slug: string; weight: number; faith: boolean }[] = [];
   const bBySlug = new Map(b.tags.map((t) => [t.slug, t]));
   for (const t of a.tags) {
@@ -213,6 +224,7 @@ function buildReasons(a: MatchPerson, b: MatchPerson, T: number | null, place: P
 
   const reasons: Reason[] = [];
   for (const s of shared) reasons.push({ kind: 'shared_tag', slug: s.slug });
+  for (const t of topics) reasons.push({ kind: 'shared_topic', mine: t.mine, theirs: t.theirs, same: t.same });
   for (const r of relatedList) reasons.push({ kind: 'related_tag', mine: r.mine, theirs: r.theirs });
   if (T !== null && T >= 0.6) {
     reasons.push({ kind: 'tradition', same: T === 1, family: a.traditionFamily ?? b.traditionFamily ?? '' });
@@ -227,6 +239,9 @@ function buildReasons(a: MatchPerson, b: MatchPerson, T: number | null, place: P
   } else if (place.inPerson) {
     reasons.push({ kind: 'life', detail: 'distance', value: String(Math.round(place.km)) });
   }
+  // A shared personal topic always gets a slot, even behind many shared habits.
+  const firstTopic = reasons.findIndex((r) => r.kind === 'shared_topic');
+  if (firstTopic >= MAX_REASONS) reasons.splice(MAX_REASONS - 1, 0, reasons.splice(firstTopic, 1)[0]);
   return reasons.slice(0, MAX_REASONS);
 }
 
@@ -238,11 +253,14 @@ export function scorePair(a: MatchPerson, b: MatchPerson, ctx: ScoreContext): Pa
     [w.faith.tradition, T],
     [w.faith.stage, stageCloseness(a.faithStage, b.faithStage)],
   ]) ?? 0;
-  const interests = wmean([
+  const habitInterests = wmean([
     [w.interests.hobbies, interestSimilarity(byCategory(a.tags, 'hobbies'), byCategory(b.tags, 'hobbies'), ctx)],
     [w.interests.tastes, interestSimilarity(byCategory(a.tags, 'tastes'), byCategory(b.tags, 'tastes'), ctx)],
     [w.interests.skills, interestSimilarity(byCategory(a.tags, 'skills'), byCategory(b.tags, 'skills'), ctx)],
   ]) ?? 0;
+  // Shared personal topics: a small capped bonus on Interests; with none shared, Interests is unchanged.
+  const topics = sharedTopics(a.topics, b.topics);
+  const interests = withTopicBonus(habitInterests, topics.length);
   const place = placeScore(a, b, ctx);
   const life = wmean([
     [w.life.stage, lifeStageScore(a.lifeStage, b.lifeStage)],
@@ -259,7 +277,7 @@ export function scorePair(a: MatchPerson, b: MatchPerson, ctx: ScoreContext): Pa
       interests: Math.round(100 * interests),
       lifeFit: Math.round(100 * life),
     },
-    reasons: buildReasons(a, b, T, place, ctx),
+    reasons: buildReasons(a, b, T, place, ctx, topics),
     weightsVersion: w.version,
   };
 }
