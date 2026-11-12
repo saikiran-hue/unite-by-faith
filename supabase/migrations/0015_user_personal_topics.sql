@@ -42,11 +42,13 @@ begin
     from public.user_personal_topics t
    where t.user_id = uid and t.embedding is not null;
   delete from public.user_personal_topics where user_id = uid;
-  insert into public.user_personal_topics (user_id, label, embedding)
+  -- created_at steps by a microsecond per row so reads ordered by created_at keep the member's order.
+  insert into public.user_personal_topics (user_id, label, embedding, created_at)
   select uid, r->>'label',
          coalesce((r->>'embedding')::extensions.vector(384),
-                  (kept->>lower(btrim(r->>'label')))::extensions.vector(384))
-  from jsonb_array_elements(coalesce(rows, '[]'::jsonb)) as r;
+                  (kept->>lower(btrim(r->>'label')))::extensions.vector(384)),
+         now() + make_interval(secs => e.n / 1000000.0)
+  from jsonb_array_elements(coalesce(rows, '[]'::jsonb)) with ordinality as e(r, n);
 end;
 $$;
 revoke execute on function public.replace_user_personal_topics(uuid, jsonb) from public, anon, authenticated;
