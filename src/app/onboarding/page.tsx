@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { AlertBox, Btn, CatHead, HabitChips, Icon, Note, Select, sortHabits, type IconName } from '@/components/ubf';
 import { CATS, type Cat } from '@/lib/cats';
-import { habitList, TOP_N } from '@/lib/habit-list';
 import { MATCH_SPLIT } from '@/lib/matching/pillar-weights';
 import { LifeFitFields } from '@/components/LifeFitFields';
-import { CategorySearch, shouldSendOwn, type OwnHabit } from '@/components/OwnHabits';
+import { shouldSendOwn, type OwnHabit } from '@/components/OwnHabits';
+import { HabitPicker, MAX_STARRED } from '@/components/HabitPicker';
 import {
   FIELD_TO_ID,
   LIFE_FIT_ORDER,
@@ -29,7 +29,6 @@ const MODES: { mode: FellowshipMode; title: string; desc: string; icon: IconName
   { mode: 'duo_only', title: '1v1 Duo Only', desc: 'One friend at a time.', icon: 'user' },
 ];
 const MIN_HABITS = 3;
-const MAX_STARRED = 3;
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -292,7 +291,6 @@ export default function OnboardingPage() {
 
   const counterText = `${picked.length} picked, ${starred.length} of 3 starred`;
   const starredSet = new Set(starred);
-  const starFull = starred.length >= MAX_STARRED;
   const mode = MODES.find((m) => m.mode === fellowshipMode) ?? MODES[0];
   const catCount = (key: PillarCategory) => picked.filter((slug) => tagMap.get(slug)?.category === key).length;
 
@@ -374,32 +372,6 @@ export default function OnboardingPage() {
   } else {
     const cats = step === 3 ? CATS.slice(0, 2) : CATS.slice(2);
     const c = cats.find((x) => x.key === tab) ?? cats[0];
-    const { shown, groups, total } = habitList(taxonomyTags, c.key, picked);
-    const open = !!expanded[c.key];
-    const renderTag = (t: TaxonomyTag) => {
-      const on = picked.includes(t.slug);
-      const st = starred.includes(t.slug);
-      return (
-        <span key={t.slug} className={`tchip${on ? ' on' : ''}`}>
-          <button type="button" className="t-main" aria-pressed={on} onClick={() => toggle(t.slug)}>
-            <Icon name={on ? 'check' : 'plus'} />
-            {t.label}
-          </button>
-          {on && (
-            <button
-              type="button"
-              className="t-star"
-              aria-pressed={st}
-              aria-disabled={!st && starFull ? true : undefined}
-              aria-label={st ? `Remove star from ${t.label}` : `Star ${t.label} as most important`}
-              onClick={() => star(t.slug)}
-            >
-              <Icon name="star" className={st ? 'fill' : undefined} />
-            </button>
-          )}
-        </span>
-      );
-    };
     body = (
       <>
         <p className="sub" style={{ marginBottom: 12 }}>
@@ -410,40 +382,24 @@ export default function OnboardingPage() {
         </p>
         <CatTabs cats={cats} active={c.key} count={catCount} onPick={setTab} />
         <div className={`cat cat-${c.key} ob-panel`} role="tabpanel" id="ob-panel" aria-labelledby={`ob-tab-${c.key}`}>
-          <CatHead cat={c} extra={<span className="counter ob-picked">{catCount(c.key)} picked</span>} />
-          <CategorySearch
-            key={c.key}
+          <HabitPicker
             cat={c}
+            taxonomyTags={taxonomyTags}
             picked={picked}
-            onPick={toggle}
+            starred={starred}
+            onToggle={toggle}
+            onStar={star}
             own={own}
             setOwn={(next) => {
               setOwn(next);
               setError(null);
             }}
-            saved={savedOwn}
+            savedOwn={savedOwn}
             allowOwn={currentUser?.customTagsLoaded !== false}
+            expanded={!!expanded[c.key]}
+            onExpand={(open) => setExpanded({ ...expanded, [c.key]: open })}
+            headExtra={<span className="counter ob-picked">{catCount(c.key)} picked</span>}
           />
-          {open ? (
-            groups.map(([name, tags]) => (
-              <div key={name}>
-                {name && <h4 className="subgroup">{name}</h4>}
-                <div className="tchips">{tags.map(renderTag)}</div>
-              </div>
-            ))
-          ) : (
-            <div className="tchips">{shown.map(renderTag)}</div>
-          )}
-          {total > TOP_N && (
-            <Btn
-              variant="btn-quiet"
-              className="more-btn"
-              aria-expanded={open}
-              onClick={() => setExpanded({ ...expanded, [c.key]: !open })}
-            >
-              {open ? 'Show fewer' : `Show all ${total}`}
-            </Btn>
-          )}
         </div>
         {step === STEPS.length && (
           <div className="field" style={{ marginTop: 20 }}>
