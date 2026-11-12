@@ -279,5 +279,7 @@ export function scorePod(viewer: MatchPerson, members: MatchPerson[], anchorTags
   const picks: TagPick[] = anchorTags.map((slug) => ({ slug, category: 'hobbies', level: 2, starred: false }));
   const anchor = interestSimilarity(viewer.tags, picks, ctx) ?? 0;
   const total = combinePod(pairs.map((p) => p.score / 100), anchor, ctx.weights.pod);
-  return { ...best, score: Math.round(100 * total) };
+  // Bars show the whole group (owner decision): mean of every member's breakdown. Reasons stay the best member's.
+  const avg = (k: keyof PairScore['breakdown']) => Math.round(pairs.reduce((s, p) => s + p.breakdown[k], 0) / pairs.length);
+  return { ...best, score: Math.round(100 * total), breakdown: { faith: avg('faith'), interests: avg('interests'), lifeFit: avg('lifeFit') } };
 }

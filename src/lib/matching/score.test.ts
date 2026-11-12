@@ -217,6 +217,20 @@ describe('pod', () => {
     expect(none.score).toBe(80);
     expect(r.reasons.length).toBeGreaterThan(0);
   });
+  it('scorePod breakdown is the mean of every member, not the best member', () => {
+    const v = person();
+    const close = person({ id: 'close' });
+    const far = person({ id: 'far', tags: [], lifeStage: 'parent_older_kids', availability: [] });
+    const a = scorePair(v, close, ctx()).breakdown;
+    const b = scorePair(v, far, ctx()).breakdown;
+    expect(a).not.toEqual(b);
+    const r = scorePod(v, [close, far], [], ctx());
+    expect(r.breakdown).toEqual({
+      faith: Math.round((a.faith + b.faith) / 2),
+      interests: Math.round((a.interests + b.interests) / 2),
+      lifeFit: Math.round((a.lifeFit + b.lifeFit) / 2),
+    });
+  });
 });
 
 function distanceKm(a: MatchPerson, b: MatchPerson): number {
