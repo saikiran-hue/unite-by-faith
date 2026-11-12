@@ -7,7 +7,7 @@ import { AlertBox, Btn, CatHead, HabitChips, Icon, Note, Select, sortHabits, typ
 import { CATS } from '@/lib/cats';
 import { MATCH_SPLIT } from '@/lib/matching/pillar-weights';
 import { LifeFitFields } from '@/components/LifeFitFields';
-import { CategorySearch, ownChanged, type OwnHabit } from '@/components/OwnHabits';
+import { CategorySearch, shouldSendOwn, type OwnHabit } from '@/components/OwnHabits';
 import {
   FIELD_TO_ID,
   LIFE_FIT_ORDER,
@@ -234,8 +234,8 @@ export default function OnboardingPage() {
                 })),
               }
             : {}),
-          // Own habits only when changed, so a failed load can't clear them.
-          ...(ownChanged(own, savedOwn) ? { customTags: own } : {}),
+          // Own habits only when changed or unmapped, and never if they failed to load (see shouldSendOwn).
+          ...(shouldSendOwn(own, savedOwn, currentUser?.customTagsLoaded !== false) ? { customTags: own } : {}),
         }),
       });
       if (res.status === 401) {

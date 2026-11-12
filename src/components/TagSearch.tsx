@@ -52,7 +52,8 @@ export function TagSearch({ category, picked, onPick, label = 'Search habits', o
 
   async function run(q: string, mine: number) {
     try {
-      const res = await fetch(`/api/tags/search?q=${encodeURIComponent(q)}`);
+      const cat = category ? `&category=${category}` : '';
+      const res = await fetch(`/api/tags/search?q=${encodeURIComponent(q)}${cat}`);
       if (mine !== seq.current) return;
       setLoading(false);
       if (!res.ok) {
@@ -61,7 +62,7 @@ export function TagSearch({ category, picked, onPick, label = 'Search habits', o
       }
       const data = (await res.json()) as { source: 'text' | 'meaning' | 'none'; tags: Hit[] };
       if (mine !== seq.current) return;
-      const tags = (data.tags ?? []).filter((t) => !category || t.category === category);
+      const tags = data.tags ?? [];
       setResult(data.source === 'none' || !tags.length ? { kind: 'none' } : { kind: 'hits', source: data.source, tags });
     } catch {
       if (mine === seq.current) {
@@ -90,7 +91,7 @@ export function TagSearch({ category, picked, onPick, label = 'Search habits', o
   const canAdd =
     !!onAddCustom &&
     !loading &&
-    (result.kind === 'none' || result.kind === 'hits') &&
+    result.kind !== 'idle' &&
     validCustomLabel(query) &&
     !taken.some((t) => t.toLowerCase() === ownKey) &&
     !(result.kind === 'hits' && result.tags.some((t) => t.label.toLowerCase() === ownKey));

@@ -97,8 +97,7 @@ describe('customTags', () => {
   const parse = (customTags: unknown) => buildProfileUpdate({ customTags });
 
   it('is left out when not sent', () => {
-    const r = buildProfileUpdate({ fullName: 'A' });
-    expect('error' in r || r.customTags).toBeFalsy();
+    expect(buildProfileUpdate({ fullName: 'A' })).not.toHaveProperty('customTags');
   });
   it('trims and collapses whitespace', () => {
     expect(parse([ct('  Bonsai   Trees ')])).toMatchObject({ customTags: [{ category: 'hobbies', label: 'Bonsai Trees' }] });
@@ -110,6 +109,13 @@ describe('customTags', () => {
     expect(parse([ct(' a ')])).toMatchObject({ error: { field: 'customTags' } });
     expect(parse([ct('x'.repeat(41))])).toMatchObject({ error: { field: 'customTags' } });
     expect(parse([ct('x'.repeat(40))])).not.toHaveProperty('error');
+  });
+  it('strips control and zero-width characters, and rejects labels with no letter or number', () => {
+    expect(parse([ct('Bon\u200Bsai\u0007 Trees')])).toMatchObject({ customTags: [{ label: 'Bon sai Trees' }] });
+    expect(parse([ct('\u200B\u200B')])).toMatchObject({ error: { field: 'customTags' } });
+    expect(parse([ct('--')])).toMatchObject({ error: { field: 'customTags' } });
+    // Cleaned before the duplicate check, so an invisible character can't sneak past it.
+    expect(parse([ct('Bonsai'), ct('Bonsai\u200B')])).toMatchObject({ error: { field: 'customTags' } });
   });
   it('rejects a bad category or a non-text label', () => {
     expect(parse([ct('Bonsai', 'food')])).toMatchObject({ error: { field: 'customTags' } });
@@ -156,10 +162,12 @@ describe('titleCaseLabel', () => {
     expect(titleCaseLabel('  bonsai   trees ')).toBe('Bonsai Trees');
     expect(titleCaseLabel('rust programming')).toBe('Rust Programming');
     expect(titleCaseLabel('learning TypeScript')).toBe('Learning TypeScript');
+    expect(titleCaseLabel('iPhone repair')).toBe('iPhone Repair');
   });
   it('validCustomLabel checks the cleaned length', () => {
     expect(validCustomLabel(' a ')).toBe(false);
     expect(validCustomLabel('ab')).toBe(true);
     expect(validCustomLabel('x'.repeat(41))).toBe(false);
+    expect(validCustomLabel('\u200B\u200B')).toBe(false);
   });
 });

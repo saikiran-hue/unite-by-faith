@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { CurrentUser, Level, TaxonomyTag } from '@/types/database';
 import { CATS } from '@/lib/cats';
 import { AlertBox, Btn, CatHead, Empty, HabitChips, Icon, Note, sortHabits } from '@/components/ubf';
-import { CategorySearch, ownChanged, type OwnHabit } from '@/components/OwnHabits';
+import { CategorySearch, shouldSendOwn, type OwnHabit } from '@/components/OwnHabits';
 
 const MIN_HABITS = 3;
 const MAX_STARRED = 3;
@@ -161,8 +161,8 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
             level: levels[slug] ?? DEFAULT_LEVEL,
             isPriority: starred.includes(slug),
           })),
-          // Only when changed: if own habits failed to load, an unchanged save must not clear them.
-          ...(ownChanged(own, savedOwn) ? { customTags: own } : {}),
+          // Own habits only when changed or unmapped, and never if they failed to load (see shouldSendOwn).
+          ...(shouldSendOwn(own, savedOwn, user.customTagsLoaded !== false) ? { customTags: own } : {}),
         }),
       });
       if (res.status === 401) {

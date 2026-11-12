@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
-import { pickMapped } from './custom-map';
+import { describe, expect, it, vi } from 'vitest';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { mapCustomLabels, pickMapped, planCustomRows } from './custom-map';
 import { CUSTOM_MAP_MIN } from './suggest';
 
 describe('pickMapped', () => {
@@ -28,5 +29,41 @@ describe('pickMapped', () => {
   it('defaults to CUSTOM_MAP_MIN, which sits at or above the did-you-mean floor', () => {
     expect(pickMapped([{ slug: 'gardening', cos: CUSTOM_MAP_MIN }], categoryOf, 'hobbies')).toEqual(['gardening']);
     expect(CUSTOM_MAP_MIN).toBeGreaterThanOrEqual(0.85);
+  });
+});
+
+describe('planCustomRows', () => {
+  const custom = [
+    { category: 'hobbies' as const, label: 'Mountain Trekking' },
+    { category: 'hobbies' as const, label: 'Bonsai Trees' },
+    { category: 'faith' as const, label: 'Hymn Singing' },
+  ];
+  const existing = [
+    { category: 'hobbies', label: 'mountain trekking', mapped_slugs: ['hiking'] },
+    { category: 'hobbies', label: 'Bonsai Trees', mapped_slugs: [] },
+  ];
+  it('reuses non-empty stored mappings and re-maps empty ones and new labels', () => {
+    const plan = planCustomRows(custom, existing);
+    expect(plan.fresh.map((c) => c.label)).toEqual(['Bonsai Trees', 'Hymn Singing']);
+    const freshMapped = [[], ['congregational-singing']];
+    expect(custom.map((c) => plan.mappedFor(c, freshMapped))).toEqual([['hiking'], [], ['congregational-singing']]);
+  });
+  it('maps nothing new when every stored mapping is non-empty', () => {
+    expect(planCustomRows([custom[0]], existing).fresh).toEqual([]);
+  });
+});
+
+describe('mapCustomLabels', () => {
+  it('stores no mapping (and does not throw) when the database fails', async () => {
+    const admin = {
+      from: () => ({ select: () => ({ eq: async () => ({ data: null, error: { message: 'down' } }) }) }),
+    } as unknown as SupabaseClient;
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await expect(mapCustomLabels(admin, [{ category: 'hobbies', label: 'Bonsai' }])).resolves.toEqual([[]]);
+    expect(err).toHaveBeenCalled();
+    err.mockRestore();
+  });
+  it('returns nothing for no labels without touching the database', async () => {
+    expect(await mapCustomLabels({} as SupabaseClient, [])).toEqual([]);
   });
 });

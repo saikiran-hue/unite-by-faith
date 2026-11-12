@@ -19,6 +19,16 @@ export function ownChanged(a: OwnHabit[], b: OwnHabit[]): boolean {
   return a.length !== b.length || a.some((x) => !b.some((y) => same(x, y)));
 }
 
+/**
+ * Whether a save should send customTags: when the set changed, or when a saved one has no mapping yet
+ * (so the server can try mapping it again; this also covers removing and re-adding the same words).
+ * Never when own habits failed to load, so a save can't clear them.
+ */
+export function shouldSendOwn(own: OwnHabit[], saved: CustomTag[], loaded: boolean): boolean {
+  if (!loaded) return false;
+  return ownChanged(own, saved) || saved.some((s) => s.mapped.length === 0 && own.some((o) => same(o, s)));
+}
+
 interface CategorySearchProps {
   cat: Cat;
   picked: string[];
@@ -26,7 +36,7 @@ interface CategorySearchProps {
   /** Every own habit being edited, all categories. */
   own: OwnHabit[];
   setOwn: (next: OwnHabit[]) => void;
-  /** Saved own habits, for the "Matched like" hint. */
+  /** Saved own habits, for the matching hint. */
   saved: CustomTag[];
   /** False hides "Add your own" (own habits could not be loaded). */
   allowOwn: boolean;
@@ -47,7 +57,8 @@ export function CategorySearch({ cat, picked, onPick, own, setOwn, saved, allowO
   function hint(o: OwnHabit): string | null {
     const s = saved.find((x) => same(x, o));
     if (!s) return null;
-    return s.mapped.length ? `Matched like: ${s.mapped.map((m) => m.label).join(', ')}` : 'Shown on your profile';
+    // Own habits are private to the member, so the copy must not suggest others can see them.
+    return s.mapped.length ? `Matched like: ${s.mapped.map((m) => m.label).join(', ')}` : 'Only on your profile';
   }
 
   return (

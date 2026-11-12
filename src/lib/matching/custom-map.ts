@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { PillarCategory } from '@/types/database';
 import { embed } from './embed';
 import { CUSTOM_MAP_MIN, normaliseQuery } from './suggest';
+import { withCategory } from './tag-search';
 
 const FETCH_K = 8;
 const MAX_MAPPED = 2;
@@ -30,10 +31,13 @@ export async function searchCustomLabels(
   const vecs = await embed(items.map((i) => normaliseQuery(i.label) ?? i.label.toLowerCase()));
   const hits: { slug: string; cos: number }[][] = [];
   for (let i = 0; i < items.length; i++) {
-    const { data, error: rpcErr } = await admin.rpc('search_tags_vector', {
-      q: `[${Array.from(vecs[i]).join(',')}]`,
-      k: FETCH_K,
-    });
+    // Filtered by category in SQL, so a crowded neighbouring category can't push same-category hits out of the top k.
+    const { data, error: rpcErr } = await withCategory<{ slug: string; cos: number }>(
+      admin,
+      'search_tags_vector',
+      { q: `[${Array.from(vecs[i]).join(',')}]`, k: FETCH_K },
+      items[i].category,
+    );
     if (rpcErr) throw new Error(`search_tags_vector: ${rpcErr.message}`);
     hits.push((data ?? []) as { slug: string; cos: number }[]);
   }
@@ -53,4 +57,26 @@ export async function mapCustomLabels(
     console.error('custom tag mapping failed; storing no mapping', e);
     return items.map(() => []);
   }
+}
+
+const rowKey = (category: string, label: string) => `${category}:${label.trim().toLowerCase()}`;
+
+/**
+ * Which own habits keep their stored mapping and which need mapping now. A stored mapping is reused only
+ * when it is non-empty: an empty one may mean the model failed last time, so it is tried again.
+ */
+export function planCustomRows<T extends { category: PillarCategory; label: string }>(
+  custom: T[],
+  existing: { category: string; label: string; mapped_slugs: string[] | null }[],
+): { fresh: T[]; mappedFor: (c: T, freshMapped: string[][]) => string[] } {
+  const stored = new Map(existing.map((r) => [rowKey(r.category, r.label), r.mapped_slugs ?? []]));
+  const fresh = custom.filter((c) => !stored.get(rowKey(c.category, c.label))?.length);
+  const freshIndex = new Map(fresh.map((c, i) => [rowKey(c.category, c.label), i]));
+  return {
+    fresh,
+    mappedFor: (c, freshMapped) => {
+      const i = freshIndex.get(rowKey(c.category, c.label));
+      return i === undefined ? stored.get(rowKey(c.category, c.label)) ?? [] : freshMapped[i] ?? [];
+    },
+  };
 }

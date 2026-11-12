@@ -141,16 +141,24 @@ function parseTags(raw: unknown, legacy: boolean): TagInput[] | ProfileUpdateErr
   return out;
 }
 
-/** Trims and collapses inner whitespace. */
-export const cleanCustomLabel = (s: string) => s.trim().replace(/\s+/g, ' ');
+/** NFC-normalises, strips control and invisible format characters (e.g. zero-width spaces), trims and collapses whitespace. */
+export const cleanCustomLabel = (s: string) =>
+  s.normalize('NFC').replace(/[\p{Cc}\p{Cf}]/gu, ' ').trim().replace(/\s+/g, ' ');
 
-/** How an own habit is stored: cleaned, first letter of each word capitalised, the rest kept as typed. */
-export const titleCaseLabel = (s: string) => cleanCustomLabel(s).replace(/(^|\s)(\S)/g, (_, sp, c) => sp + c.toUpperCase());
+/**
+ * How an own habit is stored: cleaned, first letter of each word capitalised, the rest kept as typed.
+ * Words that already have a capital after the first letter (iPhone, macOS) are left alone.
+ */
+export const titleCaseLabel = (s: string) =>
+  cleanCustomLabel(s)
+    .split(' ')
+    .map((w) => (/^.+\p{Lu}/u.test(w) ? w : w.charAt(0).toUpperCase() + w.slice(1)))
+    .join(' ');
 
-/** True when a typed own habit is a valid length once cleaned. */
+/** True when a typed own habit, once cleaned, is 2 to 40 characters with at least one letter or digit. */
 export const validCustomLabel = (s: string) => {
-  const n = cleanCustomLabel(s).length;
-  return n >= CUSTOM_MIN_CHARS && n <= CUSTOM_MAX_CHARS;
+  const c = cleanCustomLabel(s);
+  return c.length >= CUSTOM_MIN_CHARS && c.length <= CUSTOM_MAX_CHARS && /[\p{L}\p{N}]/u.test(c);
 };
 
 function parseCustomTags(raw: unknown): CustomTagInput[] | ProfileUpdateError {
@@ -168,8 +176,11 @@ function parseCustomTags(raw: unknown): CustomTagInput[] | ProfileUpdateError {
     }
     if (typeof r.label !== 'string') return bad(field, 'Each of your own habits needs a name.');
     const label = cleanCustomLabel(r.label);
-    if (label.length < CUSTOM_MIN_CHARS || label.length > CUSTOM_MAX_CHARS) {
-      return bad(field, `Keep each of your own habits to ${CUSTOM_MIN_CHARS} to ${CUSTOM_MAX_CHARS} characters.`);
+    if (!validCustomLabel(label)) {
+      return bad(
+        field,
+        `Use ${CUSTOM_MIN_CHARS} to ${CUSTOM_MAX_CHARS} characters, with a letter or number, for each of your own habits.`,
+      );
     }
     const key = `${r.category}:${label.toLowerCase()}`;
     if (seen.has(key)) return bad(field, `You added “${label}” twice.`);
