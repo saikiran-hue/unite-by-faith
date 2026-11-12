@@ -4,6 +4,7 @@ import {
   CUSTOM_CLASH_MESSAGE,
   findCatalogueClash,
   parsePersonalTopics,
+  topicLabel,
   titleCaseLabel,
   validCustomLabel,
 } from './profile-update';
@@ -182,12 +183,25 @@ describe('parsePersonalTopics', () => {
     expect(parsePersonalTopics(['a'])).toHaveProperty('error.field', 'personalTopics');
     expect(parsePersonalTopics(['x'.repeat(41)])).toHaveProperty('error');
     expect(parsePersonalTopics(['--'])).toHaveProperty('error');
-    expect(parsePersonalTopics(['Chess', 'chess'])).toHaveProperty('error.message', 'You added “chess” twice.');
+    expect(parsePersonalTopics(['Chess', 'chess'])).toHaveProperty('error.message', 'You added “Chess” twice.');
     expect(parsePersonalTopics(Array.from({ length: 11 }, (_, i) => `Topic ${i}`))).toHaveProperty('error');
     expect(parsePersonalTopics('Chess')).toHaveProperty('error');
     expect(parsePersonalTopics([3])).toHaveProperty('error');
   });
   it('NFC-normalises so composed and decomposed forms are one topic', () => {
     expect(parsePersonalTopics(['Caf\u00e9 Church', 'Cafe\u0301 church'])).toHaveProperty('error');
+  });
+});
+
+describe('topicLabel', () => {
+  it('keeps the member’s words, uppercasing only the first character', () => {
+    expect(topicLabel('  elections   in Israel ')).toBe('Elections in Israel');
+    expect(topicLabel('iPhone repair')).toBe('iPhone repair');
+    expect(topicLabel('chess openings')).toBe('Chess openings');
+    expect(topicLabel('WW2 history')).toBe('WW2 history');
+    expect(parsePersonalTopics(['learning English'])).toEqual(['Learning English']);
+  });
+  it('leaves own habits title-cased', () => {
+    expect(titleCaseLabel('elections in israel')).toBe('Elections In Israel');
   });
 });

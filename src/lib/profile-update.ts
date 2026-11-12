@@ -157,6 +157,15 @@ export const titleCaseLabel = (s: string) =>
     .map((w) => (/^.+\p{Lu}/u.test(w) ? w : w.charAt(0).toUpperCase() + w.slice(1)))
     .join(' ');
 
+/**
+ * How a personal topic is stored: cleaned, first character uppercased, the rest exactly as typed.
+ * A first word that already has a capital after its first letter (iPhone, eBay) is left alone.
+ */
+export const topicLabel = (s: string) => {
+  const c = cleanCustomLabel(s);
+  return /^.+\p{Lu}/u.test(c.split(' ')[0]) ? c : c.charAt(0).toUpperCase() + c.slice(1);
+};
+
 /** True when a typed own habit, once cleaned, is 2 to 40 characters with at least one letter or digit. */
 export const validCustomLabel = (s: string) => {
   const c = cleanCustomLabel(s);
@@ -204,7 +213,7 @@ export function parsePersonalTopics(raw: unknown): string[] | ProfileUpdateError
   const out: string[] = [];
   for (const t of raw) {
     if (typeof t !== 'string') return bad(field, 'Each personal topic must be text.');
-    const label = cleanCustomLabel(t);
+    const label = topicLabel(t);
     if (!validCustomLabel(label)) {
       return bad(field, `Use ${CUSTOM_MIN_CHARS} to ${CUSTOM_MAX_CHARS} characters, with a letter or number, for each personal topic.`);
     }

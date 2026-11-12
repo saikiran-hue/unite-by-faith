@@ -1,7 +1,8 @@
 -- 0015: Personal topics. Things a member is into, typed freely (e.g. "World War 2", "Learning English").
 -- Matched person to person by meaning: the server stores a gte-small embedding of each label (null when the
 -- model failed; the next save tries again) and compares members' topics in the app layer.
--- Matches can see them, so any signed-in member may read; signed-out visitors may not.
+-- Matches can see them, so any signed-in member may read the labels; signed-out visitors may not.
+-- Embeddings are readable by the service role only (column grants below).
 -- No browser write policies: the server writes with the service role, through replace_user_personal_topics.
 -- Safe to run more than once.
 
@@ -23,6 +24,11 @@ create policy "user_personal_topics_select_authenticated"
   on public.user_personal_topics for select
   to authenticated
   using (true);
+
+-- Embeddings are server-only: signed-in members and anon may read every column except embedding.
+-- (Column grants: a table-wide select would expose it. The server reads it with the service role.)
+revoke select on public.user_personal_topics from anon, authenticated;
+grant select (id, user_id, label, created_at) on public.user_personal_topics to authenticated;
 
 -- Replace a member's personal topics in one transaction. rows: [{label, embedding}], embedding a
 -- '[x,y,...]' string or null. A null embedding keeps the one already stored for the same label, if any.

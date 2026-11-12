@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import type { PersonalTopicSaved } from '@/types/database';
 import { Btn, Icon } from '@/components/ubf';
-import { CUSTOM_MAX_CHARS, CUSTOM_MIN_CHARS, MAX_PERSONAL_TOPICS, titleCaseLabel, validCustomLabel } from '@/lib/profile-update';
+import { CUSTOM_MAX_CHARS, CUSTOM_MIN_CHARS, MAX_PERSONAL_TOPICS, topicLabel, validCustomLabel } from '@/lib/profile-update';
 
 const key = (s: string) => s.toLowerCase();
 
@@ -27,7 +27,7 @@ export function shouldSendTopics(topics: string[], saved: PersonalTopicSaved[], 
 export function topicProblem(raw: string, topics: string[]): string | null {
   if (topics.length >= MAX_PERSONAL_TOPICS) return `You have ${MAX_PERSONAL_TOPICS}. Remove one to add another.`;
   if (!validCustomLabel(raw)) return `Use ${CUSTOM_MIN_CHARS} to ${CUSTOM_MAX_CHARS} characters, with a letter or number.`;
-  const label = titleCaseLabel(raw);
+  const label = topicLabel(raw);
   if (topics.some((t) => key(t) === key(label))) return `You already added “${label}”.`;
   return null;
 }
@@ -52,7 +52,7 @@ export function PersonalTopics({ id, topics, setTopics }: PersonalTopicsProps) {
       input.current?.focus();
       return;
     }
-    setTopics([...topics, titleCaseLabel(text)]);
+    setTopics([...topics, topicLabel(text)]);
     setText('');
     setProblem(null);
     input.current?.focus();
