@@ -20,7 +20,7 @@ import {
 } from '@/lib/life-fit';
 import { City, CurrentUser, FellowshipMode, PillarCategory, TaxonomyTag, Tradition } from '@/types/database';
 
-const STEPS = ['About You', 'Life fit', 'Faith & Hobbies', 'Tastes, Tech & Skills'];
+const STEPS = ['About You', 'Life Fit', 'Faith & Hobbies', 'Tastes, Tech & Skills'];
 const LIFE_STEP = 2;
 const LIFE_ANCHOR = 'life-fit';
 const MODES: { mode: FellowshipMode; title: string; desc: string; icon: IconName }[] = [
@@ -123,6 +123,7 @@ export default function OnboardingPage() {
   const tagMap = useMemo(() => new Map(taxonomyTags.map((t) => [t.slug, t])), [taxonomyTags]);
 
   function goStep(n: number) {
+    if (n === step) return;
     focusHeading.current = true;
     setStep(n);
     setError(null);
@@ -356,7 +357,7 @@ export default function OnboardingPage() {
     body = (
       <div id={LIFE_ANCHOR} className="ob-life">
         <p className="sub" style={{ marginBottom: 12 }}>
-          Life fit is {MATCH_SPLIT.lifeFit}% of your match. Faith is {MATCH_SPLIT.faith}% and your interests{' '}
+          Life Fit is {MATCH_SPLIT.lifeFit}% of your match. Faith is {MATCH_SPLIT.faith}% and your interests{' '}
           {MATCH_SPLIT.interests}%.
         </p>
         <LifeFitFields
@@ -510,9 +511,11 @@ export default function OnboardingPage() {
                   >
                     <span className="n">{done ? <Icon name="check" /> : n}</span>
                     <span className="sr">
-                      Step {n} of {STEPS.length}{done ? ', done' : ''}:{' '}
+                      Step {n} of {STEPS.length}{done ? ', done' : ''}: {s}
                     </span>
-                    <span className="lbl trunc">{s}</span>
+                    <span className="lbl trunc" aria-hidden="true">
+                      {s}
+                    </span>
                   </button>
                 </li>
               );
@@ -539,13 +542,6 @@ export default function OnboardingPage() {
         </section>
 
         <div className="card ob-bar">
-          {step > 1 ? (
-            <Btn variant="btn-quiet" icon="back" onClick={() => goStep(step - 1)}>
-              Back
-            </Btn>
-          ) : (
-            <span className="ob-sp" />
-          )}
           <div className="ob-info">
             <p className="counter" role="status">
               {counterText}
@@ -554,6 +550,11 @@ export default function OnboardingPage() {
               Review Picks
             </Btn>
           </div>
+          {step > 1 && (
+            <Btn variant="btn-quiet" icon="back" onClick={() => goStep(step - 1)}>
+              Back
+            </Btn>
+          )}
           {step < STEPS.length ? (
             <div className="foot-btns">
               {!first && (

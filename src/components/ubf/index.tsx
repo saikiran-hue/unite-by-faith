@@ -332,7 +332,7 @@ export function ScoreBars({ breakdown }: { breakdown: { faith: number; interests
   const rows: [string, number][] = [
     ['Faith', breakdown.faith],
     ['Interests', breakdown.interests],
-    ['Life fit', breakdown.lifeFit],
+    ['Life Fit', breakdown.lifeFit],
   ];
   return (
     <div className="bars">

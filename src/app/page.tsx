@@ -323,10 +323,10 @@ export default function Home() {
 
             {search.status === 'incomplete' && (
               <div className="card pad" style={{ display: 'grid', gap: 12, justifyItems: 'start' }}>
-                <Note>Add your Life fit details to search.</Note>
+                <Note>Add your Life Fit details to search.</Note>
                 <Link className="btn btn-amber" href="/onboarding#life-fit">
                   <Icon name="pencil" />
-                  Add Life fit details
+                  Add Life Fit Details
                 </Link>
               </div>
             )}

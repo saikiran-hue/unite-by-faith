@@ -475,6 +475,7 @@ html[data-theme="dark"] { background: #0a0a0b; }
 html:has(.ubf .ob-bar) { scroll-padding-bottom: 160px; }
 .ubf .ob { padding-bottom: 16px; }
 .ubf .ob-of { font-weight: 700; margin-bottom: 2px; }
+.ubf .ob-step h2[tabindex="-1"]:focus { outline: none; }
 .ubf .ob-grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
 .ubf .ob-tabs { display: flex; gap: 4px; padding: 4px; margin-bottom: 8px; background: var(--u-subtle); border-radius: 999px; }
 .ubf .ob-tabs button { flex: 1 1 0; justify-content: center; display: inline-flex; align-items: center; gap: 8px; min-width: 0; min-height: 44px; padding: 6px 8px 6px 14px; border: 0; border-radius: 999px; background: transparent; color: var(--u-mute); font-weight: 600; font-size: 14px; transition: background-color .2s ease, color .2s ease; }
@@ -485,7 +486,7 @@ html:has(.ubf .ob-bar) { scroll-padding-bottom: 160px; }
 .ubf .ob-panel { padding: 16px; }
 .ubf .ob-picked { display: none; white-space: nowrap; }
 .ubf .ob-bar { position: sticky; bottom: 12px; z-index: 4; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px; border-radius: var(--r-tile); box-shadow: var(--u-sh-2); }
-.ubf .ob-info { order: -1; flex: 1 1 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-left: 8px; min-width: 0; }
+.ubf .ob-info { flex: 1 1 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-left: 8px; min-width: 0; }
 .ubf .ob-next-to { display: none; }
 .ubf .ob-bar .btn { padding-left: 16px; padding-right: 16px; }
 .ubf .ob-bar .btn-amber .ic { margin-left: 2px; }
@@ -515,7 +516,7 @@ html:has(.ubf .ob-bar) { scroll-padding-bottom: 160px; }
 }
 @container app (min-width: 760px) {
   .ubf .ob-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; }
-  .ubf .ob-info { order: 0; flex: 1 1 auto; justify-content: center; }
+  .ubf .ob-info { flex: 1 1 auto; justify-content: flex-start; }
   .ubf .ob-next-to { display: inline; }
   .ubf .ob-panel { padding: 20px 24px; }
   .ubf .ob-tabs { width: fit-content; }
@@ -548,6 +549,7 @@ html:has(.ubf .ob-bar) { scroll-padding-bottom: 160px; }
 /* App: Home spreads into two columns. Search results sit under My Habits (left), next to the buttons that ran them */
 @container app (min-width: 1100px) {
   .ubf .home { grid-template-columns: minmax(0, 1.6fr) minmax(360px, 1fr); grid-template-rows: auto auto 1fr; grid-template-areas: "hab act" "hab lists" "res lists"; column-gap: 16px; align-items: start; }
+  .ubf .home:not(:has(.home-res)) { grid-template-rows: auto 1fr; grid-template-areas: "hab act" "hab lists"; }
   .ubf .home-hab { grid-area: hab; }
   .ubf .home-act { grid-area: act; }
   .ubf .home-res { grid-area: res; }
