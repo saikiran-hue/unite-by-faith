@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { Select } from '@/components/ubf';
 import { clampDay, daysInMonth, type DateParts } from '@/lib/date-parts';
 
 const MONTHS = [
@@ -29,30 +30,21 @@ export function BirthDateSelect({ idPrefix, value, onChange, invalid, describedB
 
   const maxDay = value.month ? daysInMonth(Number(value.month), value.year ? Number(value.year) : undefined) : 31;
   const years = thisYear ? Array.from({ length: 101 }, (_, i) => thisYear - i) : [];
-  const set = (key: keyof DateParts) => (e: React.ChangeEvent<HTMLSelectElement>) =>
-    onChange(clampDay({ ...value, [key]: e.target.value }));
+  const set = (key: keyof DateParts) => (v: string) => onChange(clampDay({ ...value, [key]: v }));
 
   const part = (key: keyof DateParts, label: string, options: { value: string; label: string }[]) => (
     <label className={`dob-part dob-${key}`} htmlFor={`${idPrefix}-${key}`}>
       <span className="dob-label">{label}</span>
-      <select
-        className="input"
+      <Select
         id={`${idPrefix}-${key}`}
         value={value[key]}
         onChange={set(key)}
-        autoComplete={key === 'day' ? 'bday-day' : key === 'month' ? 'bday-month' : 'bday-year'}
-        aria-invalid={invalid || undefined}
-        aria-describedby={describedBy}
-      >
-        <option value="" disabled>
-          {label}
-        </option>
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
+        options={options}
+        placeholder={label}
+        ariaLabel={label}
+        invalid={invalid}
+        describedBy={describedBy}
+      />
     </label>
   );
 

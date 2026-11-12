@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Icon } from '@/components/ubf';
+import { Icon, Select } from '@/components/ubf';
 import { GEONAMES_ATTRIBUTION } from '@/lib/attribution';
 import {
   DISTANCES,
@@ -102,21 +102,14 @@ export function LifeFitFields({ value: v, onChange, errors, clearError, traditio
       <div className="field">
         <label htmlFor="pf-lifestage">Life stage</label>
         <span className="hint">Required</span>
-        <select
-          className="input"
+        <Select
           id="pf-lifestage"
           value={v.lifeStage}
-          aria-invalid={errors.lifestage ? true : undefined}
-          aria-describedby={desc('lifestage')}
-          onChange={(e) => set({ lifeStage: e.target.value as LifeFitValue['lifeStage'] }, 'lifestage')}
-        >
-          <option value="">Choose…</option>
-          {LIFE_STAGES.map(([id, label]) => (
-            <option key={id} value={id}>
-              {label}
-            </option>
-          ))}
-        </select>
+          invalid={!!errors.lifestage}
+          describedBy={desc('lifestage')}
+          onChange={(x) => set({ lifeStage: x as LifeFitValue['lifeStage'] }, 'lifestage')}
+          options={LIFE_STAGES.map(([id, label]) => ({ value: id, label }))}
+        />
         {err('lifestage')}
       </div>
 
@@ -147,7 +140,7 @@ export function LifeFitFields({ value: v, onChange, errors, clearError, traditio
         <span className="legend" id="pf-slots-l">
           When you’re usually free
         </span>
-        <div className="lf-slots">
+        <div className="lf-slots soft">
           {SLOT_DAYS.map((day) => (
             <React.Fragment key={day}>
               <span className="small lf-day" aria-hidden="true">
@@ -184,7 +177,7 @@ export function LifeFitFields({ value: v, onChange, errors, clearError, traditio
           Required. Pick 1 to {MAX_LANGUAGES}. {v.languages.length} picked.
           {langFull && ' That is the limit. Remove one to add another.'}
         </span>
-        <div className="tchips">
+        <div className="tchips soft">
           {langs.map((code) => {
             const on = v.languages.includes(code);
             return (
@@ -209,25 +202,16 @@ export function LifeFitFields({ value: v, onChange, errors, clearError, traditio
       <div className="field">
         <label htmlFor="pf-tradition">Church tradition</label>
         <span className="hint">Required</span>
-        <select
-          className="input"
+        <Select
           id="pf-tradition"
           value={v.traditionId}
-          aria-invalid={errors.tradition ? true : undefined}
-          aria-describedby={desc('tradition')}
-          onChange={(e) => set({ traditionId: e.target.value }, 'tradition')}
-        >
-          <option value="">Choose…</option>
-          {families.map(([family, list]) => (
-            <optgroup key={family} label={prettyFamily(family)}>
-              {list.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+          invalid={!!errors.tradition}
+          describedBy={desc('tradition')}
+          onChange={(x) => set({ traditionId: x }, 'tradition')}
+          options={families.flatMap(([family, list]) =>
+            list.map((t) => ({ value: t.id, label: t.name, group: prettyFamily(family) })),
+          )}
+        />
         {err('tradition')}
         <label className="lf-check">
           <input
@@ -361,7 +345,7 @@ function Radios({
         </span>
       )}
       <div
-        className="tchips"
+        className="tchips soft track"
         role="radiogroup"
         id={`pf-${id}`}
         tabIndex={-1}

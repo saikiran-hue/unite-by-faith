@@ -391,3 +391,6 @@ export function reasonText(r: Reason, tagMap: Map<string, TaxonomyTag>, names?: 
     }
   }
 }
+
+export { Select } from './Select';
+export type { SelectOption } from './Select';

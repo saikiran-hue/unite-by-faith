@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
-import { AlertBox, Btn, CatHead, HabitChips, Icon, Note, sortHabits, type IconName } from '@/components/ubf';
+import { AlertBox, Btn, CatHead, HabitChips, Icon, Note, Select, sortHabits, type IconName } from '@/components/ubf';
 import { CATS } from '@/lib/cats';
 import { MATCH_SPLIT } from '@/lib/matching/pillar-weights';
 import { LifeFitFields } from '@/components/LifeFitFields';
@@ -290,11 +290,12 @@ export default function OnboardingPage() {
         <label htmlFor={`pf-${id}`}>{label}</label>
         {required && <span className="hint">Required</span>}
         {opts ? (
-          <select className="input" id={`pf-${id}`} value={value} onChange={(e) => set(e.target.value)}>
-            {opts.map((o) => (
-              <option key={o}>{o}</option>
-            ))}
-          </select>
+          <Select
+            id={`pf-${id}`}
+            value={value}
+            onChange={set}
+            options={opts.map((o) => ({ value: o, label: o }))}
+          />
         ) : (
           <input
             className="input"

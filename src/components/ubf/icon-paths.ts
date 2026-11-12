@@ -15,6 +15,7 @@ export const ICON_PATHS = {
   right: String.raw`<path d="m9 18 6-6-6-6"/>`,
   back: String.raw`<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>`,
   check: String.raw`<path d="M20 6 9 17l-5-5"/>`,
+  'chevron-down': String.raw`<path d="m6 9 6 6 6-6"/>`,
   x: String.raw`<path d="M18 6 6 18M6 6l12 12"/>`,
   alert: String.raw`<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>`,
   clock: String.raw`<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>`,
