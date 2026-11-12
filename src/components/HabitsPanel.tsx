@@ -1,51 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { CurrentUser, Level, TaxonomyTag } from '@/types/database';
 import { CATS } from '@/lib/cats';
-import { AlertBox, Btn, CatHead, Empty, HabitChips, Icon, Note, sortHabits } from '@/components/ubf';
-import { CategorySearch, shouldSendOwn, type OwnHabit } from '@/components/OwnHabits';
-import { habitList, TOP_N } from '@/lib/habit-list';
+import { Btn, CatHead, Empty, HabitChips, Icon, Note, sortHabits } from '@/components/ubf';
+import { EditHabitsModal } from '@/components/EditHabitsModal';
+import { EDIT_STEPS } from '@/lib/edit-habits';
 
-const MIN_HABITS = 3;
-const MAX_STARRED = 3;
 const DEFAULT_LEVEL: Level = 2;
-const LEVELS: { value: Level; label: string }[] = [
-  { value: 1, label: 'Casual' },
-  { value: 2, label: 'Regular' },
-  { value: 3, label: 'Passionate' },
-];
-
-/** Three-step radiogroup; arrow keys move the choice (roving tabindex). */
-function LevelControl({ label, value, onChange }: { label: string; value: Level; onChange: (v: Level) => void }) {
-  function onKey(e: React.KeyboardEvent<HTMLButtonElement>) {
-    const dir = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
-    if (!dir) return;
-    e.preventDefault();
-    const next = (((value - 1 + dir + 3) % 3) + 1) as Level;
-    onChange(next);
-    const buttons = e.currentTarget.parentElement?.querySelectorAll('button');
-    buttons?.[next - 1]?.focus();
-  }
-  return (
-    <div className="lvl" role="radiogroup" aria-label={`How much: Casual / Regular / Passionate, ${label}`}>
-      {LEVELS.map((l) => (
-        <button
-          key={l.value}
-          type="button"
-          role="radio"
-          aria-checked={value === l.value}
-          tabIndex={value === l.value ? 0 : -1}
-          onClick={() => onChange(l.value)}
-          onKeyDown={onKey}
-        >
-          {l.label}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 interface HabitsPanelProps {
   user: CurrentUser;
@@ -60,26 +22,17 @@ interface HabitsPanelProps {
 }
 
 export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0, onSaved }: HabitsPanelProps) {
-  const [editing, setEditing] = useState(false);
-  const [picked, setPicked] = useState<string[]>([]);
-  const [starred, setStarred] = useState<string[]>([]);
-  const [levels, setLevels] = useState<Record<string, Level>>({});
-  const [own, setOwn] = useState<OwnHabit[]>([]);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [retired, setRetired] = useState(false);
-  const router = useRouter();
-  const [saving, setSaving] = useState(false);
-  const [starHint, setStarHint] = useState(false);
-  const [error, setError] = useState<[string, string] | null>(null);
-  const headingRef = useRef<HTMLHeadingElement>(null);
-  const editBtnRef = useRef<HTMLButtonElement>(null);
-  const wasEditing = useRef(false);
+  // Where the modal opens and which button opened it (focus goes back there), or null when closed.
+  // Each open mounts a fresh modal, which reads the saved habits.
+  const [editing, setEditing] = useState<{ step: number; opener: string } | null>(null);
+  const lastOpener = useRef<string | null>(null);
 
-  // Focus the editor heading on open, and return focus to Edit Habits on close.
   useEffect(() => {
-    if (editing) headingRef.current?.focus();
-    else if (wasEditing.current) editBtnRef.current?.focus();
-    wasEditing.current = editing;
+    if (editing) lastOpener.current = editing.opener;
+    else if (lastOpener.current) {
+      (document.getElementById(lastOpener.current) ?? document.getElementById('hab-edit-0'))?.focus();
+      lastOpener.current = null;
+    }
   }, [editing]);
 
   const savedPicked = user.tags.map((t) => t.tag_slug);
@@ -87,283 +40,112 @@ export function HabitsPanel({ user, taxonomyTags, tagMap, saved, editSignal = 0,
   const savedLevels = new Map(user.tags.map((t) => [t.tag_slug, (t.level ?? DEFAULT_LEVEL) as Level]));
   const savedOwn = user.customTags ?? [];
 
-  function openEditor() {
-    const keep = (s: string) => tagMap.get(s)?.is_active !== false;
-    setPicked(savedPicked.filter(keep));
-    setStarred([...savedStarred].filter(keep));
-    setLevels(Object.fromEntries([...savedLevels].filter(([s]) => keep(s))));
-    setRetired(savedPicked.some((s) => !keep(s)));
-    setOwn(savedOwn.map((c) => ({ category: c.category, label: c.label })));
-    setExpanded({});
-    setError(null);
-    setStarHint(false);
-    setEditing(true);
-  }
+  const openEditor = (step: number, opener: string) => setEditing({ step, opener });
 
   // Open the editor when the parent asks (adjusting state during render, per React docs).
   const [seenSignal, setSeenSignal] = useState(editSignal);
   if (editSignal !== seenSignal) {
     setSeenSignal(editSignal);
-    openEditor();
+    openEditor(0, savedPicked.length ? 'hab-edit-0' : 'hab-choose');
   }
 
-  function cancel() {
-    setError(null);
-    setEditing(false);
-  }
-
-  function toggle(slug: string) {
-    if (picked.includes(slug)) {
-      setPicked(picked.filter((s) => s !== slug));
-      setStarred(starred.filter((s) => s !== slug));
-    } else {
-      setPicked([...picked, slug]);
-      setLevels((l) => ({ ...l, [slug]: l[slug] ?? DEFAULT_LEVEL }));
-    }
-    setError(null);
-    setStarHint(false);
-  }
-
-  function star(slug: string) {
-    if (starred.includes(slug)) {
-      setStarred(starred.filter((s) => s !== slug));
-      setStarHint(false);
-    } else if (starred.length < MAX_STARRED) {
-      setStarred([...starred, slug]);
-    } else {
-      setStarHint(true);
-    }
-  }
-
-  async function save() {
-    const n = picked.length;
-    if (n < MIN_HABITS) {
-      setError([
-        'Pick at least 3 habits.',
-        `You have ${n}. Add ${MIN_HABITS - n} more so we can find good matches, then tap Save Habits.`,
-      ]);
-      return;
-    }
-    setSaving(true);
-    setError(null);
-    const failed: [string, string] = [
-      'We couldn’t save your habits.',
-      'Your picks are still here. Check your connection and tap Save Habits again.',
-    ];
-    try {
-      const res = await fetch('/api/onboarding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tags: picked.map((slug) => ({
-            slug,
-            category: tagMap.get(slug)?.category ?? 'faith',
-            level: levels[slug] ?? DEFAULT_LEVEL,
-            isPriority: starred.includes(slug),
-          })),
-          // Own habits only when changed or unmapped, and never if they failed to load (see shouldSendOwn).
-          ...(shouldSendOwn(own, savedOwn, user.customTagsLoaded !== false) ? { customTags: own } : {}),
-        }),
-      });
-      if (res.status === 401) {
-        router.replace('/auth');
-        return;
-      }
-      if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
-        const message = res.status < 500 ? body?.error?.message : undefined;
-        setError(message ? ['We couldn’t save your habits.', message] : failed);
-        return;
-      }
-      await onSaved();
-      setEditing(false);
-    } catch {
-      setError(failed);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  /* ---------------- Edit ---------------- */
-  if (editing) {
-    const starFull = starred.length >= MAX_STARRED;
-    const renderTag = (t: TaxonomyTag) => {
-      const on = picked.includes(t.slug);
-      const st = starred.includes(t.slug);
-      return (
-        <span key={t.slug} className="tpick">
-          <span className={`tchip${on ? ' on' : ''}`}>
-            <button type="button" className="t-main" aria-pressed={on} onClick={() => toggle(t.slug)}>
-              <Icon name={on ? 'check' : 'plus'} />
-              {t.label}
-            </button>
-            {on && (
-              <button
-                type="button"
-                className="t-star"
-                aria-pressed={st}
-                aria-disabled={!st && starFull ? true : undefined}
-                aria-label={st ? `Remove star from ${t.label}` : `Star ${t.label} as most important`}
-                onClick={() => star(t.slug)}
-              >
-                <Icon name="star" className={st ? 'fill' : undefined} />
-              </button>
-            )}
-          </span>
-          {on && (
-            <LevelControl
-              label={t.label}
-              value={levels[t.slug] ?? DEFAULT_LEVEL}
-              onChange={(v) => setLevels({ ...levels, [t.slug]: v })}
-            />
-          )}
-        </span>
-      );
-    };
-    return (
-      <section className="card pad" aria-labelledby="hab-h">
-        <h2 className="h2" id="hab-h" ref={headingRef} tabIndex={-1}>
-          Edit Habits
-        </h2>
-        <p className="sub">
-          Tap a habit to pick it. Tap its star to mark up to 3 as most important. Starred habits count double.
-        </p>
-        <div className="cats" style={{ marginTop: 16 }}>
-          {CATS.map((c) => {
-            const { shown, groups, total } = habitList(taxonomyTags, c.key, picked);
-            const open = expanded[c.key];
-            return (
-              <div key={c.key} className={`cat cat-${c.key}`} role="group" aria-label={c.name}>
-                <CatHead cat={c} />
-                <CategorySearch
-                  cat={c}
-                  picked={picked}
-                  onPick={toggle}
-                  own={own}
-                  setOwn={(next) => {
-                    setOwn(next);
-                    setError(null);
-                  }}
-                  saved={savedOwn}
-                  allowOwn={user.customTagsLoaded !== false}
-                />
-                {open ? (
-                  groups.map(([name, tags]) => (
-                    <div key={name}>
-                      {name && <h4 className="subgroup">{name}</h4>}
-                      <div className="tchips">{tags.map(renderTag)}</div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="tchips">{shown.map(renderTag)}</div>
-                )}
-                {total > TOP_N && (
-                  <Btn
-                    variant="btn-quiet"
-                    className="more-btn"
-                    aria-expanded={!!open}
-                    onClick={() => setExpanded({ ...expanded, [c.key]: !open })}
-                  >
-                    {open ? 'Show fewer' : `Show all ${total}`}
-                  </Btn>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        {retired && <Note style={{ marginTop: 16 }}>A habit you picked is no longer offered and was removed.</Note>}
-        {error && (
-          <div style={{ marginTop: 16 }}>
-            <AlertBox title={error[0]} text={error[1]} />
-          </div>
-        )}
-        <div className="edit-foot">
-          <p className="counter" role="status">
-            {picked.length} picked, {starred.length} of 3 starred
-            {starHint && (
-              <span className="small" style={{ display: 'block', fontWeight: 500 }}>
-                You can star up to 3. Remove a star to add another.
-              </span>
-            )}
-          </p>
-          <div className="foot-btns">
-            <Btn variant="btn-quiet" onClick={cancel} disabled={saving}>
-              Cancel
-            </Btn>
-            <Btn variant="btn-amber" icon="check" busy={saving} busyLabel="Saving…" onClick={save}>
-              Save Habits
-            </Btn>
-          </div>
-        </div>
-      </section>
-    );
-  }
+  const modal = editing && (
+    <EditHabitsModal
+      user={user}
+      taxonomyTags={taxonomyTags}
+      tagMap={tagMap}
+      initialStep={editing.step}
+      onSaved={onSaved}
+      onClose={() => setEditing(null)}
+    />
+  );
 
   /* ---------------- Empty ---------------- */
   if (!savedPicked.length) {
     return (
-      <section className="card pad" aria-labelledby="hab-h">
-        <h2 className="h2" id="hab-h">
-          My Habits
-        </h2>
-        <Empty
-          icon="star"
-          title="Pick Your First Habits"
-          text="Habits are the things you do and love. Pick at least 3 and we will match you with people who share them, faith first."
-        >
-          <Btn variant="btn-amber" icon="plus" onClick={openEditor} ref={editBtnRef}>
-            Choose Habits
-          </Btn>
-        </Empty>
-      </section>
+      <>
+        <section className="card pad" aria-labelledby="hab-h">
+          <h2 className="h2" id="hab-h">
+            My Habits
+          </h2>
+          <Empty
+            icon="star"
+            title="Pick Your First Habits"
+            text="Habits are the things you do and love. Pick at least 3 and we will match you with people who share them, faith first."
+          >
+            <Btn
+              variant="btn-amber"
+              icon="plus"
+              id="hab-choose"
+              aria-haspopup="dialog"
+              onClick={() => openEditor(0, 'hab-choose')}
+            >
+              Choose Habits
+            </Btn>
+          </Empty>
+        </section>
+        {modal}
+      </>
     );
   }
 
   /* ---------------- View ---------------- */
   return (
-    <section className="card pad" aria-labelledby="hab-h">
-      <div className="sec-head">
-        <div>
-          <h2 className="h2" id="hab-h">
-            My Habits
-          </h2>
-          <p className="sub">
-            {savedPicked.length} habits, {savedStarred.size} starred. Starred habits count double.
-          </p>
-        </div>
-        <Btn variant="btn-outline" icon="pencil" onClick={openEditor} ref={editBtnRef}>
-          Edit Habits
-        </Btn>
-      </div>
-      {saved && (
-        <Note style={{ marginTop: 12 }}>Habits saved. Tap Search to see new matches.</Note>
-      )}
-      <div className="cats four" style={{ marginTop: 16 }}>
-        {CATS.map((c) => {
-          const mine = sortHabits(
-            savedPicked.filter((s) => tagMap.get(s)?.category === c.key),
-            tagMap,
-            savedStarred
-          );
-          const mineOwn = savedOwn.filter((o) => o.category === c.key);
-          return (
-            <div key={c.key} className={`cat spot cat-${c.key}`}>
-              <CatHead cat={c} />
-              {mine.length || mineOwn.length ? (
-                <HabitChips
-                  slugs={mine}
-                  tagMap={tagMap}
-                  starred={savedStarred}
-                  levels={savedLevels}
-                  own={mineOwn}
+    <>
+      <section className="card pad" aria-labelledby="hab-h">
+        <h2 className="h2" id="hab-h">
+          My Habits
+        </h2>
+        <p className="sub">
+          {savedPicked.length} habits, {savedStarred.size} starred. Starred habits count double.
+        </p>
+        {saved && (
+          <Note style={{ marginTop: 12 }}>Habits saved. Tap Search to see new matches.</Note>
+        )}
+        <div className="cats four" style={{ marginTop: 16 }}>
+          {CATS.map((c) => {
+            const i = EDIT_STEPS.findIndex((x) => x.id === c.key);
+            const mine = sortHabits(
+              savedPicked.filter((s) => tagMap.get(s)?.category === c.key),
+              tagMap,
+              savedStarred
+            );
+            const mineOwn = savedOwn.filter((o) => o.category === c.key);
+            return (
+              <div key={c.key} className={`cat spot cat-${c.key}`}>
+                <CatHead
+                  cat={c}
+                  extra={
+                    <button
+                      type="button"
+                      className="icon-btn cat-edit"
+                      id={`hab-edit-${i}`}
+                      aria-haspopup="dialog"
+                      aria-label={`Edit ${c.name}`}
+                      title={`Edit ${c.name}`}
+                      onClick={() => openEditor(i, `hab-edit-${i}`)}
+                    >
+                      <Icon name="pencil" />
+                    </button>
+                  }
                 />
-              ) : (
-                <p className="small">None picked yet.</p>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </section>
+                {mine.length || mineOwn.length ? (
+                  <HabitChips
+                    slugs={mine}
+                    tagMap={tagMap}
+                    starred={savedStarred}
+                    levels={savedLevels}
+                    own={mineOwn}
+                  />
+                ) : (
+                  <p className="small">None picked yet.</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+      {modal}
+    </>
   );
 }

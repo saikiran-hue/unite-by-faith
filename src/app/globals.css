@@ -220,7 +220,6 @@ html[data-theme="dark"] { background: #0a0a0b; }
 .ubf .tchip .t-x:hover { color: var(--u-ink); }
 .ubf .tchip .t-x:focus-visible { outline-offset: -3px; }
 .ubf .own-hint { padding-left: 16px; font-size: 12px; color: var(--u-mute); }
-.ubf .edit-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-top: 18px; }
 .ubf .counter { font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; }
 .ubf .foot-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
 
@@ -351,6 +350,39 @@ html[data-theme="dark"] { background: #0a0a0b; }
 .ubf .icon-btn { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--u-raised); box-shadow: var(--u-sh-1); display: grid; place-items: center; flex: none; color: var(--u-ink); transition: transform .12s ease; }
 .ubf .icon-btn:active { transform: scale(.92); }
 .ubf .icon-btn svg.ic { width: 17px; height: 17px; }
+/* App: Edit Habits step modal. Full-screen sheet on phones, centered dialog from 640px; head and foot stay put, the body scrolls */
+html:has(dialog.hm-scrim[open]) { overflow: hidden; }
+.ubf dialog.scrim.hm-scrim[open] { align-items: center; padding: 0; overflow: hidden; }
+.ubf .hm { display: flex; flex-direction: column; width: 100%; height: 100dvh; background: var(--u-surface); box-shadow: var(--u-sh-2); animation: hm-in .18s ease-out; }
+@keyframes hm-in { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
+.ubf .hm-head { padding: 16px 16px 10px; border-bottom: 1px solid var(--u-line); }
+.ubf .hm-top { display: flex; align-items: center; gap: 8px; }
+.ubf .hm-top .h2 { flex: 1 1 auto; min-width: 0; }
+.ubf .hm-dots { display: flex; flex: none; }
+.ubf .hm-dot { width: 28px; height: 44px; padding: 0; border: 0; background: none; display: grid; place-items: center; border-radius: 999px; }
+.ubf .hm-dot i { width: 10px; height: 10px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--u-line-strong); transition: background-color .15s ease, width .15s ease; }
+.ubf .hm-dot.done i { background: var(--u-accent-text); box-shadow: none; }
+.ubf .hm-dot[aria-current="step"] i { width: 22px; border-radius: 999px; background: var(--u-ink); box-shadow: none; }
+.ubf .hm-dot:focus-visible { outline-offset: -4px; }
+.ubf .hm-of { font-weight: 700; margin-top: 2px; }
+.ubf .hm-of:focus { outline: none; }
+.ubf .hm-body { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 16px; }
+.ubf .hm-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--u-line); }
+.ubf .hm-count { flex: 1 1 100%; min-width: 0; padding-left: 4px; }
+.ubf .hm-foot .hm-next, .ubf .hm-confirm .foot-btns { margin-left: auto; }
+@media (min-width: 640px) {
+  .ubf dialog.scrim.hm-scrim[open] { padding: 24px; }
+  .ubf .hm { max-width: 760px; height: auto; max-height: 88dvh; border-radius: 32px; overflow: hidden; }
+  .ubf .hm-head { padding: 20px 24px 12px; }
+  .ubf .hm-body { padding: 20px 24px; }
+  .ubf .hm-foot { padding: 14px 24px; }
+  .ubf .hm-count { flex: 1 1 auto; order: 1; }
+  .ubf .hm-foot > .btn-quiet { order: 0; }
+  .ubf .hm-foot .hm-next { order: 2; margin-left: 0; }
+  .ubf .hm-confirm .hm-count { order: 0; }
+}
+.ubf .cat .cat-edit { width: 40px; height: 40px; background: var(--u-surface); box-shadow: none; margin-right: -4px; }
+.ubf .cat .cat-edit svg.ic { width: 15px; height: 15px; }
 /* App: theme toggle shows the right icon before hydration (no one-frame flash) */
 .ubf .icon-btn svg.th-sun, [data-theme="dark"] .ubf .icon-btn svg.th-moon { display: none; }
 [data-theme="dark"] .ubf .icon-btn svg.th-sun { display: block; }
