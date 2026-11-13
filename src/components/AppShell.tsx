@@ -119,6 +119,16 @@ function Topbar({
           <span>Unite by Faith</span>
         </Link>
         <div className="bar-end">
+          <a
+            className="icon-btn"
+            href="https://github.com/saikiran-hue/unite-by-faith"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Source code on GitHub (opens in a new tab)"
+            title="Source code on GitHub"
+          >
+            <Icon name="github" />
+          </a>
           <ThemeButton />
           {currentUser && (
             <div

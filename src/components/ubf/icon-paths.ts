@@ -4,6 +4,7 @@ export const ICON_PATHS = {
   cross: String.raw`<path d="M12 3v18M7 8h10"/>`,
   mountain: String.raw`<path d="m8 3 4 8 5-5 5 15H2L8 3z"/>`,
   coffee: String.raw`<path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><path d="M6 2v2M10 2v2M14 2v2"/>`,
+  github: String.raw`<path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/>`,
   code: String.raw`<path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/>`,
   search: String.raw`<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>`,
   star: String.raw`<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/>`,
