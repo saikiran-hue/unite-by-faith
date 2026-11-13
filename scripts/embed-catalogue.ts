@@ -6,7 +6,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { embed } from '../src/lib/matching/embed';
+import { embed } from '../src/lib/matching/embed-local';
 import { centreByCategory, computeNeighbors, tagEmbeddingText } from '../src/lib/matching/neighbors';
 import type { CatalogueTag } from './catalogue-constants';
 

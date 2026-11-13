@@ -1,38 +1,26 @@
-import type { FeatureExtractionPipeline } from '@huggingface/transformers';
-
-const MODEL = 'Xenova/gte-small';
-
-/** Caches a loader's promise, but forgets it if it rejects so the next call retries. */
-export function memoRetry<T>(loader: () => Promise<T>): () => Promise<T> {
-  let cached: Promise<T> | null = null;
-  return () => {
-    if (!cached) {
-      const p = loader();
-      cached = p;
-      p.catch(() => {
-        if (cached === p) cached = null;
-      });
-    }
-    return cached;
-  };
-}
-
-// Dynamic import keeps the model runtime out of any bundle that merely imports this file.
-const load = memoRetry(() =>
-  import('@huggingface/transformers').then(
-    (m) => m.pipeline('feature-extraction', MODEL) as Promise<FeatureExtractionPipeline>,
-  ),
-);
-
 /**
  * 384-dim gte-small embeddings, mean-pooled and L2-normalised. Server-side only.
+ * Computed by the Supabase Edge Function `embed` (same model as ./embed-local, identical vectors), so the
+ * app can run where a local model can't (Cloudflare Workers).
  * These RAW vectors are what taxonomy_tags.embedding stores and what query->tag retrieval compares against
  * (raw cosine, own threshold). They are never mean-centred; centring is used only to build tag_neighbors.
  */
+const BATCH = 32;
+
 export async function embed(texts: string[]): Promise<Float32Array[]> {
-  const run = await load();
-  const out = await run(texts, { pooling: 'mean', normalize: true });
-  const dim = out.dims[1];
-  const data = out.data as Float32Array;
-  return texts.map((_, i) => data.slice(i * dim, (i + 1) * dim));
+  const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/embed`;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!key) throw new Error('embed: SUPABASE_SERVICE_ROLE_KEY is not set');
+  const out: Float32Array[] = [];
+  for (let i = 0; i < texts.length; i += BATCH) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texts: texts.slice(i, i + BATCH) }),
+    });
+    if (!res.ok) throw new Error(`embed: function returned ${res.status}`);
+    const { embeddings } = (await res.json()) as { embeddings: number[][] };
+    out.push(...embeddings.map((e) => Float32Array.from(e)));
+  }
+  return out;
 }

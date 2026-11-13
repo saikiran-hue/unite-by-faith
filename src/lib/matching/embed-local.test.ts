@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { memoRetry } from './embed';
+import { memoRetry } from './embed-local';
 
 describe('memoRetry', () => {
   it('retries after a rejection, then caches the success', async () => {
