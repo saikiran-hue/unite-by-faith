@@ -155,6 +155,9 @@ export default function AuthPage() {
             <p className="small" style={{ textAlign: 'center' }}>
               We only get your name, email and photo from Google.
             </p>
+            <p className="small" style={{ textAlign: 'center' }}>
+              <a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a>
+            </p>
           </div>
         </div>
 

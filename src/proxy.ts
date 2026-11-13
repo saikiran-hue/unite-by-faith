@@ -41,6 +41,8 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const open =
     pathname === '/auth' ||
+    pathname === '/privacy' ||
+    pathname === '/terms' ||
     pathname.startsWith('/auth/') ||
     pathname.startsWith('/api/');
 

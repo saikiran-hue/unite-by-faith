@@ -9,5 +9,6 @@
     "binding": "ASSETS"
   },
   "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "unite-by-faith" }],
+  "routes": [{ "pattern": "unite-by-faith.swipecraft.in", "custom_domain": true }],
   "observability": { "enabled": true }
 }
