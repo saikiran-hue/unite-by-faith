@@ -49,11 +49,11 @@ export async function GET(req: NextRequest) {
       if (error) throw new Error(`match_candidates: ${error.message}`);
       const sqlIds = ((data ?? []) as { user_id: string }[]).map((r) => r.user_id);
       const duoCols = 'user_a_id, user_b_id, chat_room_id';
-      const duoRows: DuoRow[] =
+      const [asA, asB] =
         sqlIds.length === 0
-          ? []
-          : [
-              ...(await fetchChunked<DuoRow, string>(sqlIds, (c, from, to) =>
+          ? [[], []]
+          : await Promise.all([
+              fetchChunked<DuoRow, string>(sqlIds, (c, from, to) =>
                 admin
                   .from('duo_matches')
                   .select(duoCols)
@@ -62,8 +62,8 @@ export async function GET(req: NextRequest) {
                   .not('chat_room_id', 'is', null)
                   .order('user_b_id')
                   .range(from, to) as never,
-              )),
-              ...(await fetchChunked<DuoRow, string>(sqlIds, (c, from, to) =>
+              ),
+              fetchChunked<DuoRow, string>(sqlIds, (c, from, to) =>
                 admin
                   .from('duo_matches')
                   .select(duoCols)
@@ -72,8 +72,9 @@ export async function GET(req: NextRequest) {
                   .not('chat_room_id', 'is', null)
                   .order('user_a_id')
                   .range(from, to) as never,
-              )),
-            ];
+              ),
+            ]);
+      const duoRows: DuoRow[] = [...asA, ...asB];
       const { keep: ids, allChatted } = splitChatPartners(userId, sqlIds, duoRows);
       const people = await loadPeople(admin, ids);
       const slugs = [...viewer.match.tags, ...[...people.values()].flatMap((p) => p.match.tags)].map((t) => t.slug);

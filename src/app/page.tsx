@@ -471,6 +471,7 @@ function Home() {
       currentUser={currentUser}
       width="app"
       onSwitchedUser={() => {
+        searchSeq.current++;
         setSearch(null);
         setToast(null);
         setSaved(false);
@@ -799,6 +800,7 @@ function Home() {
               editSignal={editSignal}
               onSaved={async () => {
                 await refresh();
+                searchSeq.current++;
                 setSearch(null);
                 setToast(null);
                 setSaved(true);
