@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
-import { firstName, MessageItem } from '@/components/chat/MessageItem';
+import { firstName, MessageItem, type MessageHandlers } from '@/components/chat/MessageItem';
+import { DeleteConfirm } from '@/components/chat/MessageMenu';
 import {
   AlertBox,
   Btn,
@@ -17,9 +18,21 @@ import {
 } from '@/components/ubf';
 import { podCover } from '@/lib/sample-content';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { snippet } from '@/lib/chat/rules';
+import { isSeen, typingText } from '@/lib/chat/status';
+import { useTyping } from '@/lib/chat/useTyping';
+import {
+  leadingThrottle,
+  newestFromOthers,
+  reactionToSend,
+  withDaySeparators,
+} from '@/lib/chat/view';
 import {
   ChatMessage,
   ChatRoom,
+  MemberRead,
+  ReactionEmoji,
+  ReplyQuote,
   RoomPin,
   TaxonomyTag,
   UserProfile,
@@ -39,8 +52,20 @@ interface PendingMessage {
   kind: SendKind;
   text: string;
   at: string;
+  /** When it was posted, for its day separator. */
+  iso: string;
   status: 'sending' | 'failed';
+  replyToId?: string;
+  quote?: ReplyQuote;
 }
+
+type Row = { kind: 'msg'; m: ChatMessage } | { kind: 'pending'; p: PendingMessage };
+
+const EDIT_ERRORS: Record<string, string> = {
+  edit_window_passed: 'Messages can only be edited for 15 minutes after sending.',
+  message_deleted: 'This message was deleted, so it can’t be edited.',
+};
+const EDIT_ERROR_DEFAULT = 'We couldn’t save your edit. Check your connection, then tap Save again.';
 
 const clock = (d: Date) =>
   d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
@@ -77,6 +102,10 @@ function FellowshipRoomContent() {
   const [duoSimilarityScore, setDuoSimilarityScore] = useState<number | null>(
     null
   );
+  // Read state of the other members, for ticks.
+  const [reads, setReads] = useState<MemberRead[]>([]);
+  // Clock for day labels, taken at each load so render stays pure.
+  const [now, setNow] = useState(() => Date.now());
 
   // Composer
   const [messageText, setMessageText] = useState('');
@@ -84,6 +113,20 @@ function FellowshipRoomContent() {
   const [pending, setPending] = useState<PendingMessage[]>([]);
   const [sentNote, setSentNote] = useState('');
   const pendingKey = useRef(0);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  // Reply and edit targets are held by id, so a target deleted meanwhile drops out.
+  const [replyToId, setReplyToId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<{ id: string; draft: string } | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [actionError, setActionError] = useState('');
+
+  // Delete confirmation
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteFailed, setDeleteFailed] = useState(false);
+  const deleteTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const deleteDoneRef = useRef(false);
 
   // Prayer & Goals board
   const [boardType, setBoardType] = useState<'prayer' | 'goal'>('prayer');
@@ -96,8 +139,29 @@ function FellowshipRoomContent() {
 
   const msgsRef = useRef<HTMLUListElement | null>(null);
 
+  // Refetches overlap (every Realtime event starts one); a response older than one already shown is dropped.
+  const fetchSeq = useRef(0);
+  const appliedSeq = useRef(0);
+  const meIdRef = useRef<string | undefined>(undefined);
+  // Newest message from someone else: undefined before the first load. markedRef: the one last marked read.
+  const newestOtherRef = useRef<string | null | undefined>(undefined);
+  const markedRef = useRef<string | null | undefined>(undefined);
+
+  const markRead = useMemo(
+    () =>
+      leadingThrottle(() => {
+        void fetch(`/api/rooms/${roomId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'mark_read' }),
+        }).catch(() => {});
+      }, 1000),
+    [roomId]
+  );
+
   const fetchRoomData = React.useCallback(
     async (silent = false) => {
+      const seq = ++fetchSeq.current;
       try {
         const res = await fetch(`/api/rooms/${roomId}`);
         if (res.status === 401) {
@@ -105,17 +169,34 @@ function FellowshipRoomContent() {
           return;
         }
         const data = await res.json();
+        if (seq < appliedSeq.current) return;
         if (res.ok && data.room) {
+          appliedSeq.current = seq;
+          const list: ChatMessage[] = data.messages || [];
+          const me: string | undefined = data.currentUser?.id;
           setRoom(data.room);
           setCurrentUser(data.currentUser);
           setTaxonomyTags(data.taxonomyTags || []);
           setParticipants(data.participants || []);
-          setMessages(data.messages || []);
+          setMessages(list);
           setPins(data.pins || []);
+          setReads(data.reads || []);
+          setNow(Date.now());
           setContextualIcebreakers(data.contextualIcebreakers || []);
           setPodDetails(data.podDetails || null);
           setDuoSimilarityScore(data.duoSimilarityScore ?? null);
           setLoadError(false);
+
+          // Read state: on the first load (markedRef still undefined), and whenever someone else's
+          // newer message arrives, while the tab is visible.
+          if (meIdRef.current !== me) markedRef.current = undefined;
+          meIdRef.current = me;
+          const newest = me ? newestFromOthers(list, me) : null;
+          newestOtherRef.current = newest;
+          if (document.visibilityState === 'visible' && markedRef.current !== newest) {
+            markedRef.current = newest;
+            markRead.call();
+          }
         } else if (!silent) {
           setLoadError(true);
         }
@@ -125,7 +206,7 @@ function FellowshipRoomContent() {
         if (!silent) setLoading(false);
       }
     },
-    [roomId, router]
+    [roomId, router, markRead]
   );
 
   useEffect(() => {
@@ -162,6 +243,32 @@ function FellowshipRoomContent() {
         () => {
           fetchRoomData(true);
         }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'message_reactions',
+          filter: `room_id=eq.${roomId}`,
+        },
+        () => {
+          fetchRoomData(true);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'room_reads',
+          filter: `room_id=eq.${roomId}`,
+        },
+        (payload) => {
+          // My own read marks change nothing on my screen; other members' turn ticks to seen.
+          if ((payload.new as { user_id?: string } | undefined)?.user_id === meIdRef.current) return;
+          fetchRoomData(true);
+        }
       );
     void supabase.auth.getSession().then(async ({ data }) => {
       if (closed) return;
@@ -175,6 +282,25 @@ function FellowshipRoomContent() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId]);
+
+  useEffect(() => {
+    const onVisible = () => {
+      // Before the first load there is nothing to mark; that load marks it.
+      if (document.visibilityState !== 'visible' || newestOtherRef.current === undefined) return;
+      markedRef.current = newestOtherRef.current;
+      markRead.call();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      markRead.cancel();
+    };
+  }, [markRead]);
+
+  const { typingNames, notifyTyping } = useTyping(roomId, {
+    id: currentUser?.id ?? '',
+    name: firstName(currentUser?.full_name),
+  });
 
   useEffect(() => {
     // Scroll only the message list, never the page.
@@ -191,11 +317,11 @@ function FellowshipRoomContent() {
   }
 
   /** Post to the API. A prayer request is pinned to the board; the server also posts it to the chat. */
-  async function deliver(kind: SendKind, text: string) {
+  async function deliver(kind: SendKind, text: string, replyToId?: string) {
     const body =
       kind === 'prayer'
         ? { action: 'create_pin', senderId: currentUser?.id, pinType: 'prayer', title: text, body: '' }
-        : { action: 'message', senderId: currentUser?.id, content: text, messageType: kind };
+        : { action: 'message', senderId: currentUser?.id, content: text, messageType: kind, replyToId };
     try {
       const res = await fetch(`/api/rooms/${roomId}`, {
         method: 'POST',
@@ -210,7 +336,7 @@ function FellowshipRoomContent() {
   }
 
   async function sendPending(m: PendingMessage) {
-    const ok = await deliver(m.kind, m.text);
+    const ok = await deliver(m.kind, m.text, m.replyToId);
     if (ok) {
       await fetchRoomData(true);
       setPending((list) => list.filter((x) => x.key !== m.key));
@@ -222,13 +348,22 @@ function FellowshipRoomContent() {
     }
   }
 
-  function post(kind: SendKind, text: string) {
+  function post(kind: SendKind, text: string, parent?: ChatMessage) {
+    const d = new Date();
     const m: PendingMessage = {
       key: ++pendingKey.current,
       kind,
       text,
-      at: clock(new Date()),
+      at: clock(d),
+      iso: d.toISOString(),
       status: 'sending',
+      replyToId: parent?.id,
+      quote: parent && {
+        id: parent.id,
+        sender_name: firstName(parent.sender?.full_name),
+        snippet: snippet(displayText(parent.content)),
+        deleted: false,
+      },
     };
     setSentNote('');
     setPending((list) => [...list, m]);
@@ -243,14 +378,187 @@ function FellowshipRoomContent() {
     void sendPending(next);
   }
 
+  // A reply bar only shows while its target is still there and not deleted.
+  const replyMsg = replyToId
+    ? messages.find((m) => m.id === replyToId && !m.deleted_at)
+    : undefined;
+
+  function focusInput(caretToEnd = false) {
+    const input = inputRef.current;
+    if (!input) return;
+    input.focus();
+    if (caretToEnd) {
+      // After React has put the new value in.
+      requestAnimationFrame(() => input.setSelectionRange(input.value.length, input.value.length));
+    }
+  }
+
+  function endEdit() {
+    if (editing) setMessageText(editing.draft);
+    setEditing(null);
+    setEditError('');
+  }
+
+  function startReply(m: ChatMessage) {
+    endEdit();
+    setReplyToId(m.id);
+    setPrayerMode(false);
+    focusInput();
+  }
+
+  function startEdit(m: ChatMessage) {
+    setReplyToId(null);
+    setPrayerMode(false);
+    setEditError('');
+    // Keep whatever was being written, to put back when the edit ends.
+    setEditing({ id: m.id, draft: editing ? editing.draft : messageText });
+    // Raw content: displayText() drops a leading emoji, which Save would then delete.
+    setMessageText(m.content);
+    focusInput(true);
+  }
+
+  async function saveEdit(id: string, text: string) {
+    const original = messages.find((m) => m.id === id);
+    if (original && original.content.trim() === text) {
+      endEdit();
+      return;
+    }
+    setSavingEdit(true);
+    setEditError('');
+    try {
+      const res = await fetch(`/api/rooms/${roomId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'edit_message', messageId: id, content: text }),
+      });
+      if (res.status === 401) {
+        router.replace('/auth');
+        return;
+      }
+      if (res.ok) {
+        await fetchRoomData(true);
+        endEdit();
+        setSentNote('Message edited.');
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setEditError(EDIT_ERRORS[data?.error] ?? EDIT_ERROR_DEFAULT);
+      }
+    } catch {
+      setEditError(EDIT_ERROR_DEFAULT);
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
   function handleSend(e: React.FormEvent) {
     e.preventDefault();
     const text = messageText.trim();
     if (!text) return;
-    post(prayerMode ? 'prayer' : 'text', text);
+    if (editing) {
+      if (!savingEdit) void saveEdit(editing.id, text);
+      return;
+    }
+    post(prayerMode ? 'prayer' : 'text', text, prayerMode ? undefined : replyMsg);
     setMessageText('');
     setPrayerMode(false);
+    setReplyToId(null);
+    setActionError('');
   }
+
+  function onComposerKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key !== 'Escape') return;
+    if (editing) {
+      e.preventDefault();
+      endEdit();
+    } else if (replyMsg) {
+      e.preventDefault();
+      setReplyToId(null);
+    }
+  }
+
+  async function react(m: ChatMessage, emoji: ReactionEmoji) {
+    setActionError('');
+    // Tapping my current reaction removes it.
+    const ok = await boardCall({ action: 'react', messageId: m.id, emoji: reactionToSend(m.reactions, emoji) });
+    if (ok) await fetchRoomData(true);
+    else setActionError('Your reaction didn’t go through. Check your connection, then try again.');
+  }
+
+  async function copyMessage(m: ChatMessage) {
+    setActionError('');
+    try {
+      await navigator.clipboard.writeText(displayText(m.content));
+      setSentNote('Message copied.');
+    } catch {
+      setActionError('We couldn’t copy that message. Try again.');
+    }
+  }
+
+  function askDelete(m: ChatMessage, trigger: HTMLButtonElement | null) {
+    deleteTriggerRef.current = trigger;
+    deleteDoneRef.current = false;
+    setDeleteFailed(false);
+    setDeleteId(m.id);
+  }
+
+  async function confirmDelete() {
+    if (!deleteId || deleteBusy) return;
+    setDeleteBusy(true);
+    setDeleteFailed(false);
+    const ok = await boardCall({ action: 'delete_message', messageId: deleteId });
+    if (ok) {
+      deleteDoneRef.current = true;
+      if (editing?.id === deleteId) endEdit();
+      await fetchRoomData(true);
+      setDeleteId(null);
+      setSentNote('Message deleted.');
+    } else {
+      setDeleteFailed(true);
+    }
+    setDeleteBusy(false);
+  }
+
+  function deleteClosed() {
+    setDeleteId(null);
+    // Cancel returns to the message's More Actions button; after a delete that button is gone.
+    const trigger = deleteTriggerRef.current;
+    deleteTriggerRef.current = null;
+    if (!deleteDoneRef.current && trigger?.isConnected) trigger.focus();
+    else inputRef.current?.focus();
+  }
+
+  /** Scroll the quoted message into view and flash it; the list scrolls on desktop, the page on phones. */
+  function jumpTo(id: string) {
+    const el = document.getElementById(`msg-${id}`);
+    if (!el) return;
+    const behavior: ScrollBehavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ? 'auto'
+      : 'smooth';
+    const list = msgsRef.current;
+    if (list && list.scrollHeight > list.clientHeight + 1) {
+      const delta =
+        el.getBoundingClientRect().top -
+        list.getBoundingClientRect().top -
+        (list.clientHeight - el.offsetHeight) / 2;
+      list.scrollBy({ top: delta, behavior });
+    } else {
+      el.scrollIntoView({ behavior, block: 'center' });
+    }
+    el.focus({ preventScroll: true });
+    el.classList.add('flash');
+    window.setTimeout(() => el.classList.remove('flash'), 1600);
+  }
+
+  const handlers: MessageHandlers = {
+    onJump: jumpTo,
+    onReact: (m, emoji) => void react(m, emoji),
+    onAction: (m, action, trigger) => {
+      if (action === 'reply') startReply(m);
+      else if (action === 'edit') startEdit(m);
+      else if (action === 'copy') void copyMessage(m);
+      else askDelete(m, trigger);
+    },
+  };
 
   async function boardCall(body: Record<string, unknown>) {
     try {
@@ -500,20 +808,53 @@ function FellowshipRoomContent() {
   const kindToType = (k: SendKind): ChatMessage['message_type'] =>
     k === 'prayer' ? 'prayer_request' : k;
 
-  const msgItems = [
-    ...messages.map((m) => (
-      <MessageItem
-        key={m.id}
-        mine={m.sender_id === meId}
-        pod={pod}
-        type={m.message_type}
-        text={displayText(m.content)}
-        avatar={m.sender?.avatar_url}
-        name={m.sender?.full_name}
-        time={<time dateTime={m.created_at}>{clock(new Date(m.created_at))}</time>}
-      />
-    )),
-    ...pending.map((m) => (
+  const loadedIds = new Set(messages.map((m) => m.id));
+  const tickFor = (m: ChatMessage) =>
+    m.sender_id === meId && !m.deleted_at ? (isSeen(m.created_at, reads) ? 'seen' : 'sent') : null;
+
+  const rows = withDaySeparators<Row>(
+    [
+      ...messages.map((m): Row => ({ kind: 'msg', m })),
+      ...pending.map((p): Row => ({ kind: 'pending', p })),
+    ],
+    (r) => (r.kind === 'msg' ? r.m.created_at : r.p.iso),
+    new Date(now)
+  );
+
+  const msgItems = rows.map((r) => {
+    if (r.kind === 'day') {
+      return (
+        <li key={r.key} className="day-sep">
+          <span className="ln" aria-hidden="true" />
+          {r.label}
+          <span className="ln" aria-hidden="true" />
+        </li>
+      );
+    }
+    const row = r.item;
+    if (row.kind === 'msg') {
+      const m = row.m;
+      return (
+        <MessageItem
+          key={m.id}
+          mine={m.sender_id === meId}
+          pod={pod}
+          type={m.message_type}
+          text={displayText(m.content)}
+          avatar={m.sender?.avatar_url}
+          name={m.sender?.full_name}
+          time={<time dateTime={m.created_at}>{clock(new Date(m.created_at))}</time>}
+          message={m}
+          meId={meId}
+          quote={m.reply_to}
+          canJump={Boolean(m.reply_to && loadedIds.has(m.reply_to.id))}
+          tick={tickFor(m)}
+          handlers={handlers}
+        />
+      );
+    }
+    const m = row.p;
+    return (
       <MessageItem
         key={`p${m.key}`}
         mine
@@ -523,6 +864,7 @@ function FellowshipRoomContent() {
         avatar={currentUser?.avatar_url}
         name={currentUser?.full_name}
         status={m.status}
+        quote={m.quote}
         time={
           m.status === 'sending' ? (
             <span className="stat" role="status">
@@ -539,34 +881,83 @@ function FellowshipRoomContent() {
           )
         }
       />
-    )),
-  ];
+    );
+  });
+
+  const typing = typingText(typingNames);
+  const barOpen = Boolean(editing || replyMsg);
 
   const composer = (
     <form className="composer" onSubmit={handleSend}>
-      <button
-        type="button"
-        className="ptoggle"
-        aria-pressed={prayerMode}
-        onClick={() => setPrayerMode((v) => !v)}
-      >
-        <Icon name="heart" />
-        Prayer Request
-      </button>
+      {barOpen && (
+        <div className="cbar">
+          <Icon name={editing ? 'pencil' : 'reply'} />
+          <div className="grow">
+            <b>
+              {editing
+                ? 'Editing message'
+                : `Replying to ${firstName(replyMsg?.sender?.full_name)}`}
+            </b>
+            {!editing && replyMsg && (
+              <span className="small trunc">{snippet(displayText(replyMsg.content))}</span>
+            )}
+            {editing && editError && (
+              <span className="err" role="alert">
+                <Icon name="alert" />
+                {editError}
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label={editing ? 'Cancel editing' : 'Cancel reply'}
+            onClick={() => {
+              if (editing) endEdit();
+              else setReplyToId(null);
+              focusInput();
+            }}
+          >
+            <Icon name="x" />
+          </button>
+        </div>
+      )}
+      {/* A prayer request is pinned, not a reply or an edit, so the toggle steps aside for those. */}
+      {!barOpen && (
+        <button
+          type="button"
+          className="ptoggle"
+          aria-pressed={prayerMode}
+          onClick={() => setPrayerMode((v) => !v)}
+        >
+          <Icon name="heart" />
+          Prayer Request
+        </button>
+      )}
       <label className="sr" htmlFor="msg-in">
-        {prayerMode ? 'Write a prayer request' : 'Write a message'}
+        {editing ? 'Edit your message' : prayerMode ? 'Write a prayer request' : 'Write a message'}
       </label>
       <input
+        ref={inputRef}
         className="input"
         id="msg-in"
         autoComplete="off"
         value={messageText}
-        onChange={(e) => setMessageText(e.target.value)}
+        onChange={(e) => {
+          setMessageText(e.target.value);
+          if (e.target.value.trim()) notifyTyping();
+        }}
+        onKeyDown={onComposerKeyDown}
         placeholder={prayerMode ? 'Share a prayer request…' : 'Write a message…'}
       />
-      <button type="submit" className="btn send">
-        <Icon name="send" />
-        <span>Send</span>
+      <button
+        type="submit"
+        className="btn send"
+        disabled={savingEdit}
+        aria-busy={savingEdit || undefined}
+      >
+        <Icon name={editing ? 'check' : 'send'} />
+        <span>{editing ? (savingEdit ? 'Saving…' : 'Save') : 'Send'}</span>
       </button>
     </form>
   );
@@ -742,10 +1133,25 @@ function FellowshipRoomContent() {
           <p className="sr" role="status">
             {sentNote}
           </p>
+          {actionError && (
+            <p className="err chat-err" role="alert">
+              <Icon name="alert" />
+              {actionError}
+            </p>
+          )}
+          <p className="typing">{typing}</p>
           {composer}
         </section>
         {side}
       </div>
+      <DeleteConfirm
+        open={deleteId !== null}
+        busy={deleteBusy}
+        failed={deleteFailed}
+        onCancel={() => setDeleteId(null)}
+        onConfirm={() => void confirmDelete()}
+        onClosed={deleteClosed}
+      />
     </main>
   );
 }

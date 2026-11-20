@@ -509,6 +509,55 @@ html:has(.ubf .tabbar) { scroll-padding-bottom: 96px; }
 .ubf .ptoggle { min-height: 44px; padding: 0 14px; border-radius: 999px; border: 0; background: var(--u-surface); font-weight: 600; font-size: 13px; display: inline-flex; gap: 6px; align-items: center; transition: background-color .2s ease, transform .12s ease; }
 .ubf .ptoggle:active { transform: scale(.96); }
 .ubf .ptoggle[aria-pressed="true"] { background: var(--u-ink); color: var(--u-on-ink); }
+/* App: WhatsApp-style message actions, quotes, reactions, ticks, day separators, typing, reply/edit bars */
+.ubf .msg .more { align-self: center; flex: none; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--u-mute); display: grid; place-items: center; opacity: 0; transition: opacity .15s ease, background-color .15s ease; }
+.ubf .msg:hover .more, .ubf .msg:focus-within .more, .ubf .msg .more[aria-expanded="true"] { opacity: 1; }
+.ubf .msg .more:hover, .ubf .msg .more[aria-expanded="true"] { background: var(--u-raised); color: var(--u-ink); box-shadow: var(--u-sh-1); }
+.ubf .msg .more svg.ic { width: 18px; height: 18px; }
+/* The More Actions button sits beside the bubble; the row widens by its size so bubbles keep their width */
+.ubf .msg:not(.special):has(> .more), .ubf .msg.special.me:has(> .more) { max-width: min(100%, calc(86% + 40px)); }
+.ubf .msg-menu[popover] { position: fixed; inset: auto; right: auto; bottom: auto; margin: 0; border: 0; color: var(--u-ink); overflow: visible; transform-origin: top center; }
+.ubf .msg-menu .rx-bar { display: flex; justify-content: space-between; gap: 2px; padding: 2px; }
+.ubf .menu .rx-bar button { width: 44px; justify-content: center; padding: 0; border-radius: 50%; font-size: 22px; line-height: 1; }
+.ubf .menu .rx-bar button[aria-checked="true"] { background: var(--grad); box-shadow: var(--glow); }
+.ubf .menu button.danger { color: var(--u-danger); }
+.ubf .menu button:focus-visible { outline-offset: -2px; }
+.ubf .quote { display: block; width: 100%; margin: -2px 0 6px; padding: 6px 10px; border: 0; border-left: 3px solid var(--u-accent); border-radius: 10px; background: color-mix(in srgb, currentColor 9%, transparent); color: inherit; text-align: left; font-size: 13px; line-height: 1.35; }
+.ubf button.quote:hover { background: color-mix(in srgb, currentColor 14%, transparent); }
+.ubf .quote:focus-visible { outline-color: currentColor; }
+.ubf .quote b { display: block; font-size: 12px; font-weight: 700; }
+.ubf .quote .q-text { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: .8; }
+.ubf .quote.gone { font-style: italic; opacity: .75; border-left-color: currentColor; }
+.ubf .msg.deleted .bubble { background: transparent; color: var(--u-mute); box-shadow: inset 0 0 0 1px var(--u-line); font-style: italic; }
+.ubf .msg.flash .bubble { box-shadow: 0 0 0 3px var(--u-accent); transition: box-shadow .2s ease; }
+.ubf .reacts { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 4px 0; }
+.ubf .msg.me .reacts { justify-content: flex-end; }
+.ubf .react { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; padding: 0 10px; border: 0; border-radius: 999px; background: var(--u-raised); box-shadow: var(--u-sh-1); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; transition: transform .12s ease; }
+.ubf .react:active { transform: scale(.94); }
+.ubf .react[aria-pressed="true"] { background: var(--grad); color: var(--u-on-accent); box-shadow: var(--glow); }
+.ubf .msg .meta { display: flex; align-items: center; gap: 6px; margin: 4px 6px 0; font-size: 11px; color: var(--u-mute); font-variant-numeric: tabular-nums; }
+.ubf .msg .meta time { display: inline; margin: 0; }
+.ubf .msg.me .meta { justify-content: flex-end; }
+.ubf .tick { font-weight: 700; letter-spacing: -.12em; }
+.ubf .tick.seen { color: var(--u-accent-text); }
+.ubf .day-sep { display: flex; align-items: center; gap: 10px; align-self: stretch; font-size: 12px; font-weight: 600; color: var(--u-mute); }
+.ubf .day-sep .ln { flex: 1; height: 1px; background: var(--u-line); }
+.ubf .typing { min-height: 18px; margin: 0 24px 4px; font-size: 12px; line-height: 18px; font-weight: 600; color: var(--u-mute); }
+.ubf .chat-err { margin: 0 16px 6px; }
+.ubf .cbar { flex: 1 1 100%; order: -2; display: flex; align-items: center; gap: 10px; min-width: 0; padding: 6px 6px 6px 14px; border-radius: 18px; background: var(--u-surface); border-left: 3px solid var(--u-accent); }
+.ubf .cbar > svg.ic { color: var(--u-mute); }
+.ubf .cbar b { display: block; font-size: 13px; }
+.ubf .cbar .trunc { display: block; }
+.ubf .cbar .err { padding-left: 0; }
+.ubf .btn-danger { background: var(--u-danger); color: var(--u-danger-tint); }
+.ubf .btn-danger:hover { opacity: .88; }
+.ubf dialog.scrim.confirm-scrim[open] { align-items: center; }
+.ubf .modal.confirm { max-width: 420px; display: grid; gap: 18px; }
+@media (hover: none) {
+  .ubf .msg .more { opacity: 1; }
+  /* Long-press opens the message menu, so the bubble does not start a text selection or callout */
+  .ubf .msg .bubble { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+}
 .ubf .chat-side { display: grid; gap: 12px; align-content: start; min-width: 0; }
 .ubf .people { display: grid; gap: 6px; }
 .ubf .people li { display: flex; align-items: center; gap: 10px; padding: 8px 12px 8px 8px; background: var(--u-raised); border-radius: 18px; box-shadow: var(--u-sh-1); }
