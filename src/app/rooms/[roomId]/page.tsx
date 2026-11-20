@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { firstName, MessageItem } from '@/components/chat/MessageItem';
 import {
   AlertBox,
   Btn,
@@ -40,8 +41,6 @@ interface PendingMessage {
   at: string;
   status: 'sending' | 'failed';
 }
-
-const firstName = (name?: string) => (name || 'Member').split(' ')[0];
 
 const clock = (d: Date) =>
   d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
@@ -498,96 +497,33 @@ function FellowshipRoomContent() {
     </div>
   );
 
-  const renderMessage = (opts: {
-    key: string;
-    mine: boolean;
-    type: ChatMessage['message_type'];
-    text: string;
-    avatar?: string;
-    name?: string;
-    time: React.ReactNode;
-    status?: PendingMessage['status'];
-  }) => {
-    const special =
-      opts.type === 'icebreaker' ||
-      opts.type === 'prayer_request' ||
-      opts.type === 'milestone';
-    const kind =
-      opts.type === 'icebreaker' ? (
-        <span className="kind">
-          <Icon name="bulb" />
-          Conversation Starter
-        </span>
-      ) : opts.type === 'prayer_request' ? (
-        <span className="kind">
-          <Icon name="heart" />
-          Prayer Request
-        </span>
-      ) : opts.type === 'milestone' ? (
-        <span className="kind">
-          <Icon name="target" />
-          Personal Goal
-        </span>
-      ) : null;
-    const first = firstName(opts.name);
-    const showName = !opts.mine && (pod || special);
-    const label = special ? (opts.mine ? 'You' : first) : first;
-    const cls = [
-      'msg',
-      opts.mine ? 'me' : '',
-      special ? `special ${opts.type === 'prayer_request' ? 'prayer' : opts.type === 'icebreaker' ? 'starter' : opts.type}` : '',
-      opts.status === 'sending' ? 'pending pop' : '',
-      opts.status === 'failed' ? 'failed' : '',
-    ]
-      .filter(Boolean)
-      .join(' ');
-    return (
-      <li key={opts.key} className={cls}>
-        {opts.mine ? null : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img className="avatar" src={opts.avatar} width={32} height={32} alt="" />
-        )}
-        <div>
-          {showName || special ? (
-            <p className="who">{label}</p>
-          ) : (
-            <span className="sr">{opts.mine ? 'You' : first}: </span>
-          )}
-          <div className="bubble">
-            {kind}
-            {opts.text}
-          </div>
-          {opts.time}
-        </div>
-      </li>
-    );
-  };
-
   const kindToType = (k: SendKind): ChatMessage['message_type'] =>
     k === 'prayer' ? 'prayer_request' : k;
 
   const msgItems = [
-    ...messages.map((m) =>
-      renderMessage({
-        key: m.id,
-        mine: m.sender_id === meId,
-        type: m.message_type,
-        text: displayText(m.content),
-        avatar: m.sender?.avatar_url,
-        name: m.sender?.full_name,
-        time: <time dateTime={m.created_at}>{clock(new Date(m.created_at))}</time>,
-      })
-    ),
-    ...pending.map((m) =>
-      renderMessage({
-        key: `p${m.key}`,
-        mine: true,
-        type: kindToType(m.kind),
-        text: m.text,
-        avatar: currentUser?.avatar_url,
-        name: currentUser?.full_name,
-        status: m.status,
-        time:
+    ...messages.map((m) => (
+      <MessageItem
+        key={m.id}
+        mine={m.sender_id === meId}
+        pod={pod}
+        type={m.message_type}
+        text={displayText(m.content)}
+        avatar={m.sender?.avatar_url}
+        name={m.sender?.full_name}
+        time={<time dateTime={m.created_at}>{clock(new Date(m.created_at))}</time>}
+      />
+    )),
+    ...pending.map((m) => (
+      <MessageItem
+        key={`p${m.key}`}
+        mine
+        pod={pod}
+        type={kindToType(m.kind)}
+        text={m.text}
+        avatar={currentUser?.avatar_url}
+        name={currentUser?.full_name}
+        status={m.status}
+        time={
           m.status === 'sending' ? (
             <span className="stat" role="status">
               Sending…
@@ -600,9 +536,10 @@ function FellowshipRoomContent() {
                 Retry
               </button>
             </span>
-          ),
-      })
-    ),
+          )
+        }
+      />
+    )),
   ];
 
   const composer = (
