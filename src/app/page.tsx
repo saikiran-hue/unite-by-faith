@@ -11,6 +11,8 @@ import { CreatePodDialog } from '@/components/CreatePodDialog';
 import { DuoCard, PodCard, type DuoResult, type PodResult } from '@/components/MatchCards';
 import { AlertBox, Btn, Empty, Icon, Note, type IconName } from '@/components/ubf';
 import { podCover } from '@/lib/sample-content';
+import { VerseCard } from '@/components/VerseCard';
+import { verseFor, msToNextDay } from '@/lib/verses';
 import { parseTab, recentChats, relTime, type RecentChat, type Tab } from '@/lib/home-tabs';
 
 type Kind = 'duo' | 'pods';
@@ -139,6 +141,27 @@ function Home() {
     queueMicrotask(() => setNow(new Date()));
   }, [lastMessages]);
 
+  // Keep the clock current so the verse turns over at local midnight, and refresh when the tab returns.
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const schedule = () => {
+      timer = setTimeout(() => {
+        setNow(new Date());
+        schedule();
+      }, msToNextDay(new Date()));
+    };
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') setNow(new Date());
+    };
+    schedule();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
+  const verse = now ? verseFor(now) : null;
+
   // The home page can stay mounted (hidden) across sign-out and sign-in, so drop the previous
   // viewer's match results when the signed-in user changes.
   const viewerId = currentUser?.id ?? null;
@@ -257,6 +280,7 @@ function Home() {
             </p>
             <div style={{ display: 'grid', gap: 12 }} aria-hidden="true">
               <span className="skel" style={{ height: 24, width: '40%' }} />
+              <span className="skel" style={{ height: 200, borderRadius: 28 }} />
               <div className="hero-btns">
                 <span className="skel" style={{ height: 160, borderRadius: 28 }} />
                 <span className="skel" style={{ height: 160, borderRadius: 28 }} />
@@ -379,6 +403,8 @@ function Home() {
               </h1>
               <p className="sub">Find friends who share your faith and your everyday life.</p>
             </div>
+
+            <VerseCard verse={verse} />
 
             <div className="hero-btns" role="group" aria-label="Find friends">
               <button
