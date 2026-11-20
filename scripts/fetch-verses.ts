@@ -68,7 +68,7 @@ function ruleBreaks(verses: Record<string, Fetched>): string[] {
       if (depth < 0) break;
     }
     if (depth !== 0) problems.push('quotes do not nest');
-    if (!/^[“A-Z]/.test(text)) problems.push('starts mid-sentence');
+    if (!/^“?[A-Z]/.test(text)) problems.push('starts mid-sentence');
     if (!/[.!?]”?$/.test(text)) problems.push('ends mid-sentence');
     if (problems.length) breaks.push(`${key} ${ref}: ${problems.join(', ')}\n    ${text}`);
   }

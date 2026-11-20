@@ -283,8 +283,8 @@ function Home() {
               <span className="skel" style={{ height: 24, width: '40%' }} />
               <span className="skel" style={{ height: 200, borderRadius: 28 }} />
               <div className="hero-btns">
-                <span className="skel" style={{ height: 160, borderRadius: 28 }} />
-                <span className="skel" style={{ height: 160, borderRadius: 28 }} />
+                <span className="skel" style={{ height: 196, borderRadius: 28 }} />
+                <span className="skel" style={{ height: 196, borderRadius: 28 }} />
               </div>
               <span className="skel" style={{ height: 64, borderRadius: 20 }} />
               <span className="skel" style={{ height: 64, borderRadius: 20 }} />
@@ -439,7 +439,7 @@ function Home() {
                 </span>
                 <span>
                   <b>Group Match</b>
-                  <small>Join a pod of 3 to 4</small>
+                  <small>Join a pod of 3{' '}to{' '}4</small>
                 </span>
               </button>
             </div>

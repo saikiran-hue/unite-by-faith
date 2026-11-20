@@ -32,7 +32,7 @@ describe('VERSES', () => {
         expect(depth, key).toBeGreaterThanOrEqual(0);
       }
       expect(depth, key).toBe(0);
-      expect(v.text, key).toMatch(/^[“A-Z]/);
+      expect(v.text, key).toMatch(/^“?[A-Z]/);
       expect(v.text, key).toMatch(/[.!?]”?$/);
     }
   });
