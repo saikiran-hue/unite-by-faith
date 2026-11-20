@@ -1,6 +1,6 @@
 # Home: Verse of the Day + photo match cards (Part 1) — design
 
-Date: 2026-11-20. Status: awaiting owner approval. Size: small change (Home only, no backend, no database).
+Date: 2026-11-20. Status: approved by the owner 2026-11-20. Size: small change (Home only, no backend, no database).
 
 ## Intent
 
@@ -64,9 +64,9 @@ This is Part 1 of two. Part 2 (Match tab: auto-search, loading screen, show ever
 2. **List plus a live bible-api.com fetch.** Depends on a free hobby API with rate limits, for text that never changes.
 3. **A third party picks the verse** (OurManna NIV / labs.bible.org NET). Odd picks (Psalm 139:15–16, which starts mid-sentence), NIV copyright terms, and an outage risk.
 
-## Still open for the owner
+## Photo hosting (owner decision)
 
-- **Photo hosting.** Either self-host in `public/images/home/`, which needs the owner's OK to download about 4 photos of roughly 150 KB each from Pexels and Unsplash, or link to Pexels and Unsplash directly as group covers do today. Self-hosting is sturdier, because these are Home's main buttons.
+- Self-host in `public/images/home/`. The owner approved downloading about 4 free photos (~150 KB each) from Pexels/Unsplash, sized for 2x screens.
 
 ## Left to the builder
 
