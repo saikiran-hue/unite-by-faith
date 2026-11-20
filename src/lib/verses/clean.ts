@@ -20,3 +20,8 @@ export function cleanVerseText(raw: string): string {
   }
   return OPEN.repeat(unmatchedCloses) + text + CLOSE.repeat(depth);
 }
+
+/** Cites a psalm in the standard singular: bible-api.com returns "Psalms 23:4", readers expect "Psalm 23:4". */
+export function normalizeRef(ref: string): string {
+  return ref.replace(/^Psalms /, 'Psalm ');
+}

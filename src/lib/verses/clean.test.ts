@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cleanVerseText } from './clean';
+import { cleanVerseText, normalizeRef } from './clean';
 
 describe('cleanVerseText', () => {
   it('completes a quotation that is closed but not opened in the verse', () => {
@@ -34,5 +34,16 @@ describe('cleanVerseText', () => {
 
   it('keeps curly apostrophes', () => {
     expect(cleanVerseText('Don’t be afraid.')).toBe('Don’t be afraid.');
+  });
+});
+
+describe('normalizeRef', () => {
+  it('cites a psalm in the singular', () => {
+    expect(normalizeRef('Psalms 23:4')).toBe('Psalm 23:4');
+    expect(normalizeRef('Psalms 23:1-2')).toBe('Psalm 23:1-2');
+  });
+
+  it('leaves every other book untouched', () => {
+    expect(normalizeRef('Joshua 1:9')).toBe('Joshua 1:9');
   });
 });
