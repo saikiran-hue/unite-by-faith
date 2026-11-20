@@ -6,6 +6,7 @@ import {
   CurrentUser,
   DuoChat,
   FellowshipPod,
+  LastMessage,
   TaxonomyTag,
 } from '@/types/database';
 
@@ -18,6 +19,7 @@ interface StatePayload {
   taxonomyTags?: TaxonomyTag[];
   joinedPods?: FellowshipPod[];
   duoChats?: DuoChat[];
+  lastMessages?: Record<string, LastMessage>;
 }
 
 /** Fetches /api/state (matches scored against saved habits); null on failure. */
@@ -43,6 +45,7 @@ export function useAppState() {
   const [taxonomyTags, setTaxonomyTags] = useState<TaxonomyTag[]>([]);
   const [joinedPods, setJoinedPods] = useState<FellowshipPod[]>([]);
   const [duoChats, setDuoChats] = useState<DuoChat[]>([]);
+  const [lastMessages, setLastMessages] = useState<Record<string, LastMessage>>({});
 
   const [startingDuoId, setStartingDuoId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -54,6 +57,8 @@ export function useAppState() {
       setTaxonomyTags(data.taxonomyTags || []);
       setJoinedPods(data.joinedPods || []);
       setDuoChats(data.duoChats || []);
+      // Left out when the preview read failed: keep the previews already shown.
+      if (data.lastMessages) setLastMessages(data.lastMessages);
     }
     setLoading(false);
     return Boolean(data);
@@ -124,6 +129,7 @@ export function useAppState() {
     taxonomyTags,
     joinedPods,
     duoChats,
+    lastMessages,
     tagMap,
     userTagSet,
     startingDuoId,

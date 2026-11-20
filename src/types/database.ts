@@ -158,6 +158,15 @@ export interface ChatRoom {
   created_at: string;
 }
 
+/** The newest message in a room, for chat list previews. */
+export interface LastMessage {
+  room_id: string;
+  sender_id: string;
+  message_type: ChatMessage['message_type'];
+  content: string;
+  created_at: string;
+}
+
 export interface ChatMessage {
   id: string;
   room_id: string;

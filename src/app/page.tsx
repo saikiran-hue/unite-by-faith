@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { TaxonomyTag } from '@/types/database';
 import { useAppState } from '@/lib/useAppState';
 import { AppShell } from '@/components/AppShell';
@@ -11,6 +11,7 @@ import { CreatePodDialog } from '@/components/CreatePodDialog';
 import { DuoCard, PodCard, type DuoResult, type PodResult } from '@/components/MatchCards';
 import { AlertBox, Btn, Empty, Icon, Note, type IconName } from '@/components/ubf';
 import { podCover } from '@/lib/sample-content';
+import { parseTab, recentChats, relTime, type RecentChat, type Tab } from '@/lib/home-tabs';
 
 type Kind = 'duo' | 'pods';
 type Search = { kind: Kind; status: 'loading' | 'done' | 'error' | 'incomplete' };
@@ -40,6 +41,14 @@ const EMPTY_BY_RULE: Record<string, { text: string; button: string; href?: strin
   },
 };
 
+const TAB_ITEMS: { id: Tab; label: string; icon: IconName }[] = [
+  { id: 'home', label: 'Home', icon: 'home' },
+  { id: 'matches', label: 'Match', icon: 'search' },
+  { id: 'chats', label: 'Chats', icon: 'chat' },
+  { id: 'habits', label: 'Habits', icon: 'star' },
+  { id: 'profile', label: 'Profile', icon: 'user' },
+];
+
 /** GET /api/match: the ranked results, or why there are none (Life fit missing, signed out, failure). */
 async function fetchMatch(kind: Kind): Promise<MatchFetch> {
   try {
@@ -54,20 +63,47 @@ async function fetchMatch(kind: Kind): Promise<MatchFetch> {
   }
 }
 
-export default function Home() {
+export default function Page() {
+  // useSearchParams needs a Suspense boundary in a client page.
+  return (
+    <Suspense fallback={null}>
+      <Home />
+    </Suspense>
+  );
+}
+
+function Home() {
   const router = useRouter();
+  const params = useSearchParams();
   const {
     loading,
     currentUser,
     taxonomyTags,
     joinedPods,
     duoChats,
+    lastMessages,
     tagMap,
     startingDuoId,
     actionError,
+    setActionError,
     startDuoChat,
     refresh,
   } = useAppState();
+
+  // The tab lives in the URL (?tab=chats) so a reload or Back from a chat lands on the same tab.
+  // Tabs are peers: switching replaces the history entry instead of stacking one per tap.
+  const urlTab = parseTab(params.get('tab'));
+  const [tab, setTabState] = useState<Tab>(urlTab);
+  const [seenUrlTab, setSeenUrlTab] = useState(urlTab);
+  if (urlTab !== seenUrlTab) {
+    setSeenUrlTab(urlTab);
+    setTabState(urlTab);
+  }
+  function setTab(next: Tab) {
+    setTabState(next);
+    window.history.replaceState(null, '', next === 'home' ? '/' : `/?tab=${next}`);
+    window.scrollTo({ top: 0 });
+  }
 
   const [search, setSearch] = useState<Search | null>(null);
   const [searchId, setSearchId] = useState(0);
@@ -82,7 +118,14 @@ export default function Home() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createKey, setCreateKey] = useState(0);
   const [editSignal, setEditSignal] = useState(0);
+  const [chatFilter, setChatFilter] = useState<'all' | 'duo' | 'pod'>('all');
+  const [now, setNow] = useState<Date | null>(null);
   const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
+
+  // Chat times need the clock, which must not be read during render.
+  useEffect(() => {
+    queueMicrotask(() => setNow(new Date()));
+  }, [lastMessages]);
 
   // The home page can stay mounted (hidden) across sign-out and sign-in, so drop the previous
   // viewer's match results when the signed-in user changes.
@@ -105,6 +148,8 @@ export default function Home() {
   async function runSearch(kind: Kind) {
     const seq = ++searchSeq.current;
     const startedFor = viewerRef.current;
+    setTab('matches');
+    setActionError(null);
     setSearch({ kind, status: 'loading' });
     setToast(null);
     setSaved(false);
@@ -127,7 +172,7 @@ export default function Home() {
       status: found.ok ? 'done' : found.reason === 'incomplete' ? 'incomplete' : 'error',
     });
     setSearchId((n) => n + 1);
-    requestAnimationFrame(() => resultsHeadingRef.current?.focus({ preventScroll: false }));
+    requestAnimationFrame(() => resultsHeadingRef.current?.focus({ preventScroll: true }));
   }
 
   async function joinPod(pod: PodResult) {
@@ -158,12 +203,30 @@ export default function Home() {
     }
   }
 
+  async function signOut() {
+    try {
+      await fetch('/api/auth/switch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'signout' }),
+      });
+    } finally {
+      router.replace('/auth');
+      router.refresh();
+    }
+  }
+
+  const openCreate = () => {
+    setCreateKey((k) => k + 1);
+    setCreateOpen(true);
+  };
+
   if (!loading && !currentUser) {
     return (
-      <AppShell currentUser={null} width={1440}>
-        <main className="wrap w-1440 stack">
+      <AppShell currentUser={null} width="app">
+        <main className="wrap w-app stack">
           <AlertBox
-            title="We couldn’t load your habits."
+            title="We couldn’t load your home page."
             text="Check your connection, then tap Try Again. Nothing was lost."
             action={{ label: 'Try Again', onClick: () => void refresh() }}
           />
@@ -174,16 +237,20 @@ export default function Home() {
 
   if (loading || !currentUser) {
     return (
-      <AppShell currentUser={null} width={1440}>
-        <main className="wrap w-1440 stack">
+      <AppShell currentUser={null} width="app">
+        <main className="wrap w-app stack">
           <section className="card pad" aria-busy="true">
             <p className="sr" role="status">
-              Loading your habits…
+              Loading your home page…
             </p>
             <div style={{ display: 'grid', gap: 12 }} aria-hidden="true">
-              <span className="skel" style={{ height: 20, width: '30%' }} />
-              <span className="skel" style={{ height: 14, width: '55%' }} />
-              <span className="skel" style={{ height: 120, borderRadius: 18 }} />
+              <span className="skel" style={{ height: 24, width: '40%' }} />
+              <div className="hero-btns">
+                <span className="skel" style={{ height: 160, borderRadius: 28 }} />
+                <span className="skel" style={{ height: 160, borderRadius: 28 }} />
+              </div>
+              <span className="skel" style={{ height: 64, borderRadius: 20 }} />
+              <span className="skel" style={{ height: 64, borderRadius: 20 }} />
             </div>
           </section>
         </main>
@@ -194,8 +261,6 @@ export default function Home() {
   const habits = currentUser.tags.map((t) => t.tag_slug);
   const starred = new Set(currentUser.tags.filter((t) => t.is_priority).map((t) => t.tag_slug));
   const tooFew = habits.length < 3;
-  const duoResults = duoRes;
-  const podResults = podRes;
   // Habit labels, plus any label the match API sent for a habit the catalogue list does not have.
   const resultTagMap = new Map(tagMap);
   for (const [slug, label] of Object.entries(labels)) {
@@ -204,125 +269,199 @@ export default function Home() {
   // Habits behind the top reasons, best first: they seed the chat's icebreakers.
   const sharedOf = (m: DuoResult) =>
     m.reasons.flatMap((r) => (r.kind === 'shared_tag' ? [r.slug] : r.kind === 'related_tag' ? [r.mine] : []));
-  const podChats = joinedPods;
   const emptyCopy = emptyRule ? EMPTY_BY_RULE[emptyRule] : undefined;
   // The gender rule never narrows group search, so it falls back to the generic message.
   const podEmptyCopy = emptyRule && emptyRule !== 'gender' ? EMPTY_BY_RULE[emptyRule] : undefined;
   const fresh = search?.status === 'done';
+  const chats = recentChats(duoChats, joinedPods, lastMessages, currentUser.id);
+  const shownChats = chatFilter === 'all' ? chats : chats.filter((c) => c.kind === chatFilter);
+  const first = currentUser.full_name.split(' ')[0];
+
+  const chatList = (list: RecentChat[]) => (
+    <ul className="list crows">
+      {list.map((c) => (
+        <li key={c.roomId}>
+          <Link href={`/rooms/${c.roomId}`}>
+            {c.kind === 'duo' ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img className="avatar" src={c.avatar ?? ''} width={48} height={48} alt="" />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img className="thumb" src={podCover(c.pod!.title, c.pod!.anchor_tags)} alt="" />
+            )}
+            <span className="grow crow">
+              <span className="crow-top">
+                <b className="trunc">{c.name}</b>
+                {c.at && now && (
+                  <time className="crow-time" dateTime={c.at}>
+                    {relTime(c.at, now)}
+                  </time>
+                )}
+              </span>
+              <span className="crow-prev trunc">
+                <span className="crow-kind">{c.kind === 'duo' ? '1v1' : 'Group'}</span>
+                {c.preview ?? 'No messages yet. Say hello.'}
+              </span>
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
 
   return (
     <AppShell
       currentUser={currentUser}
-      width={1440}
+      width="app"
       onSwitchedUser={() => {
         setSearch(null);
         setToast(null);
         setSaved(false);
+        setTab('home');
         void refresh();
       }}
     >
-      <main className="wrap w-1440 stack home">
-        <h1 className="sr">Find friends who share your habits</h1>
-
-        <div className="home-hab">
-          <HabitsPanel
-            key={currentUser.id}
-            user={currentUser}
-            taxonomyTags={taxonomyTags}
-            tagMap={tagMap}
-            saved={saved}
-            editSignal={editSignal}
-            editOpenerId="res-edit-habits"
-            onSaved={async () => {
-              await refresh();
-              setSearch(null);
-              setToast(null);
-              setSaved(true);
-            }}
-          />
-        </div>
-
-        <div className="home-act">
-          <div className="actions" role="group" aria-label="Find friends">
-            <BigBtn
-              cls="btn-indigo"
-              icon="search"
-              label="Search 1v1"
-              small="Find one friend"
-              disabled={tooFew}
-              busy={search?.kind === 'duo' && search.status === 'loading'}
-              onClick={() => runSearch('duo')}
-            />
-            <BigBtn
-              cls="btn-amber"
-              icon="users"
-              label="Search Groups"
-              small="Find a pod of 3 to 4"
-              disabled={tooFew}
-              busy={search?.kind === 'pods' && search.status === 'loading'}
-              onClick={() => runSearch('pods')}
-            />
-            <BigBtn
-              cls="btn-outline"
-              icon="plus"
-              label="Create Group"
-              small="Start your own pod"
-              disabled={tooFew}
-              onClick={() => {
-                setCreateKey((k) => k + 1);
-                setCreateOpen(true);
-              }}
-            />
-          </div>
-          {tooFew && (
-            <p className="small" style={{ marginTop: 8 }}>
-              Pick at least 3 habits to search or create a group.
-            </p>
-          )}
-          {actionError && (
-            <div style={{ marginTop: 12 }}>
-              <AlertBox title="We couldn’t open that chat." text="Check your connection and tap Connect 1v1 again." />
+      <main className="wrap w-app app">
+        <div className="app-body">
+          {/* ---------------- Home ---------------- */}
+          <section hidden={tab !== 'home'} aria-labelledby="home-h" className="tabpanel">
+            <div className="greet">
+              <h1 className="h1" id="home-h">
+                Hi, {first}
+              </h1>
+              <p className="sub">Find friends who share your faith and your everyday life.</p>
             </div>
-          )}
-        </div>
 
-        {search && (
-          <section
-            className="home-res"
-            aria-labelledby="res-h"
-            aria-busy={search.status === 'loading'}
-            style={{ display: 'grid', gap: 12 }}
-          >
+            <div className="hero-btns" role="group" aria-label="Find friends">
+              <button
+                type="button"
+                className="hero-btn duo"
+                disabled={tooFew}
+                aria-busy={(search?.kind === 'duo' && search.status === 'loading') || undefined}
+                onClick={() => runSearch('duo')}
+              >
+                <span className="tile">
+                  <Icon name="user" />
+                </span>
+                <span>
+                  <b>1v1 Match</b>
+                  <small>Find one friend</small>
+                </span>
+              </button>
+              <button
+                type="button"
+                className="hero-btn group"
+                disabled={tooFew}
+                aria-busy={(search?.kind === 'pods' && search.status === 'loading') || undefined}
+                onClick={() => runSearch('pods')}
+              >
+                <span className="tile">
+                  <Icon name="users" />
+                </span>
+                <span>
+                  <b>Group Match</b>
+                  <small>Join a pod of 3 to 4</small>
+                </span>
+              </button>
+            </div>
+            {tooFew ? (
+              <div className="card pad" style={{ display: 'grid', gap: 12, justifyItems: 'start' }}>
+                <Note>Pick at least 3 habits so we can match you.</Note>
+                <Btn variant="btn-amber" icon="star" onClick={() => setTab('habits')}>
+                  Pick Habits
+                </Btn>
+              </div>
+            ) : (
+              <button type="button" className="create-row" onClick={openCreate}>
+                <span className="tile">
+                  <Icon name="plus" />
+                </span>
+                <span className="grow">
+                  <b>Create Group</b>
+                  <small>Start your own pod and invite others</small>
+                </span>
+                <Icon name="right" />
+              </button>
+            )}
+
+            <section className="card" aria-labelledby="recent-h">
+              <div className="list-head">
+                <h2 className="h3" id="recent-h">
+                  Recent Messages
+                </h2>
+                {chats.length > 5 && (
+                  <button type="button" className="btn btn-text" onClick={() => setTab('chats')}>
+                    See All
+                  </button>
+                )}
+              </div>
+              {chats.length ? (
+                chatList(chats.slice(0, 5))
+              ) : (
+                <Empty icon="chat" title="No Messages Yet" text="Tap 1v1 Match or Group Match to meet someone who shares your habits." />
+              )}
+            </section>
+          </section>
+
+          {/* ---------------- Match ---------------- */}
+          <section hidden={tab !== 'matches'} aria-labelledby="res-h" aria-busy={search?.status === 'loading'} className="tabpanel">
             <div className="sec-head res-head">
               <div>
-                <h2 className="h2" id="res-h" tabIndex={-1} ref={resultsHeadingRef}>
-                  {search.kind === 'duo' ? '1v1 Matches for Your Habits' : 'Groups for Your Habits'}
-                </h2>
+                <h1 className="h2" id="res-h" tabIndex={-1} ref={resultsHeadingRef}>
+                  {!search ? 'Find Friends' : search.kind === 'duo' ? '1v1 Matches for You' : 'Groups for You'}
+                </h1>
                 <p className="sub">
-                  {search.status === 'loading'
-                    ? search.kind === 'duo'
-                      ? 'Finding people who share your habits…'
-                      : 'Finding groups that fit your habits…'
-                    : search.status === 'incomplete'
-                      ? 'One more step before we can match you.'
-                      : `Matched on your ${habits.length} habits${
-                        search.status === 'done'
-                          ? `, ${search.kind === 'duo' ? duoResults.length : podResults.length} found`
-                          : ''
-                      }`}
+                  {!search
+                    ? 'Pick 1v1 or Groups to search.'
+                    : search.status === 'loading'
+                      ? search.kind === 'duo'
+                        ? 'Finding people who share your habits…'
+                        : 'Finding groups that fit your habits…'
+                      : search.status === 'incomplete'
+                        ? 'One more step before we can match you.'
+                        : `Matched on your ${habits.length} habits${
+                          search.status === 'done'
+                            ? `, ${search.kind === 'duo' ? duoRes.length : podRes.length} found`
+                            : ''
+                        }`}
                 </p>
               </div>
-              {search.status === 'done' && (
-                <Btn variant="btn-text" onClick={() => { setSearch(null); setToast(null); }}>
-                  Clear Results
-                </Btn>
-              )}
             </div>
+            <div className="seg" role="radiogroup" aria-label="Match type">
+              {(
+                [
+                  ['duo', '1v1'],
+                  ['pods', 'Groups'],
+                ] as const
+              ).map(([k, label]) => (
+                <button
+                  key={k}
+                  type="button"
+                  role="radio"
+                  aria-checked={search?.kind === k}
+                  disabled={tooFew || search?.status === 'loading'}
+                  onClick={() => runSearch(k)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {tooFew && (
+              <p className="small">
+                Pick at least 3 habits to search.{' '}
+                <button type="button" className="btn btn-text" onClick={() => setTab('habits')}>
+                  Pick Habits
+                </button>
+              </p>
+            )}
             {toast && <Note>{toast}</Note>}
+            {actionError && (
+              <AlertBox title="We couldn’t open that chat." text="Check your connection and tap Connect 1v1 again." />
+            )}
 
-            {search.status === 'loading' && <Skeletons />}
+            {search?.status === 'loading' && <Skeletons />}
 
-            {search.status === 'incomplete' && (
+            {search?.status === 'incomplete' && (
               <div className="card pad" style={{ display: 'grid', gap: 12, justifyItems: 'start' }}>
                 <Note>Add your Life Fit details to search.</Note>
                 <Link className="btn btn-amber" href="/onboarding#life-fit">
@@ -332,7 +471,7 @@ export default function Home() {
               </div>
             )}
 
-            {search.status === 'error' && (
+            {search?.status === 'error' && (
               <AlertBox
                 title="We couldn’t finish your search."
                 text="Check your connection, then tap Try Again. Your habits are saved."
@@ -340,11 +479,11 @@ export default function Home() {
               />
             )}
 
-            {search.status === 'done' &&
+            {search?.status === 'done' &&
               (search.kind === 'duo' ? (
-                duoResults.length ? (
+                duoRes.length ? (
                   <ul className="results-grid stagger" key={searchId}>
-                    {duoResults.map((m) => (
+                    {duoRes.map((m) => (
                       <DuoCard
                         key={m.partner.id}
                         match={m}
@@ -382,7 +521,10 @@ export default function Home() {
                           icon="pencil"
                           id="res-edit-habits"
                           aria-haspopup="dialog"
-                          onClick={() => setEditSignal((n) => n + 1)}
+                          onClick={() => {
+                            setTab('habits');
+                            setEditSignal((n) => n + 1);
+                          }}
                         >
                           Edit Habits
                         </Btn>
@@ -390,9 +532,9 @@ export default function Home() {
                     )}
                   </div>
                 )
-              ) : podResults.length ? (
+              ) : podRes.length ? (
                 <ul className="results-grid stagger" key={searchId}>
-                  {podResults.map((p) => (
+                  {podRes.map((p) => (
                     <PodCard
                       key={p.id}
                       pod={p}
@@ -415,13 +557,13 @@ export default function Home() {
                           {podEmptyCopy.button}
                         </Link>
                       )}
-                      <Btn variant="btn-amber" icon="plus" onClick={() => { setCreateKey((k) => k + 1); setCreateOpen(true); }}>
+                      <Btn variant="btn-amber" icon="plus" onClick={openCreate}>
                         Create Group
                       </Btn>
                     </Empty>
                   ) : (
                     <Empty icon="users" title="No groups match your habits yet." text="Create one and invite people who share your rhythms.">
-                      <Btn variant="btn-amber" icon="plus" onClick={() => { setCreateKey((k) => k + 1); setCreateOpen(true); }}>
+                      <Btn variant="btn-amber" icon="plus" onClick={openCreate}>
                         Create Group
                       </Btn>
                     </Empty>
@@ -429,70 +571,137 @@ export default function Home() {
                 </div>
               ))}
           </section>
-        )}
 
-        <div className="lists home-lists">
-          <section className="card" aria-labelledby="l1">
-            <div className="list-head">
-              <h2 className="h3" id="l1">
-                1v1 Chats
-              </h2>
+          {/* ---------------- Chats ---------------- */}
+          <section hidden={tab !== 'chats'} aria-labelledby="chats-h" className="tabpanel">
+            <h1 className="h2" id="chats-h">
+              Chats
+            </h1>
+            <div className="seg three" role="radiogroup" aria-label="Show chats">
+              {(
+                [
+                  ['all', 'All'],
+                  ['duo', '1v1'],
+                  ['pod', 'Groups'],
+                ] as const
+              ).map(([k, label]) => (
+                <button key={k} type="button" role="radio" aria-checked={chatFilter === k} onClick={() => setChatFilter(k)}>
+                  {label}
+                </button>
+              ))}
             </div>
-            {duoChats.length ? (
-              <ul className="list">
-                {duoChats.map((m) => (
-                  <li key={m.partner.id}>
-                    <Link href={`/rooms/${m.chat_room_id}`}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img className="avatar" src={m.partner.avatar_url} width={44} height={44} alt="" />
-                      <span className="grow">
-                        <b className="trunc">{m.partner.full_name}</b>
-                        <span className="small trunc" style={{ display: 'block' }}>
-                          {m.partner.headline}
-                        </span>
-                      </span>
-                      <span className="go">
-                        <Icon name="right" />
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <Empty icon="chat" title="No 1v1 Chats Yet" text="Tap Search 1v1 to find a friend who shares your habits." />
-            )}
+            <section className="card" aria-label="Chat list">
+              {shownChats.length ? (
+                chatList(shownChats)
+              ) : chatFilter === 'pod' ? (
+                <Empty icon="users" title="No Group Chats Yet" text="Tap Group Match to join a pod, or create your own.">
+                  <Btn variant="btn-amber" icon="users" disabled={tooFew} onClick={() => runSearch('pods')}>
+                    Group Match
+                  </Btn>
+                </Empty>
+              ) : (
+                <Empty
+                  icon="chat"
+                  title={chatFilter === 'duo' ? 'No 1v1 Chats Yet' : 'No Chats Yet'}
+                  text="Tap 1v1 Match to find a friend who shares your habits."
+                >
+                  <Btn variant="btn-indigo" icon="user" disabled={tooFew} onClick={() => runSearch('duo')}>
+                    1v1 Match
+                  </Btn>
+                </Empty>
+              )}
+            </section>
           </section>
-          <section className="card" aria-labelledby="l2">
-            <div className="list-head">
-              <h2 className="h3" id="l2">
-                Group Chats
-              </h2>
+
+          {/* ---------------- Habits ---------------- */}
+          <section hidden={tab !== 'habits'} aria-label="My Habits" className="tabpanel">
+            <HabitsPanel
+              key={currentUser.id}
+              user={currentUser}
+              taxonomyTags={taxonomyTags}
+              tagMap={tagMap}
+              saved={saved}
+              editSignal={editSignal}
+              onSaved={async () => {
+                await refresh();
+                setSearch(null);
+                setToast(null);
+                setSaved(true);
+              }}
+            />
+          </section>
+
+          {/* ---------------- Profile ---------------- */}
+          <section hidden={tab !== 'profile'} aria-labelledby="prof-h" className="tabpanel">
+            <div className="card pad prof-card">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="avatar" src={currentUser.avatar_url} width={72} height={72} alt="" />
+              <div style={{ minWidth: 0 }}>
+                <h1 className="h2" id="prof-h">
+                  {currentUser.full_name}
+                </h1>
+                {currentUser.headline && <p className="sub trunc">{currentUser.headline}</p>}
+              </div>
             </div>
-            {podChats.length ? (
-              <ul className="list">
-                {podChats.map((p) => (
-                  <li key={p.id}>
-                    <Link href={`/rooms/${p.chat_room_id}`}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img className="thumb" src={podCover(p.title, p.anchor_tags)} alt="" />
-                      <span className="grow">
-                        <b className="trunc">{p.title}</b>
-                        <span className="small" style={{ display: 'block' }}>
-                          {p.members.length || p.member_count}/{p.max_members} members
-                        </span>
-                      </span>
-                      <span className="go">
-                        <Icon name="right" />
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <Empty icon="users" title="No Group Chats Yet" text="Tap Search Groups to join a pod, or create your own." />
-            )}
+            <ul className="list prof-links">
+              <li>
+                <Link href="/onboarding">
+                  <Icon name="pencil" />
+                  <span className="grow">Profile Details</span>
+                  <Icon name="right" />
+                </Link>
+              </li>
+              <li>
+                <button type="button" onClick={() => setTab('habits')}>
+                  <Icon name="star" />
+                  <span className="grow">My Habits</span>
+                  <Icon name="right" />
+                </button>
+              </li>
+              <li>
+                <Link href="/privacy">
+                  <Icon name="lock" />
+                  <span className="grow">Privacy Policy</span>
+                  <Icon name="right" />
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms">
+                  <Icon name="file" />
+                  <span className="grow">Terms of Service</span>
+                  <Icon name="right" />
+                </Link>
+              </li>
+              <li>
+                <a href="https://github.com/saikiran-hue/unite-by-faith" target="_blank" rel="noopener noreferrer">
+                  <Icon name="github" />
+                  <span className="grow">Source Code on GitHub</span>
+                  <Icon name="right" />
+                </a>
+              </li>
+              <li>
+                <button type="button" onClick={signOut}>
+                  <Icon name="back" />
+                  <span className="grow">Sign Out</span>
+                </button>
+              </li>
+            </ul>
           </section>
         </div>
+
+        <nav className="tabbar" aria-label="Main">
+          {TAB_ITEMS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              aria-current={tab === t.id ? 'page' : undefined}
+              onClick={() => setTab(t.id)}
+            >
+              <Icon name={t.icon} />
+              <span>{t.label}</span>
+            </button>
+          ))}
+        </nav>
       </main>
 
       <CreatePodDialog
@@ -504,35 +713,6 @@ export default function Home() {
         starred={starred}
       />
     </AppShell>
-  );
-}
-
-function BigBtn({
-  cls,
-  icon,
-  label,
-  small,
-  disabled,
-  busy = false,
-  onClick,
-}: {
-  cls: string;
-  icon: IconName;
-  label: string;
-  small: string;
-  disabled: boolean;
-  busy?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button type="button" className={`btn btn-big ${cls}`} aria-busy={busy || undefined} disabled={disabled} onClick={onClick}>
-      <span className="tile">{busy ? <span className="spin" aria-hidden="true" /> : <Icon name={icon} />}</span>
-      <span>
-        {busy ? 'Searching…' : label}
-        <small>{small}</small>
-      </span>
-      <Icon name="arrow" className="arrow" />
-    </button>
   );
 }
 

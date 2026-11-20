@@ -88,6 +88,7 @@ html[data-theme="dark"] { background: #0a0a0b; }
 /* App: wider containers for pages that spread across the screen (AppShell width prop) */
 .ubf .wrap.w-1280 { max-width: 1280px; }
 .ubf .wrap.w-1440 { max-width: 1440px; }
+.ubf .wrap.w-app { max-width: 560px; }
 
 /* Tiles: the grey bento surfaces everything sits on. White controls live inside them. */
 .ubf .card { background: var(--u-surface); border-radius: var(--r-tile); }
@@ -449,6 +450,50 @@ html:has(dialog.hm-scrim[open]) { overflow: hidden; }
 .ubf .msg.me time, .ubf .msg.me .stat { text-align: right; }
 .ubf .msg.special { max-width: 100%; align-self: stretch; }
 .ubf .msg.special > div { flex: 1; }
+/* Home: one compact app column with a bottom tab bar. The column is its own "app" container, so
+   everything inside lays out for its width, not the window's. */
+.ubf .app { container: app / inline-size; display: flex; flex-direction: column; min-height: calc(100dvh - 68px); }
+.ubf .app-body { flex: 1; padding-bottom: 24px; }
+.ubf .tabpanel { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-content: start; }
+.ubf .tabpanel[hidden] { display: none; }
+html:has(.ubf .tabbar) { scroll-padding-bottom: 96px; }
+.ubf .tabbar { position: sticky; bottom: 0; z-index: 4; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; margin: 0 -12px; padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); background: var(--u-bg); border-top: 1px solid var(--u-line); }
+.ubf .tabbar button { display: grid; justify-items: center; align-content: center; gap: 3px; min-height: 56px; padding: 6px 2px; border: 0; border-radius: 16px; background: transparent; color: var(--u-mute); font-size: 11.5px; font-weight: 600; transition: background-color .15s ease, color .15s ease; }
+.ubf .tabbar button svg.ic { width: 22px; height: 22px; }
+.ubf .tabbar button[aria-current="page"] { background: var(--u-raised); color: var(--u-ink); box-shadow: var(--u-sh-1); font-weight: 700; }
+.ubf .tabbar button:active { transform: scale(.96); }
+.ubf .greet { padding: 4px 4px 0; }
+.ubf .greet .sub { margin-top: 2px; }
+.ubf .hero-btns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.ubf .hero-btn { display: grid; align-content: space-between; justify-items: start; gap: 28px; min-height: 172px; padding: 18px; border: 0; border-radius: var(--r-tile); text-align: left; font: inherit; transition: transform .12s ease; }
+.ubf .hero-btn:active { transform: scale(.97); }
+.ubf .hero-btn.duo { background: var(--u-ink); color: var(--u-on-ink); }
+.ubf .hero-btn.group { background: var(--grad); color: var(--u-on-accent); box-shadow: var(--glow); }
+.ubf .hero-btn[disabled] { background: var(--u-surface); color: var(--u-mute); box-shadow: none; }
+.ubf .hero-btn .tile, .ubf .create-row .tile { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, currentColor 14%, transparent); }
+.ubf .hero-btn .tile svg.ic { width: 22px; height: 22px; }
+.ubf .hero-btn b { display: block; font-size: 20px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; }
+.ubf .hero-btn small { display: block; margin-top: 4px; font-size: 13px; font-weight: 500; opacity: .75; }
+.ubf .hero-btn[aria-busy="true"] .tile svg { animation: ubf-pulse 1s ease-in-out infinite alternate; }
+@keyframes ubf-pulse { to { opacity: .35; } }
+.ubf .create-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 72px; padding: 12px 16px 12px 12px; border: 0; border-radius: 22px; background: var(--u-surface); color: var(--u-ink); text-align: left; font: inherit; transition: transform .12s ease; }
+.ubf .create-row:active { transform: scale(.98); }
+.ubf .create-row .tile { width: 44px; height: 44px; background: var(--u-raised); box-shadow: var(--u-sh-1); }
+.ubf .create-row b { display: block; font-size: 15px; font-weight: 700; }
+.ubf .create-row small { display: block; font-size: 13px; color: var(--u-mute); }
+.ubf .crow { display: grid; gap: 2px; min-width: 0; }
+.ubf .crow-top { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.ubf .crow-top b { flex: 1; min-width: 0; }
+.ubf .crow-time { flex: none; font-size: 12px; color: var(--u-mute); font-variant-numeric: tabular-nums; }
+.ubf .crow-prev { display: block; font-size: 13px; color: var(--u-mute); }
+.ubf .crow-kind { display: inline-block; margin-right: 6px; padding: 1px 7px; border-radius: 999px; background: var(--u-surface); color: var(--u-ink); font-size: 11px; font-weight: 700; vertical-align: 1px; }
+.ubf .crows .avatar { width: 48px; height: 48px; flex: none; }
+.ubf .crows .thumb { width: 48px; height: 48px; }
+.ubf .seg.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ubf .prof-card { display: flex; align-items: center; gap: 16px; }
+.ubf .prof-card .avatar { width: 72px; height: 72px; flex: none; }
+.ubf .prof-links { padding: 0; }
+.ubf .prof-links a, .ubf .prof-links button { font-weight: 600; font-size: 15px; }
 .ubf .msg.special.me { align-self: flex-end; max-width: 86%; }
 .ubf .msg.me .who { text-align: right; margin: 0 6px 4px 0; }
 .ubf .msg.special .bubble { background: linear-gradient(90deg, var(--u-accent-tint), color-mix(in srgb, var(--u-accent-2) 45%, var(--u-raised))); color: var(--u-ink); box-shadow: none; padding: 14px 16px; }
@@ -598,17 +643,6 @@ html:has(.ubf .ob-bar) { scroll-padding-bottom: 160px; }
 }
 @container app (min-width: 1024px) {
   .ubf .wrap.w-1280, .ubf .wrap.w-1440 { padding-left: 32px; padding-right: 32px; }
-}
-/* App: Home spreads into two columns. Search results sit under My Habits (left), next to the buttons that ran them */
-@container app (min-width: 1100px) {
-  .ubf .home { grid-template-columns: minmax(0, 1.6fr) minmax(360px, 1fr); grid-template-rows: auto auto 1fr; grid-template-areas: "hab act" "hab lists" "res lists"; column-gap: 16px; align-items: start; }
-  .ubf .home:not(:has(.home-res)) { grid-template-rows: auto 1fr; grid-template-areas: "hab act" "hab lists"; }
-  .ubf .home-hab { grid-area: hab; }
-  .ubf .home-act { grid-area: act; }
-  .ubf .home-res { grid-area: res; }
-  .ubf .home-lists { grid-area: lists; }
-  .ubf .home .actions, .ubf .home .lists { grid-template-columns: minmax(0, 1fr); }
-  .ubf .home .cats.four, .ubf .home .results-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @container app (min-width: 1160px) {
   .ubf .chat-head { margin: 0 auto; }

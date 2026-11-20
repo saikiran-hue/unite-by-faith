@@ -5,6 +5,7 @@ import { PUBLIC_CARD_COLUMNS, TAXONOMY_COLUMNS } from '@/lib/taxonomy';
 import {
   CurrentUser,
   CustomTag,
+  LastMessage,
   PodMemberProfile,
   ProfilePrivate,
   TaxonomyTag,
@@ -194,6 +195,29 @@ export async function GET() {
       is_joined: true,
     }));
 
+    // Latest message per room, for the Recent Messages and Chats lists: one embedded query,
+    // newest message per room. A failure only hides previews (lastMessages left out), so the page still loads.
+    const roomIds = [
+      ...new Set([...duoChats.map((d) => d.chat_room_id), ...podRows.map((p) => p.chat_room_id as string)]),
+    ];
+    let lastMessages: Record<string, LastMessage> | undefined = {};
+    if (roomIds.length > 0) {
+      const { data: rooms, error: lastError } = await admin
+        .from('chat_rooms')
+        .select('id, chat_messages(room_id, sender_id, message_type, content, created_at)')
+        .in('id', roomIds)
+        .order('created_at', { referencedTable: 'chat_messages', ascending: false })
+        .limit(1, { referencedTable: 'chat_messages' });
+      if (lastError) {
+        console.error('last messages read failed', lastError.message);
+        lastMessages = undefined;
+      } else {
+        for (const r of (rooms ?? []) as { id: string; chat_messages: LastMessage[] }[]) {
+          if (r.chat_messages[0]) lastMessages[r.id] = r.chat_messages[0];
+        }
+      }
+    }
+
     return NextResponse.json({
       currentUser,
       taxonomyTags,
@@ -201,6 +225,7 @@ export async function GET() {
       city,
       joinedPods,
       duoChats,
+      lastMessages,
     });
   } catch (err) {
     return NextResponse.json(

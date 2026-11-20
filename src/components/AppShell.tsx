@@ -12,7 +12,7 @@ interface AppShellProps {
   currentUser: UserProfile | null;
   onSwitchedUser?: () => void;
   /** Wider page container (px) for pages that spread across the screen; the top bar matches it. */
-  width?: 1280 | 1440;
+  width?: 1280 | 1440 | 'app';
   children: React.ReactNode;
 }
 
@@ -33,7 +33,7 @@ function Topbar({
 }: {
   currentUser: UserProfile | null;
   onSwitchedUser?: () => void;
-  width?: 1280 | 1440;
+  width?: 1280 | 1440 | 'app';
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
