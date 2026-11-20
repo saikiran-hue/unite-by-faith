@@ -16,13 +16,13 @@
 
 **Process**
 - Next.js 16 has breaking changes. Read the relevant guide in `node_modules/next/dist/docs/` before writing Next code.
-- Branch `feature/match-part2`. Commits are fine. Pushing, deploying, and applying or test-running SQL against the hosted database (`jqfgqglxesixnczieges`) need explicit owner approval. Task 4 writes files only.
+- Branch `feature/match-part2`. Migration 0019 must not reach `main` until the owner approves applying it, because a later `supabase db push` (e.g. for 0018) would apply it too. Commits are fine. Pushing, deploying, and applying or test-running SQL against the hosted database (`jqfgqglxesixnczieges`) need explicit owner approval. Task 4 writes files only.
 - Every commit ends with:
   ```
   Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
   Claude-Session: https://claude.ai/code/session_01WQWPbZ6Titq3hsJLhkEjm1
   ```
-- Verification per task: `npm test` (whole suite), `npx tsc --noEmit`, and `npx eslint <changed files>`, all clean.
+- Verification per task: `npm test` (whole suite), `npx tsc --noEmit`, and `npx eslint <changed files>`, all clean. After the last task, `npm run cf-build` passes, then restart dev with `pkill -f "next dev"; rm -rf .next; npm run dev`, because the build overwrites `.next`.
 
 **Matching rules**
 - Strict rules: 1v1 same gender; fellowship mode (1v1 both on `both`/`duo_only`, groups viewer on `both`/`group_only`); "Only my tradition" when either person has it on; onboarded, same demo-ness, not yourself; both 18+ by birth date; both have a birth date, at least one language and a city.
@@ -32,7 +32,7 @@
 - `match_events` keeps logging only the first 20 results as `shown`.
 
 **Privacy and styling**
-- Card data stays the explicit `pub` allow-list. `languages`, `ageMin` and `ageMax` are scoring-only and never sent to the browser.
+- Card data stays the explicit `pub` allow-list. `ageMin` and `ageMax` are scoring-only and never sent to the browser. `languages` is already public in `pub`; that is unchanged.
 - No card or reason text may reveal another person's age range or travel distance.
 - CSS: plain CSS under `.ubf`. Dark theme selectors use the pattern `[data-theme="dark"] .ubf .x, .ubf[data-theme="dark"] .x`. Use the existing tokens (`--u-ink`, `--u-accent`, `--r-tile`, `--font-verse`).
 - The global `prefers-reduced-motion` rule in `globals.css` already stops all `.ubf` animation. New animation must stay inside `.ubf` so the rule covers it.
@@ -89,8 +89,11 @@ it('keeps candidate order', () => {
   expect(splitChatPartners('v', ['c', 'a', 'b'], []).keep).toEqual(['c', 'a', 'b']);
 });
 
-// rank.test.ts (add)
-it('rankDuos returns everyone when no limit is given', () => { /* 25 candidates in → 25 out */ });
+// rank.test.ts: rewrite 'caps at the limit' (rank.test.ts:67-70), which expects a default of 20
+it('returns everyone by default and caps only at an explicit limit', () => {
+  expect(rankDuos(viewer, many, ctx)).toHaveLength(30);
+  expect(rankDuos(viewer, many, ctx, 5)).toHaveLength(5);
+});
 
 // empty-reason.test.ts: rewrite the cases that blamed age, language or place
 it('soft rules are never blamed', () => {
@@ -166,9 +169,10 @@ it('pageOf: 21 items show 20 then 1 remaining; next page shows 21', () => {
 
 - [ ] **Step 3: Implement the helpers, then wire `page.tsx`**
   - **Auto search:**
+    - **Placement:** every new hook (`autoFired`, `hadSearch`, `shown`, both effects) goes above the early returns at page.tsx:~260 and ~274. Compute `const tooFewForSearch = (currentUser?.tags.length ?? 0) < 3` there; `tooFew` at ~300 sits below the returns. Declare both effects after the `viewerRef` effect (~179-181). Otherwise, on a reload of `/?tab=matches`, `runSearch` captures a null viewer and drops its own result, leaving the tab stuck on loading.
     - Keep `autoFired = useRef(false)` and `hadSearch = useRef(false)`.
     - One effect resets `autoFired.current = false` only when `search` goes from non-null to null (tracked with `hadSearch`). StrictMode's re-run then cannot undo the guard.
-    - A second effect calls `runSearch('duo')` when `shouldAutoSearch(...)` is true, after setting `autoFired.current = true`. If the `react-hooks` set-state-in-effect lint fires, defer the call with `queueMicrotask(() => void runSearch('duo'))`, the pattern already used for `setNow`.
+    - A second effect, when `shouldAutoSearch(...)` is true, sets `autoFired.current = true` and then always defers the call with `queueMicrotask(() => void runSearch('duo'))`, the pattern already used for `setNow`. (`useEffectEvent` is an acceptable alternative.)
   - **Loading block** (replaces `{search?.status === 'loading' && <Skeletons />}`):
     - `<div className="match-wait">` containing `<VerseCard verse={verse} compact />`.
     - Then `<p className="wait-line" role="status"><span className="pulse-dot" aria-hidden="true" />{copy}</p>`. `copy` is `Finding people who share your habits…` for duo and `Finding groups that fit your habits…` for pods.
@@ -198,10 +202,12 @@ it('pageOf: 21 items show 20 then 1 remaining; next page shows 21', () => {
     - tab bar → Match;
     - Home 1v1 tile;
     - reload of `/?tab=matches`;
-    - open a chat, then Back.
+    - open a chat, then the browser's Back to `/?tab=matches`.
+    - The room's own back link (`<Link href="/">`) lands on Home and sends no request; that is expected.
   - **Loading screen:** shows the verse card, the status line and placeholders, in light and in dark.
   - **Show More:** appears only when there are more than 20 results.
   - **Fewer than 3 habits:** sends no request and shows the note.
+  - **Empty states:** check the empty state wherever demo data produces one. Check the "chatted" copy if a demo viewer can reach it; otherwise report it as not verified.
   - Note any StrictMode double requests you see.
 
 ---
@@ -214,7 +220,7 @@ it('pageOf: 21 items show 20 then 1 remaining; next page shows 21', () => {
   - `src/lib/matching/score.test.ts`
   - `src/lib/matching/load.ts` (`profile_private` select at ~171, the `match:` object at ~276)
   - `src/lib/matching/load.test.ts`
-  - every other `MatchPerson` literal (`grep -rln "maxDistanceKm:" src`)
+  - `src/lib/matching/rank.test.ts` (its `MatchPerson` fixtures). The `maxDistanceKm:` grep also finds non-`MatchPerson` files (LifeFitFields, life-fit, profile-update.test); leave those alone.
 
 **Interfaces:**
 - Produces:
@@ -272,7 +278,7 @@ describe('soft rules', () => {
   - **Reasons:** `buildReasons` emits `same_city` or `distance` only when `place.inPerson`.
   - **Minimum %:** `scorePair` and `scorePod` return `score: Math.max(1, Math.round(...))`.
   - **Loading:** in `load.ts`, select `age_min, age_max` from `profile_private` and fill `languages`, `ageMin` and `ageMax`. `pub` is unchanged.
-  - **Other tests:** update the existing tests whose expectations the place table changes, such as `online place score…`. Give each a one-line comment saying why.
+  - **Other tests:** update any existing test whose expectation the place table changes, with a one-line comment saying why. `online place score…` stays at 85 and needs no change.
 
 - [ ] **Step 4: Run the tests again.** Run `npm test && npx tsc --noEmit`. Expected: PASS.
 
@@ -286,7 +292,7 @@ describe('soft rules', () => {
 - Create:
   - `supabase/migrations/0019_soft_match_rules.sql`
   - `supabase/tests/0019_soft_match_rules_check.sql` (rolled back; follow `supabase/tests/0017_unread_counts_check.sql`)
-- Modify: `src/components/LifeFitFields.tsx:131,254`
+- Modify: `src/components/LifeFitFields.tsx:131,254`, `scripts/check-filters.ts:140-168` (it asserts the old hard filters)
 
 **Interfaces:**
 - Consumes: weights `life.language` (Task 3), and the unchanged signatures of all four functions:
@@ -302,32 +308,39 @@ describe('soft rules', () => {
     - **C:** same gender, no city;
     - **D:** different gender;
     - **E:** same gender and an existing duo chat with the viewer. The API hides E, not the SQL.
+  - Also seed F, a viewer aged 16, and a pod whose member has no city.
+  - The database may hold other users, so assert membership, not exact lists.
   - **Asserts:**
     - `match_candidates` returns A and E, not B, C or D.
+    - F gets no candidates.
+    - The pod with the no-city member is absent from `match_pod_candidates`.
     - `duo_pair_allowed(viewer, A)` is true; for B, C and D it is false.
     - A pod whose member is B is absent from `match_pod_candidates`, and `pod_join_allowed` is false for it.
     - The active `match_weights` row has `version = 2` and `config->'life'->>'language' = '0.15'`.
 
-- [ ] **Step 2: Write the migration** in one file, wrapped in `begin; … commit;`.
-  - **New function `public.match_safe(uid uuid) returns boolean`** (`language sql stable security definer set search_path = ''`). It is true when all of these hold:
+- [ ] **Step 2: Write the migration** in one file. No `begin; … commit;`: no migration in 0001–0017 has one, and the Supabase CLI runs each file itself.
+  - **New function `public.match_safe(uid uuid) returns boolean`** (`language sql stable security definer set search_path = ''`), written as `select exists (...)`, so a missing row gives false, not null. It is true when all of these hold:
     - the profile is onboarded;
-    - `profile_private.birth_date` is not null and `age(current_date, birth_date) >= interval '18 years'`;
+    - `profile_private.birth_date <= current_date - interval '18 years'`. Do not write `age(...) >= interval '18 years'`: Postgres compares intervals with a 30-day month, so it lets someone through the day before their 18th birthday;
     - `coalesce(cardinality(profiles.languages), 0) > 0`;
     - `location_city_id` is not null.
     - Revoke it from `public, anon, authenticated` and grant it to `service_role`.
-  - **The four functions:** `create or replace` each with the identical signature and return type.
+  - **The four functions:** `create or replace` each with the identical signature, keeping the parameter names and defaults (`viewer`, `kind`, `lim int default 300`; `viewer`, `lim int default 100`; `viewer`, `other`; `viewer`, `pod`) and the return type. The RPC callers pass named arguments.
     - **Duo** (`match_candidates`, `duo_pair_allowed`): `ok_gender and ok_tradition and match_safe(viewer) and match_safe(cand)`.
     - **Pod** (`match_pod_candidates`, `pod_join_allowed`): the member set is `cand where ok_tradition and match_safe(cand)`, plus `match_safe(viewer)`. The fellowship, status and seat clauses stay as they are.
     - Header comment: the soft rules moved to scoring, and `match_rule_flags` and `match_filter_counts` are untouched.
-  - **Weights:** `update match_weights set is_active = false where version = 1;` then insert version 2 with `jsonb_set(jsonb_set(config, '{life,language}', '0.15'), '{version}', '2')` from version 1, `is_active = true`, `on conflict (version) do nothing`.
+  - **Weights:** insert version 2 with `jsonb_set(jsonb_set(config, '{life,language}', '0.15'), '{version}', '2')` from version 1, `on conflict (version) do nothing`. Then `update match_weights set is_active = (version = 2) where version in (1, 2)`, so exactly one row is active whatever the conflict did. `load.ts:370` throws if none is active.
 
 - [ ] **Step 3: Life Fit wording**
   - Distance hint: `We show people nearer you first. Only you can see this.`
   - Age hint: `Required. We show closer ages first. Only you can see this.`
 
-- [ ] **Step 4: Static checks.** Run `npm test && npx tsc --noEmit`. Expected: PASS.
-  - Check by eye that each `create or replace` header matches 0009/0012 exactly; `git diff` the signatures.
-  - **Do not run either SQL file anywhere.**
+- [ ] **Step 4: Verify locally** (local Docker database only).
+  - Run `npm test && npx tsc --noEmit`. Expected: PASS.
+  - Update `scripts/check-filters.ts` to the new rules: soft rules no longer exclude; the 18+, complete-profile, gender, fellowship and tradition rules still do.
+  - Run `npx supabase start && npx supabase db reset`, then the 0019 check script with `psql -v ON_ERROR_STOP=1` against the local database URL from `npx supabase status`, then `npx tsx scripts/check-filters.ts`. Expected: every migration applies and every assert passes.
+  - Check by eye that each `create or replace` header matches 0009/0012 exactly.
+  - **Never point either SQL file at the hosted database.**
   - Applying the migration and running the check script on `jqfgqglxesixnczieges` wait for the owner. First run `npx supabase projects list` and confirm the project.
   - If 0018 isn't applied by then, the later 0018 push may need `--include-all`.
 

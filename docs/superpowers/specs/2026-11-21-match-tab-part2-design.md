@@ -86,7 +86,7 @@ Today the tab is empty until a button is tapped. Results are near-empty because 
     - The code treats a missing `life.language` weight as 0, so nothing changes until the migration is applied.
     - Side effect: once version 2 is active, pairs who share a language go up a point or two.
   - **New scoring inputs:** `MatchPerson` gains `languages`, `ageMin` and `ageMax`, loaded in `loadPeople` from `profiles.languages` and `profile_private.age_min` / `age_max`.
-    - They are scoring-only. The card data (`pub`) stays an explicit allow-list, so they are never sent to the browser.
+    - `ageMin` and `ageMax` are scoring-only. The card data (`pub`) stays an explicit allow-list, so they are never sent to the browser. `languages` is already public on cards; unchanged.
     - A missing age range scores the age part 0.
   - A missing value must never be dropped in a way that raises the score. Life Fit fields are required, so a gap is a bug, and the gap scores 0.
   - **Card reasons** (`buildReasons`): the distance line stays limited to pairs within the travel limit. No reason line is ever added for a mismatch.
@@ -98,7 +98,7 @@ Today the tab is empty until a button is tapped. Results are near-empty because 
   - Groups also show 20 at a time with Show More. The pod query's cap of 100 stays.
 - **After Connect:**
   - Connect opens an active chat straight away: `start_or_get_duo_chat` has no accept step.
-  - Back from that chat remounts Home (the app doesn't keep pages alive), so the Match tab runs one fresh search. The person just connected is now a chat partner and drops out of the list.
+  - The browser's Back from that chat remounts Home on `?tab=matches` (the app doesn't keep pages alive), so the Match tab runs one fresh search. The person just connected is now a chat partner and drops out of the list. The room's own back link goes to Home and runs no search.
   - The room lookup the API does after ranking, and the `existing_chat_room_id` field with its "Continue with …" button, become dead once existing chats are hidden. They are removed (plan ruling). A stale card still works: Connect calls `start_or_get_duo_chat`, which returns the existing room.
 - **Consequence for the owner to know:** because Connect has no accept step, someone's own age range and travel distance no longer stop other people opening a chat with them. Fellowship mode, gender and "Only my tradition" still do.
 - **Shown %:** at least 1. A real match that rounds to 0% would read like an error.
@@ -120,7 +120,7 @@ Today the tab is empty until a button is tapped. Results are near-empty because 
   - It replaces `match_candidates`, `match_pod_candidates`, `duo_pair_allowed` and `pod_join_allowed` with `create or replace`, keeping their argument and return types so grants are kept.
   - `match_rule_flags` and `match_filter_counts` stay as they are.
   - It adds the safety rules (18+, complete profile) and the version 2 weights row.
-  - It is written and reviewed on the branch, and applied only with owner approval.
+  - It is written, reviewed and run on the local Docker database on the branch, and applied to the hosted database only with owner approval. It stays off `main` until then.
   - If 0019 is applied before 0018 exists on the hosted database, the later 0018 push may need `supabase db push --include-all`. Noted for the owner.
 - **Release order:**
   1. App changes first: search on open, loading screen, hiding chats, Show More, the new scoring and the new wording. All of these are safe while the SQL is still strict.
@@ -129,7 +129,8 @@ Today the tab is empty until a button is tapped. Results are near-empty because 
 - **Under-18s:**
   - Sign-up blocks them in `/api/auth/age`, which deletes the account.
   - **Pre-existing gap, flagged for the owner, not fixed here:** the `profile_private_insert_own` / `profile_private_update_own` policies let a signed-in user write their own row directly through the database API, `birth_date` included, so that check can be bypassed.
-  - The 18+ safety rule above keeps matching safe either way. Closing the gap itself (a trigger, or removing the direct write policies) is a separate owner decision.
+  - What the 18+ rule can and can't do: it keeps out anyone whose stored birth date is under 18, including someone who writes their real date straight into the database to skip the deletion. No check can stop someone who lies about their birth date, at sign-up or by a direct write.
+  - The direct write also lets a user change their birth date after sign-up, which the app refuses. Pinning `birth_date` for the API roles with a trigger, like `pin_is_demo_account` in 0005, is a separate owner decision.
 - **The SQL cap stays at 300,** ordered by shared habits (`pre_rank`). Once the pool is bigger than that, the people cut are those with the fewest shared habits. That is fine at today's size, but worth knowing.
 
 ## Approaches considered
