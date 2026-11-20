@@ -506,10 +506,11 @@ html:has(.ubf .tabbar) { scroll-padding-bottom: 96px; }
 .ubf .vc-skel { display: grid; gap: 10px; }
 .ubf .vc-skel .skel { background: rgba(255,255,255,.18); animation: none; }
 /* Match tab while a search runs: a compact verse card, a status line, then card placeholders */
-.ubf .match-wait { display: grid; gap: 14px; }
 .ubf .verse-card.vc-compact { padding: 14px 16px 16px; }
 .ubf .vc-compact .vc-text p { font-size: 18px; }
 .ubf .wait-line { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--u-mute); }
+/* Idle: out of the grid flow but still in the accessibility tree (display: none would drop the live region) */
+.ubf .wait-line:empty { position: absolute; }
 .ubf .pulse-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--u-accent); animation: ubf-dot 1.4s ease-in-out infinite; }
 @keyframes ubf-dot { 0%, 100% { transform: scale(.75); opacity: .5; } 50% { transform: scale(1.15); opacity: 1; } }
 .ubf .crow { display: grid; gap: 2px; min-width: 0; }

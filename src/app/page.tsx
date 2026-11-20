@@ -257,6 +257,20 @@ function Home() {
     queueMicrotask(() => fireAutoSearch());
   }, [tab, search, tooFewForSearch, viewerId]);
 
+  // Show More moves focus to the first card it revealed, so focus never drops to the page.
+  const resultsListRef = useRef<HTMLUListElement>(null);
+  const focusCardAt = useRef<number | null>(null);
+  useEffect(() => {
+    const i = focusCardAt.current;
+    if (i === null) return;
+    focusCardAt.current = null;
+    const card = resultsListRef.current?.children[i];
+    if (card instanceof HTMLElement) {
+      card.tabIndex = -1;
+      card.focus({ preventScroll: false });
+    }
+  }, [shown]);
+
   async function joinPod(pod: PodResult) {
     setJoiningId(pod.id);
     setJoinFailedId(null);
@@ -356,6 +370,12 @@ function Home() {
   // The gender rule never narrows group search, so it falls back to the generic message.
   const podEmptyCopy = emptyRule && emptyRule !== 'gender' ? EMPTY_BY_RULE[emptyRule] : undefined;
   const fresh = search?.status === 'done';
+  // The render before the auto search starts already shows its loading state, not "Find Friends".
+  const autoPending =
+    search === null &&
+    shouldAutoSearch({ tab, hasSearch: false, tooFew: tooFewForSearch, signedIn: viewerId !== null, alreadyFired: false });
+  const view: Search | null = search ?? (autoPending ? { kind: 'duo', status: 'loading' } : null);
+  const waiting = view?.status === 'loading';
   const duoPage = pageOf(duoRes, shown);
   const podPage = pageOf(podRes, shown);
   const showMore = ({ visible, remaining }: { visible: unknown[]; remaining: number }) =>
@@ -364,7 +384,13 @@ function Home() {
         <p className="small">
           Showing {visible.length} of {visible.length + remaining}
         </p>
-        <Btn variant="btn-outline" onClick={() => setShown((s) => s + MATCH_PAGE)}>
+        <Btn
+          variant="btn-outline"
+          onClick={() => {
+            focusCardAt.current = visible.length;
+            setShown(visible.length + MATCH_PAGE);
+          }}
+        >
           Show More
         </Btn>
       </div>
@@ -542,20 +568,20 @@ function Home() {
           </section>
 
           {/* ---------------- Match ---------------- */}
-          <section hidden={tab !== 'matches'} aria-labelledby="res-h" aria-busy={search?.status === 'loading'} className="tabpanel">
+          <section hidden={tab !== 'matches'} aria-labelledby="res-h" className="tabpanel">
             <div className="sec-head res-head">
               <div>
                 <h1 className="h2" id="res-h" tabIndex={-1} ref={resultsHeadingRef}>
-                  {!search ? 'Find Friends' : search.kind === 'duo' ? '1v1 Matches for You' : 'Groups for You'}
+                  {!view ? 'Find Friends' : view.kind === 'duo' ? '1v1 Matches for You' : 'Groups for You'}
                 </h1>
                 <p className="sub">
-                  {!search
+                  {!view
                     ? 'Pick 1v1 or Groups to search.'
-                    : search.status === 'incomplete'
+                    : view.status === 'incomplete'
                       ? 'One more step before we can match you.'
                       : `Matched on your ${habits.length} habits${
-                        search.status === 'done'
-                          ? `, ${search.kind === 'duo' ? duoRes.length : podRes.length} found`
+                        view.status === 'done'
+                          ? `, ${view.kind === 'duo' ? duoRes.length : podRes.length} found`
                           : ''
                       }`}
                 </p>
@@ -572,8 +598,8 @@ function Home() {
                   key={k}
                   type="button"
                   role="radio"
-                  aria-checked={search?.kind === k}
-                  disabled={tooFew || search?.status === 'loading'}
+                  aria-checked={view?.kind === k}
+                  disabled={tooFew || waiting}
                   onClick={() => runSearch(k)}
                 >
                   {label}
@@ -593,16 +619,17 @@ function Home() {
               <AlertBox title="We couldn’t open that chat." text="Check your connection and tap Connect 1v1 again." />
             )}
 
-            {search?.status === 'loading' && (
-              <div className="match-wait">
-                <VerseCard verse={verse} compact />
-                <p className="wait-line" role="status">
+            {waiting && <VerseCard verse={verse} compact />}
+            {/* Always mounted, so screen readers announce the copy when it appears. */}
+            <p className="wait-line" role="status">
+              {waiting && (
+                <>
                   <span className="pulse-dot" aria-hidden="true" />
-                  {search.kind === 'duo' ? 'Finding people who share your habits…' : 'Finding groups that fit your habits…'}
-                </p>
-                <Skeletons />
-              </div>
-            )}
+                  {view.kind === 'duo' ? 'Finding people who share your habits…' : 'Finding groups that fit your habits…'}
+                </>
+              )}
+            </p>
+            {waiting && <Skeletons />}
 
             {search?.status === 'incomplete' && (
               <div className="card pad" style={{ display: 'grid', gap: 12, justifyItems: 'start' }}>
@@ -626,7 +653,7 @@ function Home() {
               (search.kind === 'duo' ? (
                 duoRes.length ? (
                   <>
-                    <ul className="results-grid stagger" key={searchId}>
+                    <ul className="results-grid stagger" key={searchId} ref={resultsListRef}>
                       {duoPage.visible.map((m) => (
                         <DuoCard
                           key={m.partner.id}
@@ -679,7 +706,7 @@ function Home() {
                 )
               ) : podRes.length ? (
                 <>
-                  <ul className="results-grid stagger" key={searchId}>
+                  <ul className="results-grid stagger" key={searchId} ref={resultsListRef}>
                     {podPage.visible.map((p) => (
                       <PodCard
                         key={p.id}
