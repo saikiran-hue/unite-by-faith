@@ -521,7 +521,7 @@ html:has(.ubf .tabbar) { scroll-padding-bottom: 96px; }
 .ubf .menu .rx-bar button { width: 44px; justify-content: center; padding: 0; border-radius: 50%; font-size: 22px; line-height: 1; }
 .ubf .menu .rx-bar button[aria-checked="true"] { background: var(--grad); box-shadow: var(--glow); }
 .ubf .menu button.danger { color: var(--u-danger); }
-.ubf .menu button:focus-visible { outline-offset: -2px; }
+.ubf .msg-menu button:focus-visible { outline-offset: -2px; }
 .ubf .quote { display: block; width: 100%; margin: -2px 0 6px; padding: 6px 10px; border: 0; border-left: 3px solid var(--u-accent); border-radius: 10px; background: color-mix(in srgb, currentColor 9%, transparent); color: inherit; text-align: left; font-size: 13px; line-height: 1.35; }
 .ubf button.quote:hover { background: color-mix(in srgb, currentColor 14%, transparent); }
 .ubf .quote:focus-visible { outline-color: currentColor; }
@@ -535,9 +535,9 @@ html:has(.ubf .tabbar) { scroll-padding-bottom: 96px; }
 .ubf .react { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; padding: 0 10px; border: 0; border-radius: 999px; background: var(--u-raised); box-shadow: var(--u-sh-1); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; transition: transform .12s ease; }
 .ubf .react:active { transform: scale(.94); }
 .ubf .react[aria-pressed="true"] { background: var(--grad); color: var(--u-on-accent); box-shadow: var(--glow); }
-.ubf .msg .meta { display: flex; align-items: center; gap: 6px; margin: 4px 6px 0; font-size: 11px; color: var(--u-mute); font-variant-numeric: tabular-nums; }
-.ubf .msg .meta time { display: inline; margin: 0; }
-.ubf .msg.me .meta { justify-content: flex-end; }
+.ubf .msg .msg-meta { display: flex; align-items: center; gap: 6px; margin: 4px 6px 0; font-size: 11px; color: var(--u-mute); font-variant-numeric: tabular-nums; }
+.ubf .msg .msg-meta time { display: inline; margin: 0; }
+.ubf .msg.me .msg-meta { justify-content: flex-end; }
 .ubf .tick { font-weight: 700; letter-spacing: -.12em; }
 .ubf .tick.seen { color: var(--u-accent-text); }
 .ubf .day-sep { display: flex; align-items: center; gap: 10px; align-self: stretch; font-size: 12px; font-weight: 600; color: var(--u-mute); }

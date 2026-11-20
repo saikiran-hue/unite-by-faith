@@ -223,7 +223,7 @@ export function MessageItem({
           </div>
         )}
         {message ? (
-          <p className="meta">
+          <p className="msg-meta">
             {time}
             {message.edited_at && !deleted && <span className="edited">edited</span>}
             {tick && !deleted && (
