@@ -1,20 +1,26 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fetchReplyParent, handleChatAction } from './chat-actions';
+import { duoMemberJoins, fetchReplyParent, handleChatAction, loadReads } from './chat-actions';
 
 const ROOM = 'room-1';
 const ME = 'me';
 const ID = '11111111-1111-4111-8111-111111111111';
 
-type Stub = { row?: Record<string, unknown> | null; updated?: unknown[]; rpc?: string };
+type Stub = {
+  row?: Record<string, unknown> | null;
+  updated?: unknown[];
+  rpc?: string;
+  /** What a plain list read (no update, no maybeSingle) resolves to. */
+  rows?: unknown[];
+};
 type Call = [string, ...unknown[]];
 
-/** Minimal chainable admin stub: every filter returns the chain; reads resolve `row`, updates `updated`. */
-function stub({ row = null, updated = [], rpc = 'ok' }: Stub) {
+/** Minimal chainable admin stub: every filter returns the chain; single reads resolve `row`, list reads `rows`, updates `updated`. */
+function stub({ row = null, updated = [], rpc = 'ok', rows = [] }: Stub) {
   const rpcFn = vi.fn(async () => ({ data: rpc, error: null }));
   const chain: Record<string, unknown> = {};
   const calls: Call[] = [];
   let updating = false;
-  for (const f of ['select', 'eq', 'is']) {
+  for (const f of ['from', 'select', 'eq', 'is', 'in']) {
     chain[f] = (...args: unknown[]) => {
       calls.push([f, ...args]);
       return chain;
@@ -27,8 +33,8 @@ function stub({ row = null, updated = [], rpc = 'ok' }: Stub) {
   };
   chain.maybeSingle = async () => ({ data: row });
   chain.then = (res: (v: unknown) => unknown) =>
-    res({ data: updating ? updated : [], error: null });
-  const admin = { from: () => chain, rpc: rpcFn };
+    res({ data: updating ? updated : rows, error: null });
+  const admin = { from: chain.from, rpc: rpcFn };
   return { admin: admin as never, rpcFn, calls };
 }
 
@@ -154,5 +160,39 @@ describe('fetchReplyParent', () => {
     expect(await fetchReplyParent(s.admin, ROOM, ID)).toEqual({
       ok: false, status: 400, error: 'reply_target_invalid',
     });
+  });
+});
+
+describe('loadReads for a 1v1', () => {
+  const PARTNER = 'partner';
+  const duo = { user_a_id: ME, user_b_id: PARTNER, created_at: '2026-11-20T09:00:00.000+00:00' };
+
+  it('returns only the partner, joined when the match was made, with their read mark', async () => {
+    const s = stub({ rows: [{ user_id: PARTNER, last_read_at: '2026-11-20T10:00:00+00:00' }] });
+    expect(await loadReads(s.admin, ROOM, ME, duoMemberJoins(duo))).toEqual([
+      { user_id: PARTNER, last_read_at: '2026-11-20T10:00:00+00:00', joined_at: duo.created_at },
+    ]);
+    expect(s.calls).toEqual(
+      expect.arrayContaining([
+        ['from', 'room_reads'],
+        ['eq', 'room_id', ROOM],
+        ['in', 'user_id', [PARTNER]],
+      ])
+    );
+  });
+
+  it('gives a partner who never opened the chat a null read mark', async () => {
+    const s = stub({ rows: [] });
+    expect(await loadReads(s.admin, ROOM, ME, duoMemberJoins(duo))).toEqual([
+      { user_id: PARTNER, last_read_at: null, joined_at: duo.created_at },
+    ]);
+  });
+
+  it('leaves the viewer out whichever side of the pair they are', async () => {
+    const s = stub({ rows: [{ user_id: ME, last_read_at: '2026-11-20T10:00:00+00:00' }] });
+    const flipped = { ...duo, user_a_id: PARTNER, user_b_id: ME };
+    expect(await loadReads(s.admin, ROOM, ME, duoMemberJoins(flipped))).toEqual([
+      { user_id: PARTNER, last_read_at: null, joined_at: duo.created_at },
+    ]);
   });
 });

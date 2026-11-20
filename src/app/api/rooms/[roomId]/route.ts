@@ -9,6 +9,7 @@ import { buildContextualIcebreakers } from '@/lib/matching/engine';
 import { groupReactions, quoteFor } from '@/lib/chat/hydrate';
 import {
   checkResponse,
+  duoMemberJoins,
   fetchReplyParent,
   emptyContentResponse,
   handleChatAction,
@@ -132,10 +133,7 @@ export async function GET(
           { user_id: duo.user_a_id, role: 'duo_partner' },
           { user_id: duo.user_b_id, role: 'duo_partner' },
         ];
-        memberJoins = [duo.user_a_id, duo.user_b_id].map((id) => ({
-          user_id: id,
-          joined_at: duo.created_at,
-        }));
+        memberJoins = duoMemberJoins(duo);
       }
     }
 

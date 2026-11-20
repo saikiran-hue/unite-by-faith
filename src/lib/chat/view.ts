@@ -1,4 +1,4 @@
-import type { ChatMessage, ReactionCount, ReactionEmoji, ReplyQuote } from '@/types/database';
+import type { ChatMessage, MemberRead, ReactionCount, ReactionEmoji, ReplyQuote } from '@/types/database';
 import { EDIT_WINDOW_MS } from './rules';
 import { dayKey, dayLabel } from './status';
 
@@ -53,6 +53,53 @@ export function newestFromOthers(messages: { id: string; sender_id: string }[], 
     if (messages[i].sender_id !== meId) return messages[i].id;
   }
   return null;
+}
+
+export interface MarkReadState {
+  visible: boolean;
+  mounted: boolean;
+  /** Newest message from someone else on screen: undefined before the first load, null when none. */
+  newest: string | null | undefined;
+  /** The newest one the server confirmed as read; undefined until the first confirmed mark. */
+  marked: string | null | undefined;
+  /** The one a mark_read request is out for now; undefined when none is. */
+  sending: string | null | undefined;
+}
+
+/**
+ * Whether to send mark_read now. Only for what this screen has loaded and shown, only while the
+ * page is visible and mounted, and not again for a mark already confirmed or on its way.
+ */
+export function shouldMarkRead(s: MarkReadState): boolean {
+  if (!s.visible || !s.mounted || s.newest === undefined) return false;
+  return s.newest !== s.marked && s.newest !== s.sending;
+}
+
+type ReadRow = { user_id?: unknown; last_read_at?: unknown };
+
+const laterOf = (a: string | null, b: string | null) =>
+  a === null ? b : b === null ? a : Date.parse(b) > Date.parse(a) ? b : a;
+
+/** Another member's read mark from Realtime, patched in. Rows for anyone not listed (me included) change nothing. */
+export function applyReadMark(reads: MemberRead[], row: ReadRow | undefined): MemberRead[] {
+  const userId = row?.user_id;
+  const at = row?.last_read_at;
+  if (typeof userId !== 'string' || typeof at !== 'string' || Number.isNaN(Date.parse(at))) return reads;
+  const i = reads.findIndex((r) => r.user_id === userId);
+  if (i < 0) return reads;
+  const next = laterOf(reads[i].last_read_at, at);
+  if (next === reads[i].last_read_at) return reads;
+  return reads.map((r, j) => (j === i ? { ...r, last_read_at: next } : r));
+}
+
+/** Loaded read state, keeping any later mark already patched in: a slow load must not undo it. */
+export function mergeReads(fetched: MemberRead[], current: MemberRead[]): MemberRead[] {
+  const now = new Map(current.map((r) => [r.user_id, r.last_read_at]));
+  return fetched.map((r) => {
+    if (!now.has(r.user_id)) return r;
+    const next = laterOf(r.last_read_at, now.get(r.user_id) ?? null);
+    return next === r.last_read_at ? r : { ...r, last_read_at: next };
+  });
 }
 
 /** Other people with a message that was not in the previous load (none on the first load). */

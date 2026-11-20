@@ -1,12 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { EDIT_WINDOW_MS } from './rules';
 import {
+  applyReadMark,
   leadingThrottle,
+  mergeReads,
   messageActions,
   newestFromOthers,
   newSenders,
   reactionToSend,
   resolvePendingReply,
+  shouldMarkRead,
   withDaySeparators,
 } from './view';
 
@@ -181,6 +184,79 @@ describe('resolvePendingReply', () => {
 
   it('passes a message that is not a reply through unchanged', () => {
     expect(resolvePendingReply({}, [])).toEqual({ replyToId: undefined, quote: undefined });
+  });
+});
+
+describe('shouldMarkRead', () => {
+  const base = { visible: true, mounted: true, newest: 'm2', marked: 'm1', sending: undefined };
+
+  it('marks a newer message from someone else while visible', () => {
+    expect(shouldMarkRead(base)).toBe(true);
+  });
+
+  it('marks on the first load even when nobody else has written yet', () => {
+    expect(shouldMarkRead({ ...base, newest: null, marked: undefined })).toBe(true);
+  });
+
+  it('never marks while hidden, after unmount, or before the first load', () => {
+    expect(shouldMarkRead({ ...base, visible: false })).toBe(false);
+    expect(shouldMarkRead({ ...base, mounted: false })).toBe(false);
+    expect(shouldMarkRead({ ...base, newest: undefined, marked: undefined })).toBe(false);
+  });
+
+  it('does not repeat a confirmed mark or one already on its way', () => {
+    expect(shouldMarkRead({ ...base, marked: 'm2' })).toBe(false);
+    expect(shouldMarkRead({ ...base, sending: 'm2' })).toBe(false);
+    expect(shouldMarkRead({ ...base, newest: null, marked: null })).toBe(false);
+  });
+
+  it('marks the newer message while an older mark is still out', () => {
+    expect(shouldMarkRead({ ...base, newest: 'm3', sending: 'm2' })).toBe(true);
+  });
+});
+
+describe('applyReadMark and mergeReads', () => {
+  const t = (s: number) => new Date(Date.UTC(2026, 10, 20, 10, 0, s)).toISOString();
+  const reads = [
+    { user_id: 'u1', last_read_at: t(10), joined_at: t(0) },
+    { user_id: 'u2', last_read_at: null, joined_at: t(0) },
+  ];
+
+  it('patches a member’s newer read mark in place', () => {
+    expect(applyReadMark(reads, { user_id: 'u2', last_read_at: t(20) })).toEqual([
+      reads[0],
+      { ...reads[1], last_read_at: t(20) },
+    ]);
+  });
+
+  it('accepts the Postgres timestamp format from Realtime', () => {
+    const at = '2026-11-20T10:00:30.123456+00:00';
+    expect(applyReadMark(reads, { user_id: 'u1', last_read_at: at })[0].last_read_at).toBe(at);
+  });
+
+  it('ignores me, unknown members, older marks and malformed rows', () => {
+    expect(applyReadMark(reads, { user_id: 'me', last_read_at: t(30) })).toBe(reads);
+    expect(applyReadMark(reads, { user_id: 'u1', last_read_at: t(5) })).toBe(reads);
+    expect(applyReadMark(reads, { user_id: 'u1', last_read_at: 'soon' })).toBe(reads);
+    expect(applyReadMark(reads, {})).toBe(reads);
+    expect(applyReadMark(reads, undefined)).toBe(reads);
+  });
+
+  it('a slow load keeps a later mark patched in meanwhile, and takes newer loaded marks', () => {
+    const patched = applyReadMark(reads, { user_id: 'u1', last_read_at: t(40) });
+    const stale = [
+      { ...reads[0], last_read_at: t(10) },
+      { ...reads[1], last_read_at: t(50) },
+    ];
+    expect(mergeReads(stale, patched)).toEqual([
+      { ...reads[0], last_read_at: t(40) },
+      { ...reads[1], last_read_at: t(50) },
+    ]);
+  });
+
+  it('the loaded list decides who is listed', () => {
+    const fetched = [{ user_id: 'u3', last_read_at: null, joined_at: t(0) }];
+    expect(mergeReads(fetched, reads)).toEqual(fetched);
   });
 });
 

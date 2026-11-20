@@ -23,6 +23,9 @@ interface StatePayload {
   unread?: Record<string, number>;
 }
 
+/** Shortest gap between reloads when the page becomes visible again. */
+const REFRESH_GAP_MS = 5000;
+
 /** Fetches /api/state (matches scored against saved habits); null on failure. */
 async function loadState(onSignedOut: () => void): Promise<StatePayload | null> {
   try {
@@ -77,6 +80,16 @@ export function useAppState() {
 
   useEffect(() => {
     void loadState(signedOut).then(apply);
+    // Unread badges and previews go stale while the app sits in the background: reload when it
+    // comes back, at most once per REFRESH_GAP_MS. A failed reload keeps what is shown (apply).
+    let last = Date.now();
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible' || Date.now() - last < REFRESH_GAP_MS) return;
+      last = Date.now();
+      void loadState(signedOut).then(apply);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, [apply, signedOut]);
 
   const tagMap = useMemo(

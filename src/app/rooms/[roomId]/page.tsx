@@ -22,11 +22,14 @@ import { quoteSnippet } from '@/lib/chat/hydrate';
 import { isSeen, typingText } from '@/lib/chat/status';
 import { useTyping } from '@/lib/chat/useTyping';
 import {
+  applyReadMark,
   leadingThrottle,
+  mergeReads,
   newestFromOthers,
   newSenders,
   reactionToSend,
   resolvePendingReply,
+  shouldMarkRead,
   withDaySeparators,
 } from '@/lib/chat/view';
 import {
@@ -147,9 +150,13 @@ function FellowshipRoomContent() {
   const fetchSeq = useRef(0);
   const appliedSeq = useRef(0);
   const meIdRef = useRef<string | undefined>(undefined);
-  // Newest message from someone else: undefined before the first load. markedRef: the one last marked read.
+  // Read state (see shouldMarkRead). newestOtherRef: newest message from someone else on screen,
+  // undefined before the first load. markedRef: the newest the server confirmed as read.
+  // sendingRef: the one a mark_read request is out for.
   const newestOtherRef = useRef<string | null | undefined>(undefined);
   const markedRef = useRef<string | null | undefined>(undefined);
+  const sendingRef = useRef<string | null | undefined>(undefined);
+  const mountedRef = useRef(false);
   // Message ids of the last load, to spot new messages (null before the first load).
   const loadedIdsRef = useRef<ReadonlySet<string> | null>(null);
 
@@ -163,17 +170,46 @@ function FellowshipRoomContent() {
     typingPeople
   );
 
-  const markRead = useMemo(
-    () =>
-      leadingThrottle(() => {
-        void fetch(`/api/rooms/${roomId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'mark_read' }),
-        }).catch(() => {});
-      }, 1000),
-    [roomId]
-  );
+  // mark_read with a 1 s throttle. Made in an effect and dropped on unmount, so a load that
+  // lands after the screen has gone marks nothing.
+  const markReadRef = useRef<ReturnType<typeof leadingThrottle> | null>(null);
+  useEffect(() => {
+    mountedRef.current = true;
+    // The decision runs again when the call fires: a trailing call can come after the tab was
+    // hidden, or after an earlier request already covered the same message.
+    const throttle = leadingThrottle(() => {
+      const target = newestOtherRef.current;
+      const me = meIdRef.current;
+      const state = {
+        visible: document.visibilityState === 'visible',
+        mounted: mountedRef.current,
+        newest: target,
+        marked: markedRef.current,
+        sending: sendingRef.current,
+      };
+      if (!shouldMarkRead(state)) return;
+      sendingRef.current = target;
+      void fetch(`/api/rooms/${roomId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'mark_read' }),
+      })
+        .then((res) => {
+          // A failed mark is not remembered, so the next load tries again.
+          if (res.ok && meIdRef.current === me) markedRef.current = target;
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (sendingRef.current === target) sendingRef.current = undefined;
+        });
+    }, 1000);
+    markReadRef.current = throttle;
+    return () => {
+      mountedRef.current = false;
+      markReadRef.current = null;
+      throttle.cancel();
+    };
+  }, [roomId]);
 
   const fetchRoomData = React.useCallback(
     async (silent = false) => {
@@ -196,7 +232,7 @@ function FellowshipRoomContent() {
           setParticipants(data.participants || []);
           setMessages(list);
           setPins(data.pins || []);
-          setReads(data.reads || []);
+          setReads((current) => mergeReads(data.reads || [], current));
           setNow(Date.now());
           setContextualIcebreakers(data.contextualIcebreakers || []);
           setPodDetails(data.podDetails || null);
@@ -207,16 +243,22 @@ function FellowshipRoomContent() {
           for (const id of newSenders(loadedIdsRef.current, list, me)) clearTyper(id);
           loadedIdsRef.current = new Set(list.map((m) => m.id));
 
-          // Read state: on the first load (markedRef still undefined), and whenever someone else's
-          // newer message arrives, while the tab is visible.
-          if (meIdRef.current !== me) markedRef.current = undefined;
-          meIdRef.current = me;
-          const newest = me ? newestFromOthers(list, me) : null;
-          newestOtherRef.current = newest;
-          if (document.visibilityState === 'visible' && markedRef.current !== newest) {
-            markedRef.current = newest;
-            markRead.call();
+          // Read state: mark what this load brought, on the first load and whenever someone
+          // else's newer message arrives, only while the tab is visible.
+          if (meIdRef.current !== me) {
+            markedRef.current = undefined;
+            sendingRef.current = undefined;
           }
+          meIdRef.current = me;
+          newestOtherRef.current = me ? newestFromOthers(list, me) : null;
+          const state = {
+            visible: document.visibilityState === 'visible',
+            mounted: mountedRef.current,
+            newest: newestOtherRef.current,
+            marked: markedRef.current,
+            sending: sendingRef.current,
+          };
+          if (shouldMarkRead(state)) markReadRef.current?.call();
         } else if (!silent) {
           setLoadError(true);
         }
@@ -226,7 +268,7 @@ function FellowshipRoomContent() {
         if (!silent) setLoading(false);
       }
     },
-    [roomId, router, markRead, clearTyper]
+    [roomId, router, clearTyper]
   );
 
   useEffect(() => {
@@ -285,15 +327,27 @@ function FellowshipRoomContent() {
           filter: `room_id=eq.${roomId}`,
         },
         (payload) => {
-          // My own read marks change nothing on my screen; other members' turn ticks to seen.
-          if ((payload.new as { user_id?: string } | undefined)?.user_id === meIdRef.current) return;
-          fetchRoomData(true);
+          // Another member's read mark turns ticks to seen; patched in, no reload. My own marks
+          // change nothing: `reads` lists only the others.
+          setReads((rs) => applyReadMark(rs, payload.new as { user_id?: unknown; last_read_at?: unknown }));
         }
       );
+    // Realtime does not replay events missed while the socket was down (a locked phone, a
+    // background tab): once the channel is back, reload.
+    let dropped = false;
     void supabase.auth.getSession().then(async ({ data }) => {
       if (closed) return;
       await supabase.realtime.setAuth(data.session?.access_token ?? null);
-      if (!closed) channel.subscribe();
+      if (closed) return;
+      channel.subscribe((status) => {
+        if (closed) return;
+        if (status !== 'SUBSCRIBED') {
+          dropped = true;
+        } else if (dropped) {
+          dropped = false;
+          void fetchRoomData(true);
+        }
+      });
     });
 
     return () => {
@@ -305,17 +359,14 @@ function FellowshipRoomContent() {
 
   useEffect(() => {
     const onVisible = () => {
-      // Before the first load there is nothing to mark; that load marks it.
+      // Back on screen: what was missed while hidden (new, edited, deleted messages) loads first,
+      // and that load marks it read. Before the first load, that load does it.
       if (document.visibilityState !== 'visible' || newestOtherRef.current === undefined) return;
-      markedRef.current = newestOtherRef.current;
-      markRead.call();
+      void fetchRoomData(true);
     };
     document.addEventListener('visibilitychange', onVisible);
-    return () => {
-      document.removeEventListener('visibilitychange', onVisible);
-      markRead.cancel();
-    };
-  }, [markRead]);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [fetchRoomData]);
 
   useEffect(() => {
     // Scroll only the message list, never the page.

@@ -140,6 +140,11 @@ export async function loadReplyParents(
   return parents;
 }
 
+/** Both people in a 1v1, each counted as a member from when the match was made. */
+export function duoMemberJoins(duo: { user_a_id: string; user_b_id: string; created_at: string }) {
+  return [duo.user_a_id, duo.user_b_id].map((id) => ({ user_id: id, joined_at: duo.created_at }));
+}
+
 /** Read state of the other members; joined_at lets the client tell "not read yet" from "joined later". */
 export async function loadReads(
   admin: Admin,
