@@ -30,6 +30,12 @@ const SENDABLE_TYPES = ['text', 'prayer_request', 'icebreaker'];
 
 type Card = Pick<UserProfile, 'id' | 'full_name' | 'display_handle' | 'avatar_url' | 'headline'>;
 
+/** A failed read is a 500: empty data would pass for an empty room (then marked read) or a sign-out. */
+function readFailed(error: { message: string }) {
+  console.error('room read failed', error.message);
+  return NextResponse.json({ error: error.message }, { status: 500 });
+}
+
 export async function GET(
   _req: NextRequest,
   context: { params: Promise<{ roomId: string }> }
@@ -46,24 +52,16 @@ export async function GET(
       .select('*')
       .eq('id', roomId)
       .maybeSingle();
-    if (roomErr || !room) {
-      return NextResponse.json(
-        { error: roomErr?.message || 'Chat room not found' },
-        { status: 404 }
-      );
+    if (roomErr) return readFailed(roomErr);
+    if (!room) {
+      return NextResponse.json({ error: 'Chat room not found' }, { status: 404 });
     }
     if (!(await isRoomMember(admin, room, userId))) {
       return NextResponse.json({ error: 'not_a_member' }, { status: 403 });
     }
 
     // Only this room and its people: whole-table reads hit the 1000-row cap.
-    const [
-      { data: taxonomyRows },
-      { data: profileRow },
-      { data: userTagRows },
-      { data: messageRows },
-      { data: pinRows },
-    ] = await Promise.all([
+    const basics = await Promise.all([
       admin
         .from('taxonomy_tags')
         .select(TAXONOMY_COLUMNS)
@@ -85,6 +83,15 @@ export async function GET(
         .order('created_at', { ascending: false })
         .limit(MESSAGE_LIMIT),
     ]);
+    const failed = basics.find((r) => r.error)?.error;
+    if (failed) return readFailed(failed);
+    const [
+      { data: taxonomyRows },
+      { data: profileRow },
+      { data: userTagRows },
+      { data: messageRows },
+      { data: pinRows },
+    ] = basics;
 
     if (!profileRow) {
       return NextResponse.json({ error: 'signed_out' }, { status: 401 });
@@ -103,28 +110,31 @@ export async function GET(
     let duoSimilarityScore: number | null = null;
 
     if (room.room_type === 'pod_group') {
-      const { data: pod } = await admin
+      const { data: pod, error: podErr } = await admin
         .from('pods')
         .select('*')
         .eq('chat_room_id', roomId)
         .single();
+      if (podErr) return readFailed(podErr);
 
       if (pod) {
         podDetails = pod;
-        const { data: pmRows } = await admin
+        const { data: pmRows, error: pmErr } = await admin
           .from('pod_members')
           .select('user_id, role, joined_at')
           .eq('pod_id', pod.id)
           .order('joined_at', { ascending: true });
+        if (pmErr) return readFailed(pmErr);
         participantRows = (pmRows || []).map((p) => ({ user_id: p.user_id, role: p.role }));
         memberJoins = (pmRows || []).map((p) => ({ user_id: p.user_id, joined_at: p.joined_at }));
       }
     } else {
-      const { data: duo } = await admin
+      const { data: duo, error: duoErr } = await admin
         .from('duo_matches')
         .select('user_a_id, user_b_id, similarity_score, created_at')
         .eq('chat_room_id', roomId)
         .single();
+      if (duoErr) return readFailed(duoErr);
 
       if (duo) {
         duoSimilarityScore =
@@ -155,10 +165,11 @@ export async function GET(
     ];
     const cardMap = new Map<string, Card>();
     if (cardIds.length > 0) {
-      const { data: cards } = await admin
+      const { data: cards, error: cardsErr } = await admin
         .from('profiles')
         .select(PUBLIC_CARD_COLUMNS)
         .in('id', cardIds);
+      if (cardsErr) return readFailed(cardsErr);
       for (const c of (cards || []) as Card[]) cardMap.set(c.id, c);
     }
 
@@ -237,11 +248,12 @@ export async function POST(
       return NextResponse.json({ error: 'Request body must be a JSON object' }, { status: 400 });
     }
 
-    const { data: room } = await admin
+    const { data: room, error: roomErr } = await admin
       .from('chat_rooms')
       .select('id, room_type')
       .eq('id', roomId)
       .maybeSingle();
+    if (roomErr) return readFailed(roomErr);
     if (!room) {
       return NextResponse.json({ error: 'Chat room not found' }, { status: 404 });
     }
@@ -361,12 +373,15 @@ export async function POST(
 
     if (body.action === 'amen_pin') {
       const pinId = String(body.pinId || '');
-      const { data: existing } = await admin
+      const { data: existing, error: readErr } = await admin
         .from('room_pins')
         .select('amen_count')
         .eq('id', pinId)
         .eq('room_id', roomId)
         .maybeSingle();
+      if (readErr) {
+        return NextResponse.json({ error: readErr.message }, { status: 500 });
+      }
       if (!existing) {
         return NextResponse.json({ error: 'pin_not_found' }, { status: 404 });
       }
@@ -388,12 +403,15 @@ export async function POST(
 
     if (body.action === 'toggle_answered') {
       const pinId = String(body.pinId || '');
-      const { data: existing } = await admin
+      const { data: existing, error: readErr } = await admin
         .from('room_pins')
         .select('is_answered')
         .eq('id', pinId)
         .eq('room_id', roomId)
         .maybeSingle();
+      if (readErr) {
+        return NextResponse.json({ error: readErr.message }, { status: 500 });
+      }
       if (!existing) {
         return NextResponse.json({ error: 'pin_not_found' }, { status: 404 });
       }

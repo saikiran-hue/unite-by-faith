@@ -146,7 +146,11 @@ export async function loadReplyParents(
       .select('id, sender_id, content, deleted_at')
       .in('id', missing)
       .eq('room_id', roomId);
-    if (error) console.error('reply parents read failed', error.message);
+    // A failed read throws (the GET answers 500): a reply must not lose its quote silently.
+    if (error) {
+      console.error('reply parents read failed', error.message);
+      throw new Error(error.message);
+    }
     for (const p of (data || []) as Parent[]) parents.set(p.id, p);
   }
   return parents;

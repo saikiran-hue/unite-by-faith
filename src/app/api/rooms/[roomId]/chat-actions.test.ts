@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { duoMemberJoins, fetchReplyParent, handleChatAction, loadReads } from './chat-actions';
+import { duoMemberJoins, fetchReplyParent, handleChatAction, loadReads, loadReplyParents } from './chat-actions';
 
 const ROOM = 'room-1';
 const ME = 'me';
@@ -13,11 +13,13 @@ type Stub = {
   rows?: unknown[];
   /** An error for maybeSingle reads. */
   readError?: { message: string } | null;
+  /** An error for plain list reads. */
+  listError?: { message: string } | null;
 };
 type Call = [string, ...unknown[]];
 
 /** Minimal chainable admin stub: every filter returns the chain; single reads resolve `row`, list reads `rows`, updates `updated`. */
-function stub({ row = null, updated = [], rpc = 'ok', rows = [], readError = null }: Stub) {
+function stub({ row = null, updated = [], rpc = 'ok', rows = [], readError = null, listError = null }: Stub) {
   const rpcFn = vi.fn(async () => ({ data: rpc, error: null }));
   const chain: Record<string, unknown> = {};
   const calls: Call[] = [];
@@ -35,7 +37,7 @@ function stub({ row = null, updated = [], rpc = 'ok', rows = [], readError = nul
   };
   chain.maybeSingle = async () => ({ data: readError ? null : row, error: readError });
   chain.then = (res: (v: unknown) => unknown) =>
-    res({ data: updating ? updated : rows, error: null });
+    res(listError ? { data: null, error: listError } : { data: updating ? updated : rows, error: null });
   const admin = { from: chain.from, rpc: rpcFn };
   return { admin: admin as never, rpcFn, calls };
 }
@@ -178,6 +180,23 @@ describe('fetchReplyParent', () => {
     expect(await fetchReplyParent(s.admin, ROOM, ID)).toEqual({
       ok: false, status: 400, error: 'reply_target_invalid',
     });
+  });
+});
+
+describe('loadReplyParents', () => {
+  const reply = { id: 'm2', sender_id: 'u1', content: 'yes', deleted_at: null, reply_to_id: 'm1' };
+
+  it('fetches a quoted parent older than the loaded window', async () => {
+    const parent = { id: 'm1', sender_id: 'u2', content: 'older', deleted_at: null };
+    const s = stub({ rows: [parent] });
+    expect((await loadReplyParents(s.admin, ROOM, [reply])).get('m1')).toEqual(parent);
+  });
+
+  it('a failed parent read throws instead of dropping the quote', async () => {
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const s = stub({ listError: { message: 'connection reset' } });
+    await expect(loadReplyParents(s.admin, ROOM, [reply])).rejects.toThrow('connection reset');
+    quiet.mockRestore();
   });
 });
 
