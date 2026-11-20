@@ -24,6 +24,10 @@ export interface MatchPerson {
   tzOffsetMin: number;
   meetMode: MeetMode;
   maxDistanceKm: number;
+  languages: string[];
+  /** Scoring only: never sent to the browser. */
+  ageMin: number | null;
+  ageMax: number | null;
   /** Personal topics with their embeddings; absent or empty when the member has none. */
   topics?: PersonalTopic[];
 }
@@ -32,7 +36,7 @@ export interface MatchWeights {
   total: { faith: number; interests: number; life: number };
   faith: { tags: number; tradition: number; stage: number };
   interests: { hobbies: number; tastes: number; skills: number };
-  life: { stage: number; availability: number; place: number; age: number };
+  life: { stage: number; availability: number; place: number; age: number; language?: number };
   pod: { min: number; mean: number; anchor: number };
   neighborMin: number;
   relatedCap: number;
@@ -173,18 +177,30 @@ interface Place {
 function placeScore(a: MatchPerson, b: MatchPerson, ctx: ScoreContext): Place {
   const km = haversineKm(a, b);
   const limit = Math.min(a.maxDistanceKm, b.maxDistanceKm);
-  const inPersonOk = a.meetMode !== 'online' && b.meetMode !== 'online';
-  const within = km <= limit + 1e-6;
-  if (a.cityId === b.cityId) return { score: 1, inPerson: inPersonOk, km };
-  if (inPersonOk && within) {
-    return { score: limit > 0 ? clamp01(1 - km / limit) : 0, inPerson: true, km };
+  const inPersonWorks = a.meetMode !== 'online' && b.meetMode !== 'online' && km <= limit + 1e-6;
+  const onlineWorks = a.meetMode !== 'in_person' && b.meetMode !== 'in_person';
+  if (inPersonWorks) {
+    const sameCity = a.cityId === b.cityId;
+    return { score: sameCity ? 1 : limit > 0 ? clamp01(1 - km / limit) : 0, inPerson: true, km };
   }
-  const gap = Math.abs(a.tzOffsetMin - b.tzOffsetMin);
-  return { score: clamp01(1 - gap / ctx.weights.onlineTzMaxMin), inPerson: false, km };
+  if (onlineWorks) {
+    const gap = Math.abs(a.tzOffsetMin - b.tzOffsetMin);
+    return { score: clamp01(1 - gap / ctx.weights.onlineTzMaxMin), inPerson: false, km };
+  }
+  return { score: 0, inPerson: false, km };
 }
 
-function ageScore(a: number, b: number): number {
-  return clamp01(1 - Math.abs(a - b) / 10);
+const inRange = (age: number, min: number, max: number) => age >= min && age <= max;
+
+function ageScore(a: MatchPerson, b: MatchPerson): number {
+  if (a.ageMin === null || a.ageMax === null || b.ageMin === null || b.ageMax === null) return 0;
+  if (!inRange(a.age, b.ageMin, b.ageMax) || !inRange(b.age, a.ageMin, a.ageMax)) return 0;
+  return clamp01(1 - Math.abs(a.age - b.age) / 10);
+}
+
+function languageScore(a: string[], b: string[]): number {
+  const sb = new Set(b);
+  return a.some((l) => sb.has(l)) ? 1 : 0;
 }
 
 const byCategory = (picks: TagPick[], c: PillarCategory) => picks.filter((p) => p.category === c);
@@ -236,7 +252,7 @@ function buildReasons(
   }
   const slots = sharedSlots(a.availability, b.availability);
   if (slots.length > 0) reasons.push({ kind: 'life', detail: 'availability', value: slots.join(',') });
-  if (a.cityId === b.cityId) {
+  if (place.inPerson && a.cityId === b.cityId) {
     reasons.push({ kind: 'life', detail: 'same_city', value: a.cityName });
   } else if (place.inPerson) {
     reasons.push({ kind: 'life', detail: 'distance', value: String(Math.round(place.km)) });
@@ -268,12 +284,13 @@ export function scorePair(a: MatchPerson, b: MatchPerson, ctx: ScoreContext): Pa
     [w.life.stage, lifeStageScore(a.lifeStage, b.lifeStage)],
     [w.life.availability, availabilityScore(a.availability, b.availability)],
     [w.life.place, place.score],
-    [w.life.age, ageScore(a.age, b.age)],
+    [w.life.age, ageScore(a, b)],
+    [w.life.language ?? 0, languageScore(a.languages, b.languages)],
   ]) ?? 0;
 
   const total = w.total.faith * faith + w.total.interests * interests + w.total.life * life;
   return {
-    score: Math.round(100 * total),
+    score: Math.max(1, Math.round(100 * total)),
     breakdown: {
       faith: Math.round(100 * faith),
       interests: Math.round(100 * interests),
@@ -301,5 +318,5 @@ export function scorePod(viewer: MatchPerson, members: MatchPerson[], anchorTags
   const total = combinePod(pairs.map((p) => p.score / 100), anchor, ctx.weights.pod);
   // Bars show the whole group (owner decision): mean of every member's breakdown. Reasons stay the best member's.
   const avg = (k: keyof PairScore['breakdown']) => Math.round(pairs.reduce((s, p) => s + p.breakdown[k], 0) / pairs.length);
-  return { ...best, score: Math.round(100 * total), breakdown: { faith: avg('faith'), interests: avg('interests'), lifeFit: avg('lifeFit') } };
+  return { ...best, score: Math.max(1, Math.round(100 * total)), breakdown: { faith: avg('faith'), interests: avg('interests'), lifeFit: avg('lifeFit') } };
 }

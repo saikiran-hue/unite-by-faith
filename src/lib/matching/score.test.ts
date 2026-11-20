@@ -66,6 +66,9 @@ const person = (o: Partial<MatchPerson> = {}): MatchPerson => ({
   tzOffsetMin: 0,
   meetMode: 'in_person',
   maxDistanceKm: 25,
+  languages: ['en'],
+  ageMin: 18,
+  ageMax: 99,
   ...o,
 });
 
@@ -199,6 +202,55 @@ describe('scorePair', () => {
     const b = person({ meetMode: 'online', cityId: 2, tzOffsetMin: 600, tags: [], faithStage: null, traditionId: null });
     const r = scorePair(a, b, ctx());
     expect(r.breakdown.lifeFit).toBe(Math.round(100 * (0.35 + 0.35 + 0 + 0.15)));
+  });
+});
+
+describe('soft rules', () => {
+  const life = (a: MatchPerson, b: MatchPerson, c: ScoreContext = ctx()) => scorePair(a, b, c).breakdown.lifeFit;
+  const far = { cityId: 2, cityName: 'London', lat: 51.5, lng: -0.13 }; // ~270 km from Leeds
+  const noPlace = Math.round(100 * (0.35 + 0.35 + 0 + 0.15)); // place 0, age 1, language weightless in v1
+  it('place table: same city, in-person-only vs online-only -> place 0, no same_city reason', () => {
+    const a = person();
+    const b = person({ id: 'q', meetMode: 'online' });
+    expect(life(a, b)).toBe(noPlace);
+    expect(scorePair(a, b, ctx()).reasons.some((r) => r.kind === 'life' && r.detail === 'same_city')).toBe(false);
+  });
+  it('place table: in-person-only beyond the limit vs both -> place 0', () => {
+    const a = person();
+    const b = person({ id: 'q', meetMode: 'both', ...far });
+    expect(life(a, b)).toBe(noPlace);
+    expect(scorePair(a, b, ctx()).reasons.some((r) => r.kind === 'life' && r.detail === 'distance')).toBe(false);
+  });
+  it('place table: both allow online, different cities -> time-zone score (as today)', () => {
+    expect(life(person({ meetMode: 'both' }), person({ id: 'q', meetMode: 'both', ...far }))).toBe(100);
+  });
+  it('outside either age range -> age part 0, never higher than inside', () => {
+    const inside = life(person(), person({ id: 'q', age: 32 }));
+    const outside = life(person({ ageMin: 18, ageMax: 30 }), person({ id: 'q', age: 32 }));
+    expect(inside).toBe(Math.round(100 * (0.85 + 0.15 * 0.8)));
+    expect(outside).toBe(85);
+  });
+  it('missing age range scores the age part 0', () => {
+    expect(life(person({ ageMin: null }), person({ id: 'q' }))).toBe(85);
+    expect(life(person(), person({ id: 'q', ageMax: null }))).toBe(85);
+  });
+  it('language part is 0 without a shared language and is weightless until weights v2', () => {
+    const v2 = ctx({ weights: { ...weights, version: 2, life: { ...weights.life, language: 0.15 } } });
+    const shared = life(person(), person({ id: 'q' }), v2);
+    const none = life(person(), person({ id: 'q', languages: ['hi'] }), v2);
+    expect(shared).toBe(100);
+    expect(none).toBe(Math.round(100 / 1.15));
+    expect(life(person(), person({ id: 'q', languages: ['hi'] }))).toBe(life(person(), person({ id: 'q' })));
+  });
+  it('shown score is at least 1', () => {
+    const zero = ctx({ weights: { ...weights, total: { faith: 0, interests: 1, life: 0 } } });
+    const r = scorePair(person({ tags: [pick('chess')] }), person({ id: 'q', tags: [pick('baking')] }), zero);
+    expect(r.score).toBe(1);
+  });
+  it('a pod score is at least 1', () => {
+    const zero = ctx({ weights: { ...weights, total: { faith: 0, interests: 1, life: 0 }, pod: { min: 0, mean: 1, anchor: 0 } } });
+    const r = scorePod(person({ tags: [pick('chess')] }), [person({ id: 'q', tags: [pick('baking')] })], [], zero);
+    expect(r.score).toBe(1);
   });
 });
 

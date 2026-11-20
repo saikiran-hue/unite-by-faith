@@ -115,5 +115,8 @@ function person(id: string, tags: TagPick[]): MatchPerson {
     tzOffsetMin: 330,
     meetMode: 'both',
     maxDistanceKm: 25,
+    languages: ['en'],
+    ageMin: 18,
+    ageMax: 99,
   };
 }

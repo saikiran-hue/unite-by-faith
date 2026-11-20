@@ -50,6 +50,8 @@ interface PrivateRow {
   birth_date: string | null;
   gender: string | null;
   max_distance_km: number | null;
+  age_min: number | null;
+  age_max: number | null;
 }
 interface CityRow {
   id: number;
@@ -168,7 +170,7 @@ export async function loadPeople(admin: SupabaseClient, ids: string[]): Promise<
     fetchChunked<PrivateRow, string>(ids, (c, a, b) =>
       admin
         .from('profile_private')
-        .select('user_id, birth_date, gender, max_distance_km')
+        .select('user_id, birth_date, gender, max_distance_km, age_min, age_max')
         .in('user_id', c)
         .order('user_id')
         .range(a, b) as never,
@@ -290,6 +292,9 @@ export async function loadPeople(admin: SupabaseClient, ids: string[]): Promise<
         tzOffsetMin: tzOffsetMinutes(city.timezone, today),
         meetMode: p.meet_mode,
         maxDistanceKm: priv.max_distance_km ?? 25,
+        languages,
+        ageMin: priv.age_min,
+        ageMax: priv.age_max,
         topics: topicsByUser.get(p.id) ?? [],
       },
       // Explicit allow-list: never spread the rows above.

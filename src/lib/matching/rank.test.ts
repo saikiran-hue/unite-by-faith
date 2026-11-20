@@ -32,6 +32,9 @@ const person = (id: string, slugs: string[]): MatchPerson => ({
   tzOffsetMin: 330,
   meetMode: 'both',
   maxDistanceKm: 25,
+  languages: ['en'],
+  ageMin: 18,
+  ageMax: 99,
 });
 
 const complete = {
