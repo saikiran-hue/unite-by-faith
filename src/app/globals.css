@@ -481,9 +481,9 @@ html:has(.ubf .tabbar) { scroll-padding-bottom: 96px; }
 .ubf .create-row .tile { width: 44px; height: 44px; background: var(--u-raised); box-shadow: var(--u-sh-1); }
 .ubf .create-row b { display: block; font-size: 15px; font-weight: 700; }
 .ubf .create-row small { display: block; font-size: 13px; color: var(--u-mute); }
-.ubf .verse-card { position: relative; overflow: hidden; isolation: isolate; padding: 18px 18px 72px; background: #1c1712; color: #fff; }
+.ubf .verse-card { position: relative; overflow: hidden; isolation: isolate; padding: 18px 18px 20px; background: #1c1712; color: #fff; }
 .ubf .verse-card::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(10,8,6,.55) 0%, rgba(10,8,6,.62) 50%, rgba(10,8,6,.8) 100%); }
-.ubf .vc-bg { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; object-position: center bottom; }
+.ubf .vc-bg { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; object-position: center; }
 .ubf .vc-label { margin: 0 0 10px; font-size: 13px; font-weight: 600; letter-spacing: .02em; }
 .ubf .verse-card figure { margin: 0; }
 .ubf .vc-ref { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
@@ -736,6 +736,7 @@ html:has(.ubf .ob-bar) { scroll-padding-bottom: 160px; }
   .ubf .home-panel > * { grid-column: 1; }
   .ubf .home-panel > .greet, .ubf .home-panel > .verse-card { grid-column: 1 / -1; }
   .ubf .home-panel > .recent-card { grid-column: 2; grid-row: 3 / -1; align-self: start; }
+  .ubf .verse-card { padding: 20px 24px 24px; }
   .ubf .vc-text p { font-size: 24px; max-width: 40ch; }
   .ubf .app .results-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ubf .narrow-panel { max-width: 760px; }
