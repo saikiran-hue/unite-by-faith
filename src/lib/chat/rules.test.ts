@@ -208,6 +208,12 @@ describe('snippet', () => {
     expect(snippet(`${'a'.repeat(79)}🙏🙏`)).toBe(`${'a'.repeat(79)}🙏…`);
   });
 
+  it('keeps a multi-code-point emoji whole at the limit', () => {
+    // ❤️ is U+2764 U+FE0F; the family is three people joined by ZWJ.
+    expect(snippet(`${'a'.repeat(79)}❤️!`)).toBe(`${'a'.repeat(79)}❤️…`);
+    expect(snippet(`${'a'.repeat(79)}👨‍👩‍👧!`)).toBe(`${'a'.repeat(79)}👨‍👩‍👧…`);
+  });
+
   it('drops a trailing space before the ellipsis', () => {
     expect(snippet(`${'a'.repeat(79)} bcd`)).toBe(`${'a'.repeat(79)}…`);
   });

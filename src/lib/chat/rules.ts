@@ -64,8 +64,16 @@ export function rpcResult(code: string): Check {
   }
 }
 
-/** One line of at most `max` characters (code points, so an emoji is never split) plus "…". */
+// Grapheme clusters keep ❤️ (two code points) and ZWJ sequences whole; code points where
+// Intl.Segmenter is missing.
+const graphemes =
+  typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function'
+    ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
+    : null;
+
+/** One line of at most `max` characters (grapheme clusters, so an emoji is never split) plus "…". */
 export function snippet(content: string, max = 80): string {
-  const chars = Array.from(content.replace(/\s+/g, ' ').trim());
+  const line = content.replace(/\s+/g, ' ').trim();
+  const chars = graphemes ? Array.from(graphemes.segment(line), (g) => g.segment) : Array.from(line);
   return chars.length > max ? `${chars.slice(0, max).join('').trimEnd()}…` : chars.join('');
 }
