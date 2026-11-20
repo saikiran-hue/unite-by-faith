@@ -178,7 +178,7 @@ it('counts down to the next local midnight', () => {
   - `export const HOME_PHOTOS = { verse: '/images/home/verse-sky.jpg' }` from `src/lib/home-photos.ts`. Task 3 adds `group`.
   - `export function VerseCard({ verse }: { verse: Verse | null })`.
 
-- [ ] **Step 1: Download the verse photo.** This is the app's existing `PHOTOS.hero`.
+- [ ] **Step 1: Download the verse photo.** This is the sky-only top crop of the app's existing `PHOTOS.hero` (`w=2400&h=520&fit=crop&crop=top&q=72`; ruling R10, 2026-11-20: no cross in the card).
 
 ```bash
 mkdir -p public/images/home
@@ -212,7 +212,7 @@ ls -l public/images/home/verse-sky.jpg   # expect under 300 KB; lower q until it
   - `.vc-bg` (`z-index: -2`) covers the card. The shade (`::before`, `z-index: -1`) covers the whole card: `linear-gradient(180deg, rgba(10,8,6,.55) 0%, rgba(10,8,6,.62) 50%, rgba(10,8,6,.8) 100%)`, so the top label is covered too.
   - Label 13px/600, reference 16px/700, verse in `--font-verse` at 20px with line-height 1.45.
   - Height comes from content; there is no `min-height`.
-  - Crop the photo so the cross sits low in the card and never under the verse text: `object-position: center bottom`, plus bottom padding of up to 72px on phones as the band where the cross shows. On a 360×640 phone the top of the match tiles must still show with the longest verse.
+  - The photo is sky only (R10), so there is no cross band: `object-position: center`, padding `18px 18px 20px` (desktop `20px 24px 24px`). On a 360×640 phone the top of the match tiles must still show with the longest verse.
   - At the desktop breakpoint (`@media (min-width: 1024px)`):
     - the verse text is 24px with `max-width: 40ch`;
     - rewrite `.home-panel` with five explicit rows, `grid-template-rows: auto auto auto auto 1fr`;

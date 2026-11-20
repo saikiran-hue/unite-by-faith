@@ -45,7 +45,7 @@ This is Part 1 of two. Part 2 (Match tab: auto-search, loading screen, show ever
   - Rejected: Pexels 8817491, because it shows a pastor in a stole praying over a woman.
   - Part 1 does not wait for these photos: an unapproved gender gets the fallback.
 - **Group photo:** Pexels 8111273 (four friends talking at a table, juice and snacks). At phone tile width at least 3 of the 4 people must stay visible, so set the crop focus near the centre.
-- **Verse background:** the app's existing cross-on-a-hill photo (`PHOTOS.hero`), positioned so the cross sits low and the text never lies across it. One photo every day; no rotation.
+- **Verse background:** the sky-only top crop of the app's existing cross-on-a-hill photo (`PHOTOS.hero`), so no cross sits behind the text at any screen size. Changed 2026-11-20 (night decision, advisor): in the browser the cross landed behind the verse on phones and cropped to dark rock on desktop. One photo every day; no rotation.
 - **Shade colours keep the brand rule:** a black shade on the 1v1 photo and a dark green (`#052e12`) shade on the Group photo. The Group icon circle keeps the green gradient.
 - **Disabled state** (fewer than 3 habits): the tiles keep their photos, shown greyscale and dimmed, and are not clickable. The existing "Pick at least 3 habits" note stays below them.
 - **Verse text is never typed by hand.**
