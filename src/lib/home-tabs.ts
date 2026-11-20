@@ -17,6 +17,8 @@ export interface RecentChat {
   pod: FellowshipPod | null;
   preview: string | null;
   at: string | null;
+  /** Messages from others since the viewer last read the room. */
+  unread: number;
 }
 
 /** Message text without the leading emoji and "Shared Prayer Request:" wrapper the server adds. */
@@ -30,6 +32,7 @@ export function cleanText(content: string): string {
 
 function previewOf(m: LastMessage | undefined, meId: string): string | null {
   if (!m) return null;
+  if (m.deleted_at) return `${m.sender_id === meId ? 'You: ' : ''}This message was deleted`;
   const text = cleanText(m.content);
   const label =
     m.message_type === 'prayer_request'
@@ -47,7 +50,8 @@ export function recentChats(
   duoChats: DuoChat[],
   pods: FellowshipPod[],
   lastMessages: Record<string, LastMessage>,
-  meId: string
+  meId: string,
+  unread: Record<string, number> = {}
 ): RecentChat[] {
   const all: RecentChat[] = [
     ...duoChats.map((d) => ({
@@ -58,6 +62,7 @@ export function recentChats(
       pod: null,
       preview: previewOf(lastMessages[d.chat_room_id], meId),
       at: lastMessages[d.chat_room_id]?.created_at ?? null,
+      unread: unread[d.chat_room_id] ?? 0,
     })),
     ...pods.map((p) => ({
       roomId: p.chat_room_id,
@@ -67,6 +72,7 @@ export function recentChats(
       pod: p,
       preview: previewOf(lastMessages[p.chat_room_id], meId),
       at: lastMessages[p.chat_room_id]?.created_at ?? null,
+      unread: unread[p.chat_room_id] ?? 0,
     })),
   ];
   return all.sort((a, b) => {

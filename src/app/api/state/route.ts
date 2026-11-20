@@ -218,6 +218,16 @@ export async function GET() {
       }
     }
 
+    // Unread counts per room (service-role function). A failure leaves `unread` out so the hook keeps its last value.
+    let unread: Record<string, number> | undefined;
+    const { data: unreadRows, error: unreadError } = await admin.rpc('unread_counts', { p_user: userId });
+    if (unreadError) {
+      console.error('unread counts read failed', unreadError.message);
+    } else {
+      unread = {};
+      for (const r of (unreadRows ?? []) as { room_id: string; unread: number }[]) unread[r.room_id] = r.unread;
+    }
+
     return NextResponse.json({
       currentUser,
       taxonomyTags,
@@ -226,6 +236,7 @@ export async function GET() {
       joinedPods,
       duoChats,
       lastMessages,
+      unread,
     });
   } catch (err) {
     return NextResponse.json(

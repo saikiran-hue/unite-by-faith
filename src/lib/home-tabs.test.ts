@@ -189,3 +189,33 @@ describe('relTime calendar edges', () => {
     expect(relTime(new Date(2026, 10, 20, 15, 1).toISOString(), now)).toMatch(/\d{1,2}:\d{2}\s?(AM|PM)/);
   });
 });
+
+describe('recentChats unread and deleted', () => {
+  const meId = 'user-me';
+  const duo = { chat_room_id: 'r1', partner: { full_name: 'Alice', avatar_url: null } } as unknown as DuoChat;
+  const pod = { chat_room_id: 'r2', title: 'Group' } as FellowshipPod;
+  const msg = (over: Partial<LastMessage>): LastMessage =>
+    ({
+      content: 'hi',
+      created_at: '2026-11-20T10:00:00.000Z',
+      sender_id: 'user-other',
+      message_type: 'text',
+      deleted_at: null,
+      ...over,
+    }) as LastMessage;
+
+  it('copies unread per room and defaults to 0', () => {
+    const r = recentChats([duo], [pod], {}, meId, { r1: 3 });
+    expect(r.find((c) => c.roomId === 'r1')?.unread).toBe(3);
+    expect(r.find((c) => c.roomId === 'r2')?.unread).toBe(0);
+    expect(recentChats([duo], [], {}, meId)[0].unread).toBe(0);
+  });
+
+  it('previews a deleted last message, with You: when mine', () => {
+    const del = '2026-11-20T11:00:00.000Z';
+    const theirs = recentChats([duo], [], { r1: msg({ deleted_at: del, message_type: 'prayer_request' }) }, meId);
+    expect(theirs[0].preview).toBe('This message was deleted');
+    const mine = recentChats([duo], [], { r1: msg({ deleted_at: del, sender_id: meId }) }, meId);
+    expect(mine[0].preview).toBe('You: This message was deleted');
+  });
+});

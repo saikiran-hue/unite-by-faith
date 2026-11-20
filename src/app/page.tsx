@@ -82,6 +82,7 @@ function Home() {
     joinedPods,
     duoChats,
     lastMessages,
+    unread,
     tagMap,
     startingDuoId,
     actionError,
@@ -273,7 +274,8 @@ function Home() {
   // The gender rule never narrows group search, so it falls back to the generic message.
   const podEmptyCopy = emptyRule && emptyRule !== 'gender' ? EMPTY_BY_RULE[emptyRule] : undefined;
   const fresh = search?.status === 'done';
-  const chats = recentChats(duoChats, joinedPods, lastMessages, currentUser.id);
+  const chats = recentChats(duoChats, joinedPods, lastMessages, currentUser.id, unread);
+  const totalUnread = chats.reduce((n, c) => n + c.unread, 0);
   const shownChats = chatFilter === 'all' ? chats : chats.filter((c) => c.kind === chatFilter);
   const first = currentUser.full_name.split(' ')[0];
 
@@ -291,16 +293,24 @@ function Home() {
             )}
             <span className="grow crow">
               <span className="crow-top">
-                <b className="trunc">{c.name}</b>
+                <b className={`trunc${c.unread > 0 ? ' unread' : ''}`}>{c.name}</b>
                 {c.at && now && (
                   <time className="crow-time" dateTime={c.at}>
                     {relTime(c.at, now)}
                   </time>
                 )}
               </span>
-              <span className="crow-prev trunc">
-                <span className="crow-kind">{c.kind === 'duo' ? '1v1' : 'Group'}</span>
-                {c.preview ?? 'No messages yet. Say hello.'}
+              <span className="crow-bot">
+                <span className={`crow-prev trunc${c.unread > 0 ? ' unread' : ''}`}>
+                  <span className="crow-kind">{c.kind === 'duo' ? '1v1' : 'Group'}</span>
+                  {c.preview ?? 'No messages yet. Say hello.'}
+                </span>
+                {c.unread > 0 && (
+                  <span className={`ucount ${c.kind}`}>
+                    <span aria-hidden="true">{c.unread > 99 ? '99+' : c.unread}</span>
+                    <span className="sr">{c.unread} unread</span>
+                  </span>
+                )}
               </span>
             </span>
           </Link>
@@ -698,7 +708,15 @@ function Home() {
               onClick={() => setTab(t.id)}
             >
               <Icon name={t.icon} />
-              <span>{t.label}</span>
+              <span>
+                {t.label}
+                {t.id === 'chats' && totalUnread > 0 && <span className="sr">, {totalUnread > 99 ? '99+' : totalUnread} unread</span>}
+              </span>
+              {t.id === 'chats' && totalUnread > 0 && (
+                <span className="ucount tab" aria-hidden="true">
+                  {totalUnread > 99 ? '99+' : totalUnread}
+                </span>
+              )}
             </button>
           ))}
         </nav>

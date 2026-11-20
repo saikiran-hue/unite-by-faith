@@ -20,6 +20,7 @@ interface StatePayload {
   joinedPods?: FellowshipPod[];
   duoChats?: DuoChat[];
   lastMessages?: Record<string, LastMessage>;
+  unread?: Record<string, number>;
 }
 
 /** Fetches /api/state (matches scored against saved habits); null on failure. */
@@ -46,6 +47,7 @@ export function useAppState() {
   const [joinedPods, setJoinedPods] = useState<FellowshipPod[]>([]);
   const [duoChats, setDuoChats] = useState<DuoChat[]>([]);
   const [lastMessages, setLastMessages] = useState<Record<string, LastMessage>>({});
+  const [unread, setUnread] = useState<Record<string, number>>({});
 
   const [startingDuoId, setStartingDuoId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -59,6 +61,8 @@ export function useAppState() {
       setDuoChats(data.duoChats || []);
       // Left out when the preview read failed: keep the previews already shown.
       if (data.lastMessages) setLastMessages(data.lastMessages);
+      // Same for unread counts: left out when the count read failed.
+      if (data.unread) setUnread(data.unread);
     }
     setLoading(false);
     return Boolean(data);
@@ -130,6 +134,7 @@ export function useAppState() {
     joinedPods,
     duoChats,
     lastMessages,
+    unread,
     tagMap,
     userTagSet,
     startingDuoId,
