@@ -55,6 +55,20 @@ export function newestFromOthers(messages: { id: string; sender_id: string }[], 
   return null;
 }
 
+/** Other people with a message that was not in the previous load (none on the first load). */
+export function newSenders(
+  prevIds: ReadonlySet<string> | null,
+  messages: { id: string; sender_id: string }[],
+  meId: string | undefined
+): string[] {
+  if (!prevIds) return [];
+  const out = new Set<string>();
+  for (const m of messages) {
+    if (!prevIds.has(m.id) && m.sender_id !== meId) out.add(m.sender_id);
+  }
+  return [...out];
+}
+
 /** Runs fn at once, then at most once more when the window ends if it was called again meanwhile. */
 export function leadingThrottle(fn: () => void, ms: number) {
   let last = -Infinity;

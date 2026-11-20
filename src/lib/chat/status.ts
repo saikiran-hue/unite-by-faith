@@ -39,6 +39,15 @@ export function typingText(names: string[]): string | null {
   return 'Several people are typing…';
 }
 
+/**
+ * Who a typing event is from, as the room knows them: the participant's own name for that user id.
+ * The payload's name is never used, and an id that is not in the room gives null (drop the event).
+ */
+export function typerName(userId: unknown, participants: ReadonlyMap<string, string>): string | null {
+  if (typeof userId !== 'string') return null;
+  return participants.get(userId) || null;
+}
+
 /** Names of other people typing now: one per user (latest event's name), first-seen order. */
 export function activeTypers(events: TypingEvent[], meId: string, now: number): string[] {
   const latest = new Map<string, TypingEvent>();

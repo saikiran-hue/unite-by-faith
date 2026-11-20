@@ -24,6 +24,7 @@ import { useTyping } from '@/lib/chat/useTyping';
 import {
   leadingThrottle,
   newestFromOthers,
+  newSenders,
   reactionToSend,
   resolvePendingReply,
   withDaySeparators,
@@ -149,6 +150,18 @@ function FellowshipRoomContent() {
   // Newest message from someone else: undefined before the first load. markedRef: the one last marked read.
   const newestOtherRef = useRef<string | null | undefined>(undefined);
   const markedRef = useRef<string | null | undefined>(undefined);
+  // Message ids of the last load, to spot new messages (null before the first load).
+  const loadedIdsRef = useRef<ReadonlySet<string> | null>(null);
+
+  const typingPeople = useMemo(
+    () => participants.map((p) => ({ user_id: p.user_id, name: firstName(p.profile.full_name) })),
+    [participants]
+  );
+  const { typingNames, notifyTyping, clearTyper } = useTyping(
+    roomId,
+    currentUser?.id ?? '',
+    typingPeople
+  );
 
   const markRead = useMemo(
     () =>
@@ -190,6 +203,10 @@ function FellowshipRoomContent() {
           setDuoSimilarityScore(data.duoSimilarityScore ?? null);
           setLoadError(false);
 
+          // Someone whose new message just arrived has stopped typing it.
+          for (const id of newSenders(loadedIdsRef.current, list, me)) clearTyper(id);
+          loadedIdsRef.current = new Set(list.map((m) => m.id));
+
           // Read state: on the first load (markedRef still undefined), and whenever someone else's
           // newer message arrives, while the tab is visible.
           if (meIdRef.current !== me) markedRef.current = undefined;
@@ -209,7 +226,7 @@ function FellowshipRoomContent() {
         if (!silent) setLoading(false);
       }
     },
-    [roomId, router, markRead]
+    [roomId, router, markRead, clearTyper]
   );
 
   useEffect(() => {
@@ -299,11 +316,6 @@ function FellowshipRoomContent() {
       markRead.cancel();
     };
   }, [markRead]);
-
-  const { typingNames, notifyTyping } = useTyping(roomId, {
-    id: currentUser?.id ?? '',
-    name: firstName(currentUser?.full_name),
-  });
 
   useEffect(() => {
     // Scroll only the message list, never the page.

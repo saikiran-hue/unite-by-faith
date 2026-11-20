@@ -4,6 +4,7 @@ import {
   leadingThrottle,
   messageActions,
   newestFromOthers,
+  newSenders,
   reactionToSend,
   resolvePendingReply,
   withDaySeparators,
@@ -180,5 +181,23 @@ describe('resolvePendingReply', () => {
 
   it('passes a message that is not a reply through unchanged', () => {
     expect(resolvePendingReply({}, [])).toEqual({ replyToId: undefined, quote: undefined });
+  });
+});
+
+describe('newSenders', () => {
+  const list = [
+    { id: 'a', sender_id: 'u1' },
+    { id: 'b', sender_id: ME },
+    { id: 'c', sender_id: 'u2' },
+    { id: 'd', sender_id: 'u2' },
+  ];
+
+  it('names other people with a message that was not loaded before', () => {
+    expect(newSenders(new Set(['a', 'b']), list, ME)).toEqual(['u2']);
+  });
+
+  it('finds nobody on the first load, for my own messages, or when nothing is new', () => {
+    expect(newSenders(null, list, ME)).toEqual([]);
+    expect(newSenders(new Set(['a', 'c', 'd']), list, ME)).toEqual([]);
   });
 });

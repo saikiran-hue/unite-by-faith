@@ -8,6 +8,7 @@ import {
   dayLabel,
   isSeen,
   shouldSendTyping,
+  typerName,
   typingText,
   type TypingEvent,
 } from './status';
@@ -133,5 +134,23 @@ describe('shouldSendTyping', () => {
     expect(shouldSendTyping(null, 0)).toBe(true);
     expect(shouldSendTyping(1000, 3999)).toBe(false);
     expect(shouldSendTyping(1000, 4000)).toBe(true);
+  });
+});
+
+describe('typerName', () => {
+  const room = new Map([
+    ['u1', 'Hannah'],
+    ['u2', 'Daniel'],
+  ]);
+
+  it('names a participant by the room’s list, not by the payload', () => {
+    expect(typerName('u1', room)).toBe('Hannah');
+  });
+
+  it('drops events from anyone outside the room or with no usable id', () => {
+    expect(typerName('stranger', room)).toBeNull();
+    expect(typerName(undefined, room)).toBeNull();
+    expect(typerName(42, room)).toBeNull();
+    expect(typerName('u1', new Map([['u1', '']]))).toBeNull();
   });
 });
