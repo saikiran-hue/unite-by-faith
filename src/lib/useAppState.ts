@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   CurrentUser,
@@ -51,6 +51,8 @@ export function useAppState() {
   const [duoChats, setDuoChats] = useState<DuoChat[]>([]);
   const [lastMessages, setLastMessages] = useState<Record<string, LastMessage>>({});
   const [unread, setUnread] = useState<Record<string, number>>({});
+  // Whose unread counts are shown: another user's must never be kept as a fallback.
+  const unreadOwnerRef = useRef<string | null>(null);
 
   const [startingDuoId, setStartingDuoId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -64,8 +66,12 @@ export function useAppState() {
       setDuoChats(data.duoChats || []);
       // Left out when the preview read failed: keep the previews already shown.
       if (data.lastMessages) setLastMessages(data.lastMessages);
-      // Same for unread counts: left out when the count read failed.
+      // Same for unread counts: left out when the count read failed. They are the viewer's own,
+      // so a different viewer (the demo switcher) starts from none instead.
+      const owner = data.currentUser?.id ?? null;
       if (data.unread) setUnread(data.unread);
+      else if (owner !== unreadOwnerRef.current) setUnread({});
+      unreadOwnerRef.current = owner;
     }
     setLoading(false);
     return Boolean(data);
