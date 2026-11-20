@@ -39,7 +39,7 @@
 
 ## Review Focus
 
-1. **Midnight while Home stays open.** The card shows the new day's verse once the page next refreshes its data, which happens on return to the tab. A reload never shows yesterday's verse. Pinned by Task 2 Step 4's midnight timer and the Task 1 `msToNextDay` test.
+1. **Midnight while Home stays open.** A timer set for the next local midnight swaps in the new day's verse, and returning to the tab re-checks the date (R7). A reload never shows yesterday's verse. Pinned by Task 2 Step 4's midnight timer and the Task 1 `msToNextDay` test.
 2. **Time zone.** The card uses the device's local calendar date, not UTC; a viewer in IST at 00:30 sees the new day. Pinned by Task 1's stubbed-getter test (it fails if `verseKey` reads UTC).
 3. **The longest verse at 320px width and at 200% zoom.** The card grows, never truncates and never overflows. Pinned by the Task 2 visual step using the longest entry.
 4. **A photo that is slow or fails to load.** The tile shows its solid ink or dark-green background, so the white text stays readable. Pinned by the Task 3 blocked-image check.
@@ -182,7 +182,7 @@ it('counts down to the next local midnight', () => {
 
 ```bash
 mkdir -p public/images/home
-curl -sSfL -o public/images/home/verse-sky.jpg "https://images.unsplash.com/photo-1528825539566-2bcb5882445c?w=1600&auto=format&fit=crop&q=72&fm=jpg"
+curl -sSfL -o public/images/home/verse-sky.jpg "https://images.unsplash.com/photo-1528825539566-2bcb5882445c?w=2400&h=520&fit=crop&crop=top&q=72&fm=jpg"
 ls -l public/images/home/verse-sky.jpg   # expect under 300 KB; lower q until it is
 ```
 
