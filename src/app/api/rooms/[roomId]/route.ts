@@ -6,8 +6,19 @@ import { isRoomMember } from '@/lib/rooms';
 import { PUBLIC_CARD_COLUMNS, TAXONOMY_COLUMNS } from '@/lib/taxonomy';
 import { readJsonObject } from '@/lib/request';
 import { buildContextualIcebreakers } from '@/lib/matching/engine';
+import { groupReactions, quoteFor } from '@/lib/chat/hydrate';
+import {
+  checkResponse,
+  fetchReplyParent,
+  handleChatAction,
+  loadReactions,
+  loadReads,
+  loadReplyParents,
+  trimContent,
+} from './chat-actions';
 import {
   ChatMessage,
+  MemberRead,
   RoomPin,
   TaxonomyTag,
   UserProfile,
@@ -88,6 +99,7 @@ export async function GET(
 
     let podDetails = null;
     let participantRows: { user_id: string; role: string }[] = [];
+    let memberJoins: { user_id: string; joined_at: string }[] = [];
     let duoSimilarityScore: number | null = null;
 
     if (room.room_type === 'pod_group') {
@@ -101,15 +113,16 @@ export async function GET(
         podDetails = pod;
         const { data: pmRows } = await admin
           .from('pod_members')
-          .select('user_id, role')
+          .select('user_id, role, joined_at')
           .eq('pod_id', pod.id)
           .order('joined_at', { ascending: true });
-        participantRows = pmRows || [];
+        participantRows = (pmRows || []).map((p) => ({ user_id: p.user_id, role: p.role }));
+        memberJoins = (pmRows || []).map((p) => ({ user_id: p.user_id, joined_at: p.joined_at }));
       }
     } else {
       const { data: duo } = await admin
         .from('duo_matches')
-        .select('user_a_id, user_b_id, similarity_score')
+        .select('user_a_id, user_b_id, similarity_score, created_at')
         .eq('chat_room_id', roomId)
         .single();
 
@@ -120,14 +133,27 @@ export async function GET(
           { user_id: duo.user_a_id, role: 'duo_partner' },
           { user_id: duo.user_b_id, role: 'duo_partner' },
         ];
+        memberJoins = [duo.user_a_id, duo.user_b_id].map((id) => ({
+          user_id: id,
+          joined_at: duo.created_at,
+        }));
       }
     }
+
+    // Quoted parents may be older than the loaded window; fetch them before the card list so
+    // their senders get names too.
+    const parents = await loadReplyParents(admin, roomId, messages);
+    const [reactionRows, reads] = await Promise.all([
+      loadReactions(admin, messages.map((m) => m.id as string)),
+      loadReads(admin, roomId, userId, memberJoins),
+    ]);
 
     // Public cards for participants, message senders and pin authors (a sender may have left).
     const cardIds = [
       ...new Set([
         ...participantRows.map((p) => p.user_id),
         ...messages.map((m) => m.sender_id as string),
+        ...[...parents.values()].map((p) => p.sender_id),
         ...pins.map((p) => p.author_id as string),
       ]),
     ];
@@ -148,6 +174,10 @@ export async function GET(
     const hydratedMessages: ChatMessage[] = messages.map((m) => ({
       ...m,
       sender: cardMap.get(m.sender_id),
+      reply_to: m.reply_to_id
+        ? quoteFor(parents.get(m.reply_to_id), (id) => cardMap.get(id)?.full_name ?? '')
+        : null,
+      reactions: groupReactions(reactionRows, m.id, userId),
     }));
 
     const hydratedPins: RoomPin[] = pins.map((pin) => {
@@ -175,6 +205,7 @@ export async function GET(
       participants,
       messages: hydratedMessages,
       pins: hydratedPins,
+      reads: reads as MemberRead[],
       contextualIcebreakers,
     });
   } catch (err) {
@@ -213,8 +244,11 @@ export async function POST(
       return NextResponse.json({ error: 'not_a_member' }, { status: 403 });
     }
 
+    const chatResponse = await handleChatAction(admin, roomId, userId, body);
+    if (chatResponse) return chatResponse;
+
     if (body.action === 'message') {
-      const content = String(body.content || '').trim();
+      const content = trimContent(body.content);
       // People post text, prayer requests and (from a Conversation Starter) icebreakers.
       // Milestones are written by the app only.
       const messageType = String(body.messageType ?? 'text');
@@ -229,6 +263,12 @@ export async function POST(
         );
       }
 
+      const replyToId = body.replyToId ? String(body.replyToId) : null;
+      if (replyToId) {
+        const check = await fetchReplyParent(admin, roomId, replyToId);
+        if (!check.ok) return checkResponse(check);
+      }
+
       const { data: msg, error } = await admin
         .from('chat_messages')
         .insert({
@@ -237,6 +277,7 @@ export async function POST(
           message_type: messageType,
           content,
           metadata: body.metadata || {},
+          reply_to_id: replyToId,
         })
         .select('*')
         .single();

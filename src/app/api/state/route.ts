@@ -204,7 +204,7 @@ export async function GET() {
     if (roomIds.length > 0) {
       const { data: rooms, error: lastError } = await admin
         .from('chat_rooms')
-        .select('id, chat_messages(room_id, sender_id, message_type, content, created_at)')
+        .select('id, chat_messages(room_id, sender_id, message_type, content, created_at, deleted_at)')
         .in('id', roomIds)
         .order('created_at', { referencedTable: 'chat_messages', ascending: false })
         .limit(1, { referencedTable: 'chat_messages' });
