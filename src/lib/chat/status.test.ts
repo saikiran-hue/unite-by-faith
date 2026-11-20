@@ -84,6 +84,11 @@ describe('dayLabel', () => {
     expect(dayLabel(new Date(2026, 10, 17, 12).toISOString(), now)).toBe('Tuesday');
     expect(dayLabel(new Date(2026, 9, 21, 12).toISOString(), now)).toBe('21 Oct');
   });
+
+  it('gives a later local day its date, never a second Today', () => {
+    expect(dayLabel(new Date(2026, 10, 21, 0, 5).toISOString(), now)).toBe('21 Nov');
+    expect(dayLabel(new Date(2026, 10, 20, 23, 59).toISOString(), now)).toBe('Today');
+  });
 });
 
 describe('dayKey', () => {

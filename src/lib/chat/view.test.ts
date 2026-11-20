@@ -100,6 +100,27 @@ describe('withDaySeparators', () => {
   it('returns nothing for no items', () => {
     expect(withDaySeparators([], () => '', now)).toEqual([]);
   });
+
+  it('never goes back a day: an older failed send stays under the current day, keys stay unique', () => {
+    const items = [
+      { id: 'a', at: iso(19, 9) },
+      { id: 'b', at: iso(20, 9) },
+      // A send that failed yesterday, still pending below today's messages.
+      { id: 'p', at: iso(19, 23) },
+      { id: 'c', at: iso(20, 10) },
+    ];
+    const rows = withDaySeparators(items, (i) => i.at, now);
+    expect(rows.map((r) => (r.kind === 'day' ? `[${r.label}]` : r.item.id))).toEqual([
+      '[Yesterday]',
+      'a',
+      '[Today]',
+      'b',
+      'p',
+      'c',
+    ]);
+    const keys = rows.flatMap((r) => (r.kind === 'day' ? [r.key] : []));
+    expect(new Set(keys).size).toBe(keys.length);
+  });
 });
 
 describe('newestFromOthers', () => {

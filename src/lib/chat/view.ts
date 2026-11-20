@@ -31,12 +31,20 @@ export function reactionToSend(
 
 export type DayRow<T> = { kind: 'day'; key: string; label: string } | { kind: 'item'; item: T };
 
-/** Items in order with a day separator before each new local day. */
+/**
+ * Items in order with a day separator before each new local day. Days never go backwards: an item
+ * older than one above it (a failed send from an earlier day below newer messages, a client clock
+ * behind the server's) stays under the current separator, so labels read in order and each day's
+ * key appears once.
+ */
 export function withDaySeparators<T>(items: T[], isoOf: (item: T) => string, now: Date): DayRow<T>[] {
   const rows: DayRow<T>[] = [];
   let last = '';
+  let latest = '';
   for (const item of items) {
-    const iso = isoOf(item);
+    const own = isoOf(item);
+    const iso = latest && Date.parse(own) < Date.parse(latest) ? latest : own;
+    latest = iso;
     const key = dayKey(iso);
     if (key !== last) {
       rows.push({ kind: 'day', key: `day-${key}`, label: dayLabel(iso, now) });

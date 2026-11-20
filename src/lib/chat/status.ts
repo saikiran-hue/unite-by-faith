@@ -1,5 +1,4 @@
 import type { MemberRead } from '@/types/database';
-import { daysAgo } from '@/lib/home-tabs';
 
 export const TYPING_SEND_MS = 3000;
 export const TYPING_TTL_MS = 5000;
@@ -14,13 +13,17 @@ export function isSeen(createdAt: string, others: MemberRead[]): boolean {
   return qualifying.every((m) => m.last_read_at !== null && Date.parse(m.last_read_at) >= created);
 }
 
+const midnight = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+
 /** Date-separator label: "Today", "Yesterday", a weekday within the week, else "12 Nov". */
 export function dayLabel(iso: string, now: Date): string {
   const d = new Date(iso);
-  const days = daysAgo(d, now);
+  // Signed, unlike daysAgo (Home's chat list): a later local day than `now` (clock skew, or `now`
+  // read before midnight) gets its date, not a second "Today".
+  const days = Math.round((midnight(now) - midnight(d)) / 86_400_000);
   if (days === 0) return 'Today';
   if (days === 1) return 'Yesterday';
-  if (days < 7) return d.toLocaleDateString('en-US', { weekday: 'long' });
+  if (days > 1 && days < 7) return d.toLocaleDateString('en-US', { weekday: 'long' });
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
