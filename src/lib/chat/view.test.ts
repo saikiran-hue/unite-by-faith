@@ -3,6 +3,7 @@ import { EDIT_WINDOW_MS } from './rules';
 import {
   applyReadMark,
   errorCopy,
+  isGone,
   leadingThrottle,
   mergeReads,
   messageActions,
@@ -297,6 +298,16 @@ describe('newSenders', () => {
   it('finds nobody on the first load, for my own messages, or when nothing is new', () => {
     expect(newSenders(null, list, ME)).toEqual([]);
     expect(newSenders(new Set(['a', 'c', 'd']), list, ME)).toEqual([]);
+  });
+});
+
+describe('isGone', () => {
+  it('is true only when the server says the message is deleted or not in this chat', () => {
+    expect(isGone({ error: 'message_deleted' })).toBe(true);
+    expect(isGone({ error: 'message_not_found' })).toBe(true);
+    expect(isGone({ error: 'edit_window_passed' })).toBe(false);
+    expect(isGone({ error: 'not_a_member' })).toBe(false);
+    expect(isGone({})).toBe(false);
   });
 });
 

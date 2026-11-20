@@ -137,6 +137,11 @@ const ERROR_COPY = new Map<string, string>([
 /** What a room POST came back with; status 0 when no answer came. */
 export type PostResult = { ok: boolean; status: number; error?: string };
 
+/** The server says the message is deleted or gone: the screen is behind, so reload it. */
+export function isGone(r: Pick<PostResult, 'error'>): boolean {
+  return r.error === 'message_deleted' || r.error === 'message_not_found';
+}
+
 /**
  * Copy for a room action that failed: what happened when the server said so, the caller's
  * connection hint when no answer came or the server failed (5xx).

@@ -24,6 +24,7 @@ import { useTyping } from '@/lib/chat/useTyping';
 import {
   applyReadMark,
   errorCopy,
+  isGone,
   leadingThrottle,
   mergeReads,
   newestFromOthers,
@@ -111,6 +112,10 @@ function FellowshipRoomContent() {
   );
   // Read state of the other members, for ticks.
   const [reads, setReads] = useState<MemberRead[]>([]);
+  const readsRef = useRef(reads);
+  useEffect(() => {
+    readsRef.current = reads;
+  }, [reads]);
   // Clock for day labels, taken at each load so render stays pure.
   const [now, setNow] = useState(() => Date.now());
 
@@ -129,7 +134,9 @@ function FellowshipRoomContent() {
   useEffect(() => {
     editingRef.current = editing;
   }, [editing]);
-  const [savingEdit, setSavingEdit] = useState(false);
+  // The edit session a save is out for: after Escape or a new edit, the composer is free again.
+  const [savingFor, setSavingFor] = useState<typeof editing>(null);
+  const savingEdit = savingFor !== null && savingFor === editing;
   const [editError, setEditError] = useState('');
   const [actionError, setActionError] = useState('');
 
@@ -333,25 +340,26 @@ function FellowshipRoomContent() {
         },
         (payload) => {
           // Another member's read mark turns ticks to seen; patched in, no reload. My own marks
-          // change nothing: `reads` lists only the others.
-          setReads((rs) => applyReadMark(rs, payload.new as { user_id?: unknown; last_read_at?: unknown }));
+          // change nothing: `reads` lists only the others. A member the last load didn't list
+          // (joined since, or no load yet) needs a reload to be listed.
+          const row = payload.new as { user_id?: unknown; last_read_at?: unknown };
+          if (row.user_id === meIdRef.current) return;
+          if (readsRef.current.some((r) => r.user_id === row.user_id)) {
+            setReads((rs) => applyReadMark(rs, row));
+          } else {
+            void fetchRoomData(true);
+          }
         }
       );
-    // Realtime does not replay events missed while the socket was down (a locked phone, a
-    // background tab): once the channel is back, reload.
-    let dropped = false;
+    // Realtime does not replay events from before a join: not those missed while the socket was
+    // down (a locked phone, a background tab), nor those between the first load and the first
+    // join. So every join reloads; fetchSeq drops a response older than one already shown.
     void supabase.auth.getSession().then(async ({ data }) => {
       if (closed) return;
       await supabase.realtime.setAuth(data.session?.access_token ?? null);
       if (closed) return;
       channel.subscribe((status) => {
-        if (closed) return;
-        if (status !== 'SUBSCRIBED') {
-          dropped = true;
-        } else if (dropped) {
-          dropped = false;
-          void fetchRoomData(true);
-        }
+        if (!closed && status === 'SUBSCRIBED') void fetchRoomData(true);
       });
     });
 
@@ -449,8 +457,9 @@ function FellowshipRoomContent() {
     : undefined;
 
   // The message being edited was deleted (another tab or device): end the edit and put the
-  // earlier draft back, so none of the deleted text stays in the box.
-  if (editing && !messages.some((m) => m.id === editing.id && !m.deleted_at)) {
+  // earlier draft back, so none of the deleted text stays in the box. Only a load that shows it
+  // deleted ends it (messages are soft-deleted); a message missing from a load proves nothing.
+  if (editing && messages.find((m) => m.id === editing.id)?.deleted_at) {
     setMessageText(editing.draft);
     setEditing(null);
     setEditError('');
@@ -498,7 +507,7 @@ function FellowshipRoomContent() {
       return;
     }
     const session = editing;
-    setSavingEdit(true);
+    setSavingFor(session);
     setEditError('');
     const r = await postAction({ action: 'edit_message', messageId: id, content: text });
     // Cancelled, or another edit or a reply started meanwhile: this result must not end or mark
@@ -510,8 +519,10 @@ function FellowshipRoomContent() {
     } else if (r.status !== 401) {
       if (editingRef.current === session) setEditError(errorCopy(r, EDIT_ERROR_DEFAULT));
       else setActionError(`Your edit wasn’t saved. ${errorCopy(r, 'Check your connection.')}`);
+      // Deleted elsewhere and the Realtime event missed: reload, so the bubble shows it and the edit ends.
+      if (isGone(r)) void fetchRoomData(true);
     }
-    setSavingEdit(false);
+    setSavingFor((s) => (s === session ? null : s));
   }
 
   function handleSend(e: React.FormEvent) {
@@ -545,10 +556,12 @@ function FellowshipRoomContent() {
     // Tapping my current reaction removes it.
     const r = await postAction({ action: 'react', messageId: m.id, emoji: reactionToSend(m.reactions, emoji) });
     if (r.ok) await fetchRoomData(true);
-    else
+    else {
       setActionError(
         errorCopy(r, 'Your reaction didn’t go through. Check your connection, then try again.')
       );
+      if (isGone(r)) void fetchRoomData(true);
+    }
   }
 
   async function copyMessage(m: ChatMessage) {
