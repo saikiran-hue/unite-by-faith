@@ -114,7 +114,7 @@ html[data-theme="dark"] { background: #0a0a0b; }
 .ubf .profile-btn { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 4px 12px 4px 4px; border-radius: 999px; background: var(--u-raised); border: 0; box-shadow: var(--u-sh-1); font-weight: 600; font-size: 14px; transition: transform .12s ease; }
 .ubf .profile-btn:active { transform: scale(.97); }
 .ubf .profile-btn .pname { display: none; }
-@media (max-width: 359px) { .ubf .brand span { display: none; } }
+@media (max-width: 359px) { .ubf .topbar .brand span { display: none; } }
 .ubf .avatar { border-radius: 50%; object-fit: cover; flex: none; background: var(--u-subtle); }
 .ubf .menu { position: absolute; right: 0; top: calc(100% + 8px); width: 252px; max-width: calc(100cqw - 24px); background: var(--u-raised); border-radius: 22px; box-shadow: var(--u-sh-2); padding: 8px; animation: ubf-pop .18s cubic-bezier(.2, .9, .3, 1.2); transform-origin: top right; }
 .ubf .menu-label { font-size: 12px; font-weight: 600; color: var(--u-mute); padding: 8px 10px 4px; }

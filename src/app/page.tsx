@@ -439,7 +439,7 @@ function Home() {
                 </span>
                 <span>
                   <b>Group Match</b>
-                  <small>Join a pod of 3{' '}to{' '}4</small>
+                  <small>Join a pod of 3{'\u00A0'}to{'\u00A0'}4</small>
                 </span>
               </button>
             </div>
