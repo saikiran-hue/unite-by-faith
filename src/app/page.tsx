@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { TaxonomyTag } from '@/types/database';
@@ -48,6 +48,14 @@ const TAB_ITEMS: { id: Tab; label: string; icon: IconName }[] = [
   { id: 'habits', label: 'Habits', icon: 'star' },
   { id: 'profile', label: 'Profile', icon: 'user' },
 ];
+
+/** The desktop breakpoint in globals.css: Home has room for more recent chats there. */
+const DESKTOP = '(min-width: 1024px)';
+function subscribeDesktop(onChange: () => void) {
+  const mq = window.matchMedia(DESKTOP);
+  mq.addEventListener('change', onChange);
+  return () => mq.removeEventListener('change', onChange);
+}
 
 /** GET /api/match: the ranked results, or why there are none (Life fit missing, signed out, failure). */
 async function fetchMatch(kind: Kind): Promise<MatchFetch> {
@@ -122,6 +130,9 @@ function Home() {
   const [chatFilter, setChatFilter] = useState<'all' | 'duo' | 'pod'>('all');
   const [now, setNow] = useState<Date | null>(null);
   const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
+  // The server and phones show 5 recent chats; desktop shows 8.
+  const desktop = useSyncExternalStore(subscribeDesktop, () => window.matchMedia(DESKTOP).matches, () => false);
+  const recentMax = desktop ? 8 : 5;
 
   // Chat times need the clock, which must not be read during render.
   useEffect(() => {
@@ -334,7 +345,7 @@ function Home() {
       <main className="wrap w-app app">
         <div className="app-body">
           {/* ---------------- Home ---------------- */}
-          <section hidden={tab !== 'home'} aria-labelledby="home-h" className="tabpanel">
+          <section hidden={tab !== 'home'} aria-labelledby="home-h" className="tabpanel home-panel">
             <div className="greet">
               <h1 className="h1" id="home-h">
                 Hi, {first}
@@ -394,19 +405,19 @@ function Home() {
               </button>
             )}
 
-            <section className="card" aria-labelledby="recent-h">
+            <section className="card recent-card" aria-labelledby="recent-h">
               <div className="list-head">
                 <h2 className="h3" id="recent-h">
                   Recent Messages
                 </h2>
-                {chats.length > 5 && (
+                {chats.length > recentMax && (
                   <button type="button" className="btn btn-text" onClick={() => setTab('chats')}>
                     See All
                   </button>
                 )}
               </div>
               {chats.length ? (
-                chatList(chats.slice(0, 5))
+                chatList(chats.slice(0, recentMax))
               ) : (
                 <Empty icon="chat" title="No Messages Yet" text="Tap 1v1 Match or Group Match to meet someone who shares your habits." />
               )}
@@ -583,7 +594,7 @@ function Home() {
           </section>
 
           {/* ---------------- Chats ---------------- */}
-          <section hidden={tab !== 'chats'} aria-labelledby="chats-h" className="tabpanel">
+          <section hidden={tab !== 'chats'} aria-labelledby="chats-h" className="tabpanel narrow-panel">
             <h1 className="h2" id="chats-h">
               Chats
             </h1>
@@ -642,7 +653,7 @@ function Home() {
           </section>
 
           {/* ---------------- Profile ---------------- */}
-          <section hidden={tab !== 'profile'} aria-labelledby="prof-h" className="tabpanel">
+          <section hidden={tab !== 'profile'} aria-labelledby="prof-h" className="tabpanel narrow-panel">
             <div className="card pad prof-card">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img className="avatar" src={currentUser.avatar_url} width={72} height={72} alt="" />

@@ -706,6 +706,34 @@ html:has(.ubf .ob-bar) { scroll-padding-bottom: 160px; }
 @container app (min-width: 1160px) {
   .ubf .chat-head { margin: 0 auto; }
 }
+/* App: desktop. The tab bar becomes a sticky sidebar beside a content column of up to 1200px. The
+   content column is the "app" container here, so panels lay out for its width. Phones and tablets
+   (below 1024px) keep the layout above unchanged. */
+@media (min-width: 1024px) {
+  .ubf .wrap.w-app { max-width: 1480px; }
+  .ubf .app { display: grid; grid-template-columns: 220px minmax(0, 1fr); column-gap: 20px; align-items: start; }
+  .ubf .app-body { container: app / inline-size; grid-column: 2; grid-row: 1; padding-bottom: 40px; }
+  html:has(.ubf .tabbar) { scroll-padding-bottom: 0; }
+  .ubf .tabbar { grid-column: 1; grid-row: 1; align-self: start; position: sticky; top: 16px; bottom: auto; grid-template-columns: minmax(0, 1fr); margin: 0; padding: 8px; border-top: 0; border-radius: var(--r-tile); background: var(--u-surface); }
+  .ubf .tabbar button { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 10px 14px; border-radius: 20px; font-size: 14px; }
+  .ubf .tabbar button svg.ic { width: 20px; height: 20px; }
+  .ubf .tabbar button:not([aria-current="page"]):hover { color: var(--u-ink); }
+  .ubf .ucount.tab { position: static; margin-left: auto; box-shadow: none; }
+  /* Loading and error states have no sidebar: keep them in the content column */
+  .ubf .wrap.w-app.stack { padding-left: 260px; }
+  /* Home: start actions on the left, Recent Messages on the right; the last row soaks up the card's extra height */
+  .ubf .home-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto auto auto 1fr; column-gap: 20px; }
+  .ubf .home-panel > * { grid-column: 1; }
+  .ubf .home-panel > .recent-card { grid-column: 2; grid-row: 1 / -1; align-self: start; }
+  .ubf .app .results-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ubf .narrow-panel { max-width: 760px; }
+  /* Room: a wider conversation (message list up to about 860px); head, body and top bar share edges */
+  .ubf .chat-body, .ubf:has(.chat-body) .topbar-in { max-width: 1252px; }
+  .ubf .chat-head { max-width: 1228px; margin-inline: max(20px, (100% - 1228px) / 2); }
+}
+@media (min-width: 1360px) {
+  .ubf .app .results-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 @media (prefers-reduced-motion: reduce) {
   .ubf *, .ubf *::before, .ubf *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
   .ubf .spin { border-right-color: currentColor; border-style: dotted; }
