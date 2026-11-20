@@ -55,6 +55,7 @@ export function useTyping(roomId: string, meId: string, participants: { user_id:
     const channel = supabase
       .channel(`room:${roomId}`, { config: { private: true, broadcast: { self: false } } })
       .on('broadcast', { event: 'typing' }, ({ payload }) => {
+        if (closed) return;
         const userId = payload?.user_id;
         if (typeof userId !== 'string') return;
         const name = typerName(userId, namesRef.current);
@@ -70,6 +71,7 @@ export function useTyping(roomId: string, meId: string, participants: { user_id:
       await supabase.realtime.setAuth(data.session?.access_token ?? null);
       if (!closed) {
         channel.subscribe((status) => {
+          if (closed) return;
           readyRef.current = status === 'SUBSCRIBED';
         });
       }
@@ -82,6 +84,9 @@ export function useTyping(roomId: string, meId: string, participants: { user_id:
       clearRef.current = () => {};
       if (tick) clearInterval(tick);
       supabase.removeChannel(channel);
+      // Another room or another user starts clean: no names carried over, no send throttle.
+      lastSentRef.current = null;
+      setTypingNames([]);
     };
   }, [roomId, meId]);
 
