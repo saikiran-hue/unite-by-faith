@@ -134,6 +134,11 @@ export function MessageMenu({ anchor, trigger, alignEnd, actions, reactions, onR
       // The menu lives inside the message log; keep it out of the log's announcements.
       aria-live="off"
       onKeyDown={onKeyDown}
+      // A press on the menu's own space (the rule, padding, gaps) would move focus to the page and
+      // leave Escape, Tab and the arrows with nothing to act on.
+      onMouseDown={(e) => {
+        if (!(e.target as Element).closest('button')) e.preventDefault();
+      }}
     >
       <div className="rx-bar" role="group" aria-label="Reactions">
         {REACTIONS.map((emoji) => (
@@ -202,7 +207,10 @@ export function DeleteConfirm({ open, busy, error, onCancel, onConfirm, onClosed
       aria-labelledby="del-h"
       onClose={onClosed}
       onCancel={(e) => {
-        if (busy) e.preventDefault();
+        // Escape closes through the parent like Cancel does, so `open` and the dialog stay in step
+        // (a dialog closed on its own would leave `open` true and never reopen).
+        e.preventDefault();
+        if (!busy) onCancel();
       }}
       onClick={(e) => {
         if (e.target === e.currentTarget && !busy) onCancel();
