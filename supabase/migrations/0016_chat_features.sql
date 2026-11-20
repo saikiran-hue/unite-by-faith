@@ -1,6 +1,7 @@
 -- 0016: WhatsApp-style chat base: replies, edits, deletes, reactions, read state, typing auth.
 -- All writes go through the server (service role); the browser only reads what it is a member of.
--- Re-runnable.
+-- Re-runnable: tables, columns, indexes, functions and policies are idempotent; the backfill
+-- (section 8) only inserts missing room_reads rows, so a re-run never resets existing read state.
 
 -- 1. Columns on chat_messages --------------------------------------------------------------
 alter table public.chat_messages
@@ -18,6 +19,8 @@ create table if not exists public.message_reactions (
   primary key (message_id, user_id)
 );
 create index if not exists idx_message_reactions_room_id on public.message_reactions(room_id);
+create index if not exists idx_message_reactions_user_id on public.message_reactions(user_id);
+create index if not exists idx_chat_messages_reply_to_id on public.chat_messages(reply_to_id);
 
 create table if not exists public.room_reads (
   room_id uuid not null references public.chat_rooms(id) on delete cascade,
@@ -25,6 +28,8 @@ create table if not exists public.room_reads (
   last_read_at timestamptz not null,
   primary key (room_id, user_id)
 );
+
+create index if not exists idx_room_reads_user_id on public.room_reads(user_id);
 
 alter table public.message_reactions enable row level security;
 alter table public.room_reads enable row level security;
@@ -104,7 +109,7 @@ begin
   if not found then
     return 'message_not_found';
   end if;
-  if m.sender_id <> p_user then
+  if m.sender_id is distinct from p_user then
     return 'not_your_message';
   end if;
   if m.deleted_at is not null then
