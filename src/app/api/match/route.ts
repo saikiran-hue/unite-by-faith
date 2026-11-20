@@ -2,13 +2,11 @@ import { after, NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { requireUserId } from '@/lib/session';
 import { fetchChunked, loadPeople, loadScoreContext, loadViewerLifeFit, type LoadedPerson } from '@/lib/matching/load';
-import { splitChatPartners } from '@/lib/matching/chat-partners';
+import { splitChatPartners, type DuoRow } from '@/lib/matching/chat-partners';
 import { rankDuos, rankPods } from '@/lib/matching/rank';
 import { cardTopics, sharedTopics } from '@/lib/matching/personal';
 import type { PairScore } from '@/lib/matching/score';
 import { pickEmptyReason, type FilterCount } from '@/lib/matching/empty-reason';
-
-type DuoRow = { user_a_id: string; user_b_id: string; chat_room_id: string | null };
 
 interface PodRow {
   id: string; chat_room_id: string; title: string; description: string; focus_pillar: string; anchor_tags: string[];
@@ -50,12 +48,33 @@ export async function GET(req: NextRequest) {
       const { data, error } = await admin.rpc('match_candidates', { viewer: userId, kind: 'duo', lim: 300 });
       if (error) throw new Error(`match_candidates: ${error.message}`);
       const sqlIds = ((data ?? []) as { user_id: string }[]).map((r) => r.user_id);
-      const { data: duoRows, error: duoErr } = await admin
-        .from('duo_matches')
-        .select('user_a_id, user_b_id, chat_room_id')
-        .or(`user_a_id.eq.${userId},user_b_id.eq.${userId}`);
-      if (duoErr) throw new Error(`duo_matches: ${duoErr.message}`);
-      const { keep: ids, allChatted } = splitChatPartners(userId, sqlIds, (duoRows ?? []) as DuoRow[]);
+      const duoCols = 'user_a_id, user_b_id, chat_room_id';
+      const duoRows: DuoRow[] =
+        sqlIds.length === 0
+          ? []
+          : [
+              ...(await fetchChunked<DuoRow, string>(sqlIds, (c, from, to) =>
+                admin
+                  .from('duo_matches')
+                  .select(duoCols)
+                  .eq('user_a_id', userId)
+                  .in('user_b_id', c)
+                  .not('chat_room_id', 'is', null)
+                  .order('user_b_id')
+                  .range(from, to) as never,
+              )),
+              ...(await fetchChunked<DuoRow, string>(sqlIds, (c, from, to) =>
+                admin
+                  .from('duo_matches')
+                  .select(duoCols)
+                  .eq('user_b_id', userId)
+                  .in('user_a_id', c)
+                  .not('chat_room_id', 'is', null)
+                  .order('user_a_id')
+                  .range(from, to) as never,
+              )),
+            ];
+      const { keep: ids, allChatted } = splitChatPartners(userId, sqlIds, duoRows);
       const people = await loadPeople(admin, ids);
       const slugs = [...viewer.match.tags, ...[...people.values()].flatMap((p) => p.match.tags)].map((t) => t.slug);
       const { ctx, labels } = await loadScoreContext(admin, slugs, viewer.match.isDemo);

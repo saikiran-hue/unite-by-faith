@@ -18,4 +18,7 @@ describe('splitChatPartners', () => {
   it('keeps candidate order', () => {
     expect(splitChatPartners('v', ['c', 'a', 'b'], []).keep).toEqual(['c', 'a', 'b']);
   });
+  it('ignores rows that do not involve the viewer', () => {
+    expect(splitChatPartners('v', ['x'], [row('x', 'y')])).toEqual({ keep: ['x'], allChatted: false });
+  });
 });
