@@ -6,14 +6,22 @@ const ME = 'me';
 const ID = '11111111-1111-4111-8111-111111111111';
 
 type Stub = { row?: Record<string, unknown> | null; updated?: unknown[]; rpc?: string };
+type Call = [string, ...unknown[]];
 
 /** Minimal chainable admin stub: every filter returns the chain; reads resolve `row`, updates `updated`. */
 function stub({ row = null, updated = [], rpc = 'ok' }: Stub) {
   const rpcFn = vi.fn(async () => ({ data: rpc, error: null }));
   const chain: Record<string, unknown> = {};
+  const calls: Call[] = [];
   let updating = false;
-  for (const f of ['select', 'eq', 'is']) chain[f] = () => chain;
-  chain.update = () => {
+  for (const f of ['select', 'eq', 'is']) {
+    chain[f] = (...args: unknown[]) => {
+      calls.push([f, ...args]);
+      return chain;
+    };
+  }
+  chain.update = (...args: unknown[]) => {
+    calls.push(['update', ...args]);
     updating = true;
     return chain;
   };
@@ -21,7 +29,7 @@ function stub({ row = null, updated = [], rpc = 'ok' }: Stub) {
   chain.then = (res: (v: unknown) => unknown) =>
     res({ data: updating ? updated : [], error: null });
   const admin = { from: () => chain, rpc: rpcFn };
-  return { admin: admin as never, rpcFn };
+  return { admin: admin as never, rpcFn, calls };
 }
 
 const fresh = () => new Date().toISOString();
@@ -75,11 +83,22 @@ describe('handleChatAction', () => {
   });
 
   it('edit succeeds and returns the row', async () => {
-    const r = await run(stub({ row: own(), updated: [{ id: ID, content: 'hi' }] }), {
-      action: 'edit_message', messageId: ID, content: ' hi ',
-    });
+    const s = stub({ row: own(), updated: [{ id: ID, content: 'hi' }] });
+    const r = await run(s, { action: 'edit_message', messageId: ID, content: '  hi  ' });
     expect(r?.status).toBe(200);
     expect(r?.json.message.id).toBe(ID);
+    const upd = s.calls.findIndex((c) => c[0] === 'update');
+    expect(s.calls[upd][1]).toMatchObject({ content: 'hi' });
+    const guards = s.calls.slice(upd + 1);
+    expect(guards).toEqual(
+      expect.arrayContaining([
+        ['eq', 'id', ID],
+        ['eq', 'room_id', ROOM],
+        ['eq', 'sender_id', ME],
+        ['eq', 'message_type', 'text'],
+        ['is', 'deleted_at', null],
+      ])
+    );
   });
 
   it('react with a bad emoji is 400 without calling rpc', async () => {
@@ -105,6 +124,14 @@ describe('handleChatAction', () => {
     expect(r).toEqual({ status: 403, json: { error: 'not_your_message' } });
   });
 
+  it('delete_message passes message, user and room to the rpc', async () => {
+    const s = stub({});
+    await run(s, { action: 'delete_message', messageId: ID });
+    expect(s.rpcFn).toHaveBeenCalledWith('delete_chat_message', {
+      p_message: ID, p_user: ME, p_room: ROOM,
+    });
+  });
+
   it('mark_read calls mark_room_read with room and user', async () => {
     const s = stub({});
     const r = await run(s, { action: 'mark_read' });
@@ -114,6 +141,14 @@ describe('handleChatAction', () => {
 });
 
 describe('fetchReplyParent', () => {
+  it('a non-UUID reply target is 400 without querying', async () => {
+    const s = stub({});
+    expect(await fetchReplyParent(s.admin, ROOM, 'nope')).toMatchObject({
+      ok: false, status: 400, error: 'reply_target_invalid',
+    });
+    expect(s.calls).toEqual([]);
+  });
+
   it('a deleted reply target is 400 reply_target_invalid', async () => {
     const s = stub({ row: own({ deleted_at: fresh() }) });
     expect(await fetchReplyParent(s.admin, ROOM, ID)).toEqual({

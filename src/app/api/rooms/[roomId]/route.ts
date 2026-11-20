@@ -10,15 +10,14 @@ import { groupReactions, quoteFor } from '@/lib/chat/hydrate';
 import {
   checkResponse,
   fetchReplyParent,
+  emptyContentResponse,
   handleChatAction,
-  loadReactions,
   loadReads,
   loadReplyParents,
   trimContent,
 } from './chat-actions';
 import {
   ChatMessage,
-  MemberRead,
   RoomPin,
   TaxonomyTag,
   UserProfile,
@@ -73,7 +72,7 @@ export async function GET(
       // The latest messages, newest first here and reversed for display below.
       admin
         .from('chat_messages')
-        .select('*')
+        .select('*, message_reactions(user_id, emoji)')
         .eq('room_id', roomId)
         .order('created_at', { ascending: false })
         .order('id', { ascending: false })
@@ -142,9 +141,8 @@ export async function GET(
 
     // Quoted parents may be older than the loaded window; fetch them before the card list so
     // their senders get names too.
-    const parents = await loadReplyParents(admin, roomId, messages);
-    const [reactionRows, reads] = await Promise.all([
-      loadReactions(admin, messages.map((m) => m.id as string)),
+    const [parents, reads] = await Promise.all([
+      loadReplyParents(admin, roomId, messages),
       loadReads(admin, roomId, userId, memberJoins),
     ]);
 
@@ -171,14 +169,23 @@ export async function GET(
       return profile ? [{ user_id: p.user_id, role: p.role, profile }] : [];
     });
 
-    const hydratedMessages: ChatMessage[] = messages.map((m) => ({
-      ...m,
-      sender: cardMap.get(m.sender_id),
-      reply_to: m.reply_to_id
-        ? quoteFor(parents.get(m.reply_to_id), (id) => cardMap.get(id)?.full_name ?? '')
-        : null,
-      reactions: groupReactions(reactionRows, m.id, userId),
-    }));
+    const hydratedMessages: ChatMessage[] = messages.map((row) => {
+      // Reactions ride along as an embed; only the grouped `reactions` go to the client.
+      const { message_reactions: embedded, ...m } = row;
+      const reactionRows = (embedded || []).map((r: { user_id: string; emoji: string | null }) => ({
+        message_id: m.id,
+        ...r,
+      }));
+      return {
+        ...m,
+        sender: cardMap.get(m.sender_id),
+        reply_to:
+          m.reply_to_id && !m.deleted_at
+            ? quoteFor(parents.get(m.reply_to_id), (id) => cardMap.get(id)?.full_name ?? '')
+            : null,
+        reactions: groupReactions(reactionRows, m.id, userId),
+      };
+    });
 
     const hydratedPins: RoomPin[] = pins.map((pin) => {
       const author = cardMap.get(pin.author_id);
@@ -205,7 +212,7 @@ export async function GET(
       participants,
       messages: hydratedMessages,
       pins: hydratedPins,
-      reads: reads as MemberRead[],
+      reads,
       contextualIcebreakers,
     });
   } catch (err) {
@@ -256,12 +263,7 @@ export async function POST(
         return NextResponse.json({ error: 'Invalid messageType' }, { status: 400 });
       }
 
-      if (!content) {
-        return NextResponse.json(
-          { error: 'Message content cannot be empty' },
-          { status: 400 }
-        );
-      }
+      if (!content) return emptyContentResponse();
 
       const replyToId = body.replyToId ? String(body.replyToId) : null;
       if (replyToId) {

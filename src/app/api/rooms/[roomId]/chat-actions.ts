@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { checkEdit, checkReplyTarget, isReaction, rpcResult, type Check } from '@/lib/chat/rules';
-import type { ReactionRow } from '@/lib/chat/hydrate';
 import type { MemberRead } from '@/types/database';
 
 type Admin = ReturnType<typeof createSupabaseAdminClient>;
@@ -14,12 +13,17 @@ export function trimContent(raw: unknown): string {
   return String(raw || '').trim();
 }
 
+export function emptyContentResponse() {
+  return NextResponse.json({ error: 'Message content cannot be empty' }, { status: 400 });
+}
+
 export function checkResponse(check: Extract<Check, { ok: false }>) {
   return NextResponse.json({ error: check.error }, { status: check.status });
 }
 
 /** The parent a reply points at, for the reply-target rule. */
 export async function fetchReplyParent(admin: Admin, roomId: string, replyToId: string) {
+  if (!UUID.test(replyToId)) return checkReplyTarget(null, roomId);
   const { data } = await admin
     .from('chat_messages')
     .select(RULE_COLUMNS)
@@ -55,9 +59,7 @@ export async function handleChatAction(
 
   if (body.action === 'edit_message') {
     const content = trimContent(body.content);
-    if (!content) {
-      return NextResponse.json({ error: 'Message content cannot be empty' }, { status: 400 });
-    }
+    if (!content) return emptyContentResponse();
     const { data: msg } = await admin
       .from('chat_messages')
       .select(RULE_COLUMNS)
@@ -127,23 +129,15 @@ export async function loadReplyParents(
     ),
   ];
   if (missing.length > 0) {
-    const { data } = await admin
+    const { data, error } = await admin
       .from('chat_messages')
       .select('id, sender_id, content, deleted_at')
       .in('id', missing)
       .eq('room_id', roomId);
+    if (error) console.error('reply parents read failed', error.message);
     for (const p of (data || []) as Parent[]) parents.set(p.id, p);
   }
   return parents;
-}
-
-export async function loadReactions(admin: Admin, messageIds: string[]): Promise<ReactionRow[]> {
-  if (messageIds.length === 0) return [];
-  const { data } = await admin
-    .from('message_reactions')
-    .select('message_id, user_id, emoji')
-    .in('message_id', messageIds);
-  return (data || []) as ReactionRow[];
 }
 
 /** Read state of the other members; joined_at lets the client tell "not read yet" from "joined later". */
@@ -155,11 +149,12 @@ export async function loadReads(
 ): Promise<MemberRead[]> {
   const others = members.filter((m) => m.user_id !== viewerId);
   if (others.length === 0) return [];
-  const { data } = await admin
+  const { data, error } = await admin
     .from('room_reads')
     .select('user_id, last_read_at')
     .eq('room_id', roomId)
     .in('user_id', others.map((m) => m.user_id));
+  if (error) console.error('room reads read failed', error.message);
   const readAt = new Map((data || []).map((r) => [r.user_id as string, r.last_read_at as string]));
   return others.map((m) => ({
     user_id: m.user_id,
