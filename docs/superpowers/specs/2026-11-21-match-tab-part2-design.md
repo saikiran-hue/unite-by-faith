@@ -19,6 +19,12 @@ Today the tab is empty until a button is tapped. Results are near-empty because 
   - Each person's fellowship mode is respected: a 1v1 needs both people on `both` or `duo_only`, and a group needs the viewer on `both` or `group_only`.
   - "Only my tradition" applies when either person has it on.
   - The existing eligibility rules stay: both onboarded, same demo-ness, not yourself.
+  - **Safety rules (my call; they keep what the old filters did quietly):**
+    - Both people are 18 or older by birth date.
+    - Both have a complete profile for matching: a birth date, at least one language and a city.
+    - The old age filter was the only thing keeping a minor away from adults, because everyone's age range starts at 18 or above.
+    - The old filters also dropped anyone with missing fields.
+    - Both rules apply in search and in Connect/Join.
 - **Everything else only lowers the %:** age range, distance, in-person vs online (including the time-zone check) and language.
 - **Hidden from 1v1 results:** anyone with an existing 1v1 chat with the viewer, meaning a `duo_matches` row with a `chat_room_id`, in either direction. Groups the viewer is in stay hidden, as today.
 - **Show everyone:** the API returns the whole ranked list. The tab shows 20 at a time with a Show More button.
@@ -65,14 +71,23 @@ Today the tab is empty until a button is tapped. Results are near-empty because 
   - The owner can ask for a stronger effect later; that is a weights change, not a redesign.
 - **Score effects of the soft rules,** in `src/lib/matching/score.ts`:
   - **Age:** inside both people's preferred ranges, the age part works as today. Outside either range, it is 0. Today's age part already reaches 0 at ten years apart, so tests check "never higher, and lower when the part was above 0".
-  - **Place** scores 0 when no way of meeting works:
-    - one person in-person-only and the other online-only;
-    - both in-person only and farther apart than the smaller travel limit. Today this case falls back to the time-zone score, which can be high.
-    - When both allow online (`online` or `both`), the time-zone score is used as today.
-    - The in-person distance score inside the limit is unchanged.
+  - **Place** follows the old `ok_place` rule. Meeting in person works when both allow it (`in_person` or `both`) and they are within the smaller travel limit. Meeting online works when both allow it (`online` or `both`).
+
+    | Case | Old filter | New place score |
+    |---|---|---|
+    | In person works, same city | pass | 1 (as today) |
+    | In person works, different cities | pass | `1 - km / limit` (as today) |
+    | In person doesn't work, online works | pass if time zones ≤ 180 min apart | time-zone score as today (0 at 180 min or more) |
+    | Neither works, e.g. in-person-only vs online-only (even in the same city), or in-person-only beyond the limit while the other is `both` | fail | **0** (today some of these get 1 or a high time-zone score) |
+
+    Each row gets a test. `buildReasons` keeps the distance and same-city lines only when meeting in person works.
   - **Language:** a new Life Fit part, 1 when they share a language and 0 when they don't.
     - The weights live in the database (`match_weights`, active row, version 1), so migration 0019 adds version 2: a copy of version 1 with `life.language = 0.15`, made active.
     - The code treats a missing `life.language` weight as 0, so nothing changes until the migration is applied.
+    - Side effect: once version 2 is active, pairs who share a language go up a point or two.
+  - **New scoring inputs:** `MatchPerson` gains `languages`, `ageMin` and `ageMax`, loaded in `loadPeople` from `profiles.languages` and `profile_private.age_min` / `age_max`.
+    - They are scoring-only. The card data (`pub`) stays an explicit allow-list, so they are never sent to the browser.
+    - A missing age range scores the age part 0.
   - A missing value must never be dropped in a way that raises the score. Life Fit fields are required, so a gap is a bug, and the gap scores 0.
   - **Card reasons** (`buildReasons`): the distance line stays limited to pairs within the travel limit. No reason line is ever added for a mismatch.
 - **Groups:**
@@ -89,17 +104,32 @@ Today the tab is empty until a button is tapped. Results are near-empty because 
 - **Shown %:** at least 1. A real match that rounds to 0% would read like an error.
 - **Hiding existing chats** happens in the match API, before ranking. The API loads the viewer's `duo_matches` that have rooms and leaves those people out. This needs no database change, so it can ship before the migration.
 - **Search-on-open trigger:** when the tab becomes `matches`, the viewer has at least 3 habits, and there is no search for the current viewer yet. With fewer than 3 habits, the existing "Pick at least 3 habits" note shows instead. Coming back to the tab keeps the results already shown. Tapping a segment searches again, as today. Pressing Back from a chat must not start a duplicate search.
-- **Show More** reveals the next 20 from results already loaded. `match_events` keeps logging only the first 20 as `shown`, so the events stay true to what was seen.
-- **Empty states:** with fewer rules, the only things that can empty the list are gender, fellowship mode and tradition. `match_filter_counts` and `empty-reason.ts` change to name only those.
+- **Show More** reveals the next 20 from results already loaded.
+  - `match_events` keeps logging only the first 20 as `shown`, so the events stay true to what was seen.
+  - Cost: a Connect on a row past 20 records its outcome with no score (`outcomes.ts` copies the score from the latest `shown` event). That is acceptable for now; noted for the owner.
+- **Empty states:**
+  - With fewer rules, the only rules that can empty the list are gender (with fellowship mode) and tradition. `empty-reason.ts` drops age, language and place from `RULE_ORDER`.
+  - `match_filter_counts` keeps its SQL and its return shape (`rule, passing`), so the migration doesn't touch it.
+  - Until the migration is applied, an empty list caused by a soft rule shows the generic copy.
+  - **New case:** everyone eligible is already someone you chat with. The API reports that, and the tab says so with its own copy (e.g. "You've started chats with everyone who matches right now"), not the generic empty state.
+- **Loading screen behaviour:** the verse shows only while loading. When results land, the whole loading block (verse, status line, placeholders) is swapped for the results at the top of the list. That is a swap at the top of the page, not a stable layout; the mockup's "doesn't jump" line overstated it.
 - **Life Fit wording** in `src/components/LifeFitFields.tsx`:
   - The age hint becomes "Required. We show closer ages first. Only you can see this."
   - The distance hint becomes "We show people nearer you first. Only you can see this."
-- **Migration number:** `0019_soft_match_rules.sql`, because 0018 is reserved for the read watermark. It replaces `match_candidates`, `match_pod_candidates`, `match_filter_counts`, `duo_pair_allowed` and `pod_join_allowed` with `create or replace`, so grants are kept, and `match_rule_flags` stays as it is. It is written and reviewed on the branch, and applied only with owner approval.
+- **Migration number:** `0019_soft_match_rules.sql`, because 0018 is reserved for the read watermark.
+  - It replaces `match_candidates`, `match_pod_candidates`, `duo_pair_allowed` and `pod_join_allowed` with `create or replace`, keeping their argument and return types so grants are kept.
+  - `match_rule_flags` and `match_filter_counts` stay as they are.
+  - It adds the safety rules (18+, complete profile) and the version 2 weights row.
+  - It is written and reviewed on the branch, and applied only with owner approval.
+  - If 0019 is applied before 0018 exists on the hosted database, the later 0018 push may need `supabase db push --include-all`. Noted for the owner.
 - **Release order:**
   1. App changes first: search on open, loading screen, hiding chats, Show More, the new scoring and the new wording. All of these are safe while the SQL is still strict.
   2. Then the migration, which relaxes search and Connect/Join in one transaction so they never disagree.
   - Each step records the live version first. Push and deploy need owner approval.
-- **Under-18s:** sign-up already blocks them on the server (`/api/auth/age` deletes the account; age-range inputs are 18–99), so making age soft can't pair an adult with a minor.
+- **Under-18s:**
+  - Sign-up blocks them in `/api/auth/age`, which deletes the account.
+  - **Pre-existing gap, flagged for the owner, not fixed here:** the `profile_private_insert_own` / `profile_private_update_own` policies let a signed-in user write their own row directly through the database API, `birth_date` included, so that check can be bypassed.
+  - The 18+ safety rule above keeps matching safe either way. Closing the gap itself (a trigger, or removing the direct write policies) is a separate owner decision.
 - **The SQL cap stays at 300,** ordered by shared habits (`pre_rank`). Once the pool is bigger than that, the people cut are those with the fewest shared habits. That is fine at today's size, but worth knowing.
 
 ## Approaches considered
@@ -112,10 +142,18 @@ Today the tab is empty until a button is tapped. Results are near-empty because 
 
 - **Unit tests in `score.test.ts`:**
   - each formerly excluded case scores no higher than the same pair without it, and strictly lower whenever the affected part was above 0: outside the age range, in-person vs online mismatch, beyond the travel limit, no shared language;
+  - every row of the place table;
   - no missing value raises a score;
   - the shown % is at least 1.
-- **Unit tests for the API ranking helpers:** existing-chat partners are excluded, and the whole list is returned.
-- **SQL:** the migration is reviewed. After the owner applies it, check against the hosted database that demo users who were filtered out before now appear, and that Connect works for them.
+- **Unit tests for the API ranking helpers:**
+  - existing-chat partners are excluded;
+  - the whole list is returned;
+  - "everyone is already a chat" is reported as its own empty case.
+- **SQL:**
+  - The migration is reviewed. It must keep each function's argument and return types, and keep the 18+ and complete-profile rules in all four functions.
+  - After the owner applies it, check against the hosted database:
+    - demo users who were filtered out before now appear, and Connect works for them;
+    - a profile under 18 or missing a city still never appears.
 - **Browser checks of the Match tab:**
   - opening from the tab bar, the Home tiles and a reload of `?tab=matches` searches exactly once;
   - Back from a chat does not search again;
