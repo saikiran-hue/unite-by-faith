@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { TaxonomyTag } from '@/types/database';
 import { useAppState } from '@/lib/useAppState';
+import { HOME_PHOTOS, duoPhoto } from '@/lib/home-photos';
 import { AppShell } from '@/components/AppShell';
 import { HabitsPanel } from '@/components/HabitsPanel';
 import { CreatePodDialog } from '@/components/CreatePodDialog';
@@ -414,6 +415,8 @@ function Home() {
                 aria-busy={(search?.kind === 'duo' && search.status === 'loading') || undefined}
                 onClick={() => runSearch('duo')}
               >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img className="hero-photo" alt="" src={duoPhoto(currentUser.private?.gender)} />
                 <span className="tile">
                   <Icon name="user" />
                 </span>
@@ -429,6 +432,8 @@ function Home() {
                 aria-busy={(search?.kind === 'pods' && search.status === 'loading') || undefined}
                 onClick={() => runSearch('pods')}
               >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img className="hero-photo" alt="" src={HOME_PHOTOS.group} />
                 <span className="tile">
                   <Icon name="users" />
                 </span>
