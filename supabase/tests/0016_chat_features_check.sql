@@ -35,7 +35,7 @@ insert into public.chat_messages (id, room_id, sender_id, message_type, content,
    '{"pin_id":"dddddddd-0000-4000-8000-000000000001"}'),
   ('cccccccc-0000-4000-8000-000000000006', 'bbbbbbbb-0000-4000-8000-000000000002',
    'aaaaaaaa-0000-4000-8000-000000000002', 'text', 'in other room', '{}');
--- B's message above makes B-unread for A larger; recount below accounts for it.
+-- Message 5 is a third unread message from B for A. Message 6 is in another room, so it never counts.
 
 do $$
 declare
@@ -50,7 +50,7 @@ declare
   n int;
   t3 timestamptz;
 begin
-  -- unread: A sees only B's two messages; B sees only A's two
+  -- unread: A counts B's three messages in this room (2, 4, 5); B counts A's two (1, 3)
   select unread into n from public.unread_counts(a) where room_id = room;
   assert n = 3, 'unread_counts(A) should be 3, got ' || coalesce(n::text, 'null');
   select unread into n from public.unread_counts(b) where room_id = room;
@@ -65,8 +65,8 @@ begin
     and (select emoji from public.message_reactions where message_id = m_btext and user_id = a) = '❤️',
     'emoji changed in place';
   assert public.react_to_message(m_btext, a, room, null) = 'ok', 'toggle off';
-  assert (select emoji from public.message_reactions where message_id = m_btext and user_id = a) is null,
-    'toggle off leaves null emoji';
+  assert exists (select 1 from public.message_reactions where message_id = m_btext and user_id = a and emoji is null),
+    'toggle off keeps the row with a null emoji';
   assert public.react_to_message(m_btext, a, room, '🙏') = 'ok', 'react again';
 
   -- missing and cross-room ids
@@ -103,6 +103,7 @@ begin
   -- mark_room_read never moves backwards
   perform public.mark_room_read(room, a);
   perform public.mark_room_read(room, a);
+  -- Put A's mark a day ahead: the next mark_room_read stamps now(), which must not pull it back.
   update public.room_reads set last_read_at = now() + interval '1 day' where room_id = room and user_id = a;
   select last_read_at into t3 from public.room_reads where room_id = room and user_id = a;
   perform public.mark_room_read(room, a);
