@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ReactionCount, ReplyQuote } from '@/types/database';
-import { groupReactions, quoteFor, type ReactionRow } from './hydrate';
+import { groupReactions, quoteFor, quoteSnippet, type ReactionRow } from './hydrate';
 
 describe('groupReactions', () => {
   it('groups reactions for the target message in REACTIONS order, tracks mine, and skips nulls and other messages', () => {
@@ -87,5 +87,26 @@ describe('quoteFor', () => {
 
   it('returns null when parent is undefined', () => {
     expect(quoteFor(undefined, nameOf)).toBeNull();
+  });
+
+  it('quotes a shared prayer request or goal without its wrapper', () => {
+    const quote = (content: string) =>
+      quoteFor({ id: 'p1', sender_id: 'u2', content, deleted_at: null }, nameOf)?.snippet;
+    expect(quote('🙏 Shared Prayer Request: "Healing for mum" — surgery Friday')).toBe(
+      'Healing for mum — surgery Friday'
+    );
+    expect(quote('🎯 Shared Fellowship Goal: "Read daily"')).toBe('Read daily');
+  });
+});
+
+describe('quoteSnippet', () => {
+  it('matches what the client quotes for the same text', () => {
+    expect(quoteSnippet('🙏 Shared Prayer Request: "Healing"')).toBe('Healing');
+    expect(quoteSnippet('  hello \n world ')).toBe('hello world');
+  });
+
+  it('keeps an emoji-only message instead of quoting nothing', () => {
+    expect(quoteSnippet('🙏')).toBe('🙏');
+    expect(quoteSnippet('😂 ')).toBe('😂');
   });
 });

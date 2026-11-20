@@ -29,9 +29,10 @@ export function checkEdit(
   if (msg.sender_id !== userId) return fail(403, 'not_your_message');
   if (msg.deleted_at) return fail(409, 'message_deleted');
   if (msg.message_type !== 'text') return fail(409, 'only_text_editable');
-  if (now.getTime() - Date.parse(msg.created_at) > EDIT_WINDOW_MS) {
-    return fail(409, 'edit_window_passed');
-  }
+  // Written so an unreadable created_at (NaN) refuses. A slightly negative gap (database clock a
+  // little ahead of the Worker's) is a just-sent message and stays editable.
+  const elapsed = now.getTime() - Date.parse(msg.created_at);
+  if (!(elapsed <= EDIT_WINDOW_MS)) return fail(409, 'edit_window_passed');
   return { ok: true };
 }
 
@@ -63,7 +64,8 @@ export function rpcResult(code: string): Check {
   }
 }
 
+/** One line of at most `max` characters (code points, so an emoji is never split) plus "…". */
 export function snippet(content: string, max = 80): string {
-  const flat = content.replace(/\s+/g, ' ').trim();
-  return flat.length > max ? `${flat.slice(0, max)}…` : flat;
+  const chars = Array.from(content.replace(/\s+/g, ' ').trim());
+  return chars.length > max ? `${chars.slice(0, max).join('').trimEnd()}…` : chars.join('');
 }

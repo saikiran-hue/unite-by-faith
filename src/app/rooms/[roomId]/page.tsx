@@ -18,7 +18,7 @@ import {
 } from '@/components/ubf';
 import { podCover } from '@/lib/sample-content';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
-import { snippet } from '@/lib/chat/rules';
+import { quoteSnippet } from '@/lib/chat/hydrate';
 import { isSeen, typingText } from '@/lib/chat/status';
 import { useTyping } from '@/lib/chat/useTyping';
 import {
@@ -375,7 +375,7 @@ function FellowshipRoomContent() {
       quote: parent && {
         id: parent.id,
         sender_name: firstName(parent.sender?.full_name),
-        snippet: snippet(displayText(parent.content)),
+        snippet: quoteSnippet(parent.content),
         deleted: false,
       },
     };
@@ -916,7 +916,7 @@ function FellowshipRoomContent() {
                 : `Replying to ${firstName(replyMsg?.sender?.full_name)}`}
             </b>
             {!editing && replyMsg && (
-              <span className="small trunc">{snippet(displayText(replyMsg.content))}</span>
+              <span className="small trunc">{quoteSnippet(replyMsg.content)}</span>
             )}
             {editing && editError && (
               <span className="err" role="alert">

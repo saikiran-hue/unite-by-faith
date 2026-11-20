@@ -1,4 +1,5 @@
 import type { ReactionCount, ReplyQuote } from '@/types/database';
+import { cleanText } from '@/lib/home-tabs';
 import { REACTIONS, snippet } from './rules';
 
 export type ReactionRow = { message_id: string; user_id: string; emoji: string | null };
@@ -15,6 +16,14 @@ export function groupReactions(rows: ReactionRow[], messageId: string, meId: str
   return out;
 }
 
+/**
+ * Quote line for a reply, the same on server and client: the text without the prayer/goal wrapper,
+ * or the raw text when cleaning leaves nothing (a message that is only an emoji).
+ */
+export function quoteSnippet(content: string): string {
+  return snippet(cleanText(content) || content);
+}
+
 export function quoteFor(
   parent: { id: string; sender_id: string; content: string; deleted_at: string | null } | undefined,
   nameOf: (id: string) => string
@@ -24,7 +33,7 @@ export function quoteFor(
   return {
     id: parent.id,
     sender_name: nameOf(parent.sender_id).trim().split(/\s+/)[0] ?? '',
-    snippet: deleted ? '' : snippet(parent.content),
+    snippet: deleted ? '' : quoteSnippet(parent.content),
     deleted,
   };
 }

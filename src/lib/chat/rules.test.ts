@@ -101,6 +101,16 @@ describe('checkEdit', () => {
       error: 'message_not_found',
     });
   });
+
+  it('refuses when created_at cannot be read', () => {
+    expect(
+      checkEdit({ ...base, created_at: 'not a date' }, 'me', 'r1', new Date('2026-11-20T10:05:00.000Z'))
+    ).toEqual({ ok: false, status: 409, error: 'edit_window_passed' });
+  });
+
+  it('allows a just-sent message whose created_at is a little ahead of the server clock', () => {
+    expect(checkEdit(base, 'me', 'r1', new Date('2026-11-20T09:59:58.000Z'))).toEqual({ ok: true });
+  });
 });
 
 describe('checkReplyTarget', () => {
@@ -191,5 +201,14 @@ describe('snippet', () => {
 
   it('truncates long strings to 80 characters plus ellipsis', () => {
     expect(snippet('x'.repeat(2000))).toBe(`${'x'.repeat(80)}…`);
+  });
+
+  it('counts an emoji as one character and never splits it', () => {
+    expect(snippet('🙏'.repeat(100))).toBe(`${'🙏'.repeat(80)}…`);
+    expect(snippet(`${'a'.repeat(79)}🙏🙏`)).toBe(`${'a'.repeat(79)}🙏…`);
+  });
+
+  it('drops a trailing space before the ellipsis', () => {
+    expect(snippet(`${'a'.repeat(79)} bcd`)).toBe(`${'a'.repeat(79)}…`);
   });
 });
