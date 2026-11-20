@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { EDIT_WINDOW_MS } from './rules';
 import {
   applyReadMark,
+  errorCopy,
   leadingThrottle,
   mergeReads,
   messageActions,
@@ -275,5 +276,47 @@ describe('newSenders', () => {
   it('finds nobody on the first load, for my own messages, or when nothing is new', () => {
     expect(newSenders(null, list, ME)).toEqual([]);
     expect(newSenders(new Set(['a', 'c', 'd']), list, ME)).toEqual([]);
+  });
+});
+
+describe('errorCopy', () => {
+  const conn = 'Check your connection, then try again.';
+
+  it('says what happened for known codes', () => {
+    expect(errorCopy({ status: 409, error: 'message_deleted' }, conn)).toBe('This message was deleted.');
+    expect(errorCopy({ status: 409, error: 'edit_window_passed' }, conn)).toBe(
+      'Messages can only be edited for 15 minutes.'
+    );
+    expect(errorCopy({ status: 403, error: 'not_your_message' }, conn)).toBe(
+      'You can only change your own messages.'
+    );
+    expect(errorCopy({ status: 403, error: 'not_a_member' }, conn)).toBe(
+      'You’re no longer a member of this chat.'
+    );
+  });
+
+  it('keeps the connection hint for no answer and server failures', () => {
+    expect(errorCopy({ status: 0 }, conn)).toBe(conn);
+    expect(errorCopy({ status: 500, error: 'boom' }, conn)).toBe(conn);
+    expect(errorCopy({ status: 503 }, conn)).toBe(conn);
+  });
+
+  it('falls back by status for other refusals, and ignores inherited names', () => {
+    expect(errorCopy({ status: 403 }, conn)).toBe('You can only change your own messages.');
+    expect(errorCopy({ status: 400, error: 'constructor' }, conn)).toBe(
+      'That didn’t go through. Refresh the chat, then try again.'
+    );
+  });
+
+  it('uses plain sentences with no exclamation marks', () => {
+    for (const r of [
+      { status: 409, error: 'message_deleted' },
+      { status: 404, error: 'message_not_found' },
+      { status: 409, error: 'only_text_editable' },
+      { status: 404, error: 'pin_not_found' },
+      { status: 400 },
+    ]) {
+      expect(errorCopy(r, conn)).toMatch(/^[^!]+\.$/);
+    }
   });
 });

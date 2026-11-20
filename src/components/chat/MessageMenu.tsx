@@ -171,7 +171,8 @@ export function MessageMenu({ anchor, trigger, alignEnd, actions, reactions, onR
 interface DeleteConfirmProps {
   open: boolean;
   busy: boolean;
-  failed: boolean;
+  /** Why the last try failed, shown under the title; null when it has not failed. */
+  error: string | null;
   onCancel: () => void;
   onConfirm: () => void;
   /** Runs after the dialog has closed, however it closed, so focus can land outside it. */
@@ -179,7 +180,7 @@ interface DeleteConfirmProps {
 }
 
 /** "Delete for everyone" confirmation, as a native modal dialog (focus trap, Escape). */
-export function DeleteConfirm({ open, busy, failed, onCancel, onConfirm, onClosed }: DeleteConfirmProps) {
+export function DeleteConfirm({ open, busy, error, onCancel, onConfirm, onClosed }: DeleteConfirmProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
 
@@ -211,9 +212,7 @@ export function DeleteConfirm({ open, busy, failed, onCancel, onConfirm, onClose
         <h2 className="h2" id="del-h">
           Delete this message for everyone?
         </h2>
-        {failed && (
-          <AlertBox title="We couldn’t delete that message." text="Check your connection, then tap Delete again." />
-        )}
+        {error && <AlertBox title="We couldn’t delete that message." text={error} />}
         <div className="foot-btns">
           <Btn variant="btn-quiet" ref={cancelRef} onClick={onCancel} disabled={busy}>
             Cancel

@@ -23,6 +23,7 @@ import { isSeen, typingText } from '@/lib/chat/status';
 import { useTyping } from '@/lib/chat/useTyping';
 import {
   applyReadMark,
+  errorCopy,
   leadingThrottle,
   mergeReads,
   newestFromOthers,
@@ -31,6 +32,7 @@ import {
   resolvePendingReply,
   shouldMarkRead,
   withDaySeparators,
+  type PostResult,
 } from '@/lib/chat/view';
 import {
   ChatMessage,
@@ -64,14 +66,12 @@ interface PendingMessage {
   quote?: ReplyQuote;
   /** The server refused the reply because its parent was deleted. */
   replyGone?: boolean;
+  /** Why it failed, when the server said; else the connection hint shows. */
+  reason?: string;
 }
 
 type Row = { kind: 'msg'; m: ChatMessage } | { kind: 'pending'; p: PendingMessage };
 
-const EDIT_ERRORS: Record<string, string> = {
-  edit_window_passed: 'Messages can only be edited for 15 minutes after sending.',
-  message_deleted: 'This message was deleted, so it can’t be edited.',
-};
 const EDIT_ERROR_DEFAULT = 'We couldn’t save your edit. Check your connection, then tap Save again.';
 
 const clock = (d: Date) =>
@@ -131,7 +131,7 @@ function FellowshipRoomContent() {
   // Delete confirmation
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
-  const [deleteFailed, setDeleteFailed] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const deleteTriggerRef = useRef<HTMLButtonElement | null>(null);
   const deleteDoneRef = useRef(false);
 
@@ -383,44 +383,27 @@ function FellowshipRoomContent() {
   }
 
   /** Post to the API. A prayer request is pinned to the board; the server also posts it to the chat. */
-  async function deliver(
-    kind: SendKind,
-    text: string,
-    replyToId?: string
-  ): Promise<'ok' | 'reply_gone' | 'failed'> {
-    const body =
+  function deliver(kind: SendKind, text: string, replyToId?: string): Promise<PostResult> {
+    return postAction(
       kind === 'prayer'
         ? { action: 'create_pin', senderId: currentUser?.id, pinType: 'prayer', title: text, body: '' }
-        : { action: 'message', senderId: currentUser?.id, content: text, messageType: kind, replyToId };
-    try {
-      const res = await fetch(`/api/rooms/${roomId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      if (res.status === 401) router.replace('/auth');
-      if (res.ok) return 'ok';
-      if (res.status === 400 && replyToId) {
-        const data = await res.json().catch(() => null);
-        if (data?.error === 'reply_target_invalid') return 'reply_gone';
-      }
-      return 'failed';
-    } catch {
-      return 'failed';
-    }
+        : { action: 'message', senderId: currentUser?.id, content: text, messageType: kind, replyToId }
+    );
   }
 
   async function sendPending(m: PendingMessage) {
     // A parent deleted meanwhile is dropped, so the message itself still goes.
-    const result = await deliver(m.kind, m.text, resolvePendingReply(m, messages).replyToId);
-    if (result === 'ok') {
+    const replyToId = resolvePendingReply(m, messages).replyToId;
+    const result = await deliver(m.kind, m.text, replyToId);
+    if (result.ok) {
       await fetchRoomData(true);
       setPending((list) => list.filter((x) => x.key !== m.key));
       setSentNote(m.kind === 'prayer' ? 'Prayer request sent and pinned.' : 'Message sent.');
     } else {
-      const replyGone = m.replyGone || result === 'reply_gone';
+      const replyGone = m.replyGone || Boolean(replyToId && result.error === 'reply_target_invalid');
+      const reason = errorCopy(result, 'Check your connection.');
       setPending((list) =>
-        list.map((x) => (x.key === m.key ? { ...x, status: 'failed', replyGone } : x))
+        list.map((x) => (x.key === m.key ? { ...x, status: 'failed', replyGone, reason } : x))
       );
     }
   }
@@ -502,29 +485,15 @@ function FellowshipRoomContent() {
     }
     setSavingEdit(true);
     setEditError('');
-    try {
-      const res = await fetch(`/api/rooms/${roomId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'edit_message', messageId: id, content: text }),
-      });
-      if (res.status === 401) {
-        router.replace('/auth');
-        return;
-      }
-      if (res.ok) {
-        await fetchRoomData(true);
-        endEdit();
-        setSentNote('Message edited.');
-      } else {
-        const data = await res.json().catch(() => ({}));
-        setEditError(EDIT_ERRORS[data?.error] ?? EDIT_ERROR_DEFAULT);
-      }
-    } catch {
-      setEditError(EDIT_ERROR_DEFAULT);
-    } finally {
-      setSavingEdit(false);
+    const r = await postAction({ action: 'edit_message', messageId: id, content: text });
+    if (r.ok) {
+      await fetchRoomData(true);
+      endEdit();
+      setSentNote('Message edited.');
+    } else if (r.status !== 401) {
+      setEditError(errorCopy(r, EDIT_ERROR_DEFAULT));
     }
+    setSavingEdit(false);
   }
 
   function handleSend(e: React.FormEvent) {
@@ -556,9 +525,12 @@ function FellowshipRoomContent() {
   async function react(m: ChatMessage, emoji: ReactionEmoji) {
     setActionError('');
     // Tapping my current reaction removes it.
-    const ok = await boardCall({ action: 'react', messageId: m.id, emoji: reactionToSend(m.reactions, emoji) });
-    if (ok) await fetchRoomData(true);
-    else setActionError('Your reaction didn’t go through. Check your connection, then try again.');
+    const r = await postAction({ action: 'react', messageId: m.id, emoji: reactionToSend(m.reactions, emoji) });
+    if (r.ok) await fetchRoomData(true);
+    else
+      setActionError(
+        errorCopy(r, 'Your reaction didn’t go through. Check your connection, then try again.')
+      );
   }
 
   async function copyMessage(m: ChatMessage) {
@@ -574,23 +546,24 @@ function FellowshipRoomContent() {
   function askDelete(m: ChatMessage, trigger: HTMLButtonElement | null) {
     deleteTriggerRef.current = trigger;
     deleteDoneRef.current = false;
-    setDeleteFailed(false);
+    setDeleteError(null);
     setDeleteId(m.id);
   }
 
   async function confirmDelete() {
     if (!deleteId || deleteBusy) return;
     setDeleteBusy(true);
-    setDeleteFailed(false);
-    const ok = await boardCall({ action: 'delete_message', messageId: deleteId });
-    if (ok) {
+    setDeleteError(null);
+    const r = await postAction({ action: 'delete_message', messageId: deleteId });
+    // Already deleted (another tab, a double tap): what was asked for is done.
+    if (r.ok || r.error === 'message_deleted') {
       deleteDoneRef.current = true;
       if (editing?.id === deleteId) endEdit();
       await fetchRoomData(true);
       setDeleteId(null);
       setSentNote('Message deleted.');
     } else {
-      setDeleteFailed(true);
+      setDeleteError(errorCopy(r, 'Check your connection, then tap Delete again.'));
     }
     setDeleteBusy(false);
   }
@@ -637,7 +610,8 @@ function FellowshipRoomContent() {
     },
   };
 
-  async function boardCall(body: Record<string, unknown>) {
+  /** POST a room action; the error code comes back so the copy can say what happened. */
+  async function postAction(body: Record<string, unknown>): Promise<PostResult> {
     try {
       const res = await fetch(`/api/rooms/${roomId}`, {
         method: 'POST',
@@ -645,9 +619,15 @@ function FellowshipRoomContent() {
         body: JSON.stringify(body),
       });
       if (res.status === 401) router.replace('/auth');
-      return res.ok;
+      if (res.ok) return { ok: true, status: res.status };
+      const data = await res.json().catch(() => null);
+      return {
+        ok: false,
+        status: res.status,
+        error: typeof data?.error === 'string' ? data.error : undefined,
+      };
     } catch {
-      return false;
+      return { ok: false, status: 0 };
     }
   }
 
@@ -657,20 +637,20 @@ function FellowshipRoomContent() {
     if (!title || savingPin) return;
     setSavingPin(true);
     setBoardError(null);
-    const ok = await boardCall({
+    const r = await postAction({
       action: 'create_pin',
       senderId: currentUser?.id,
       pinType: boardType,
       title,
       body: '',
     });
-    if (ok) {
+    if (r.ok) {
       setBoardText('');
       await fetchRoomData(true);
     } else {
       setBoardError({
         title: 'We couldn’t pin that.',
-        text: 'Your text is still in the box. Check your connection, then tap Pin to Board again.',
+        text: `Your text is still in the box. ${errorCopy(r, 'Check your connection, then tap Pin to Board again.')}`,
       });
     }
     setSavingPin(false);
@@ -682,8 +662,8 @@ function FellowshipRoomContent() {
     setBoardError(null);
     setAmened((s) => new Set(s).add(pinId));
     setSpark(pinId);
-    const ok = await boardCall({ action: 'amen_pin', pinId });
-    if (ok) {
+    const r = await postAction({ action: 'amen_pin', pinId });
+    if (r.ok) {
       await fetchRoomData(true);
     } else {
       setAmened((s) => {
@@ -693,7 +673,7 @@ function FellowshipRoomContent() {
       });
       setBoardError({
         title: 'Your Amen didn’t go through.',
-        text: 'Check your connection, then tap Amen again.',
+        text: errorCopy(r, 'Check your connection, then tap Amen again.'),
       });
     }
     setSpark(null);
@@ -703,14 +683,14 @@ function FellowshipRoomContent() {
     if (busyPin) return;
     setBusyPin(pin.id);
     setBoardError(null);
-    const ok = await boardCall({ action: 'toggle_answered', pinId: pin.id });
-    if (ok) {
+    const r = await postAction({ action: 'toggle_answered', pinId: pin.id });
+    if (r.ok) {
       await fetchRoomData(true);
     } else {
       const label = pin.pin_type === 'goal' ? 'Mark Done' : 'Mark Answered';
       setBoardError({
         title: 'We couldn’t update that pin.',
-        text: `Check your connection, then tap ${label} again.`,
+        text: errorCopy(r, `Check your connection, then tap ${label} again.`),
       });
     }
     setBusyPin(null);
@@ -953,7 +933,7 @@ function FellowshipRoomContent() {
               <Icon name="alert" />
               {m.replyGone
                 ? 'Not sent. The message you replied to was deleted.'
-                : 'Not sent. Check your connection.'}
+                : `Not sent. ${m.reason ?? 'Check your connection.'}`}
               <button type="button" className="retry" onClick={() => retry(m.key)}>
                 {m.replyGone ? 'Send Anyway' : 'Retry'}
               </button>
@@ -1033,7 +1013,8 @@ function FellowshipRoomContent() {
       <button
         type="submit"
         className="btn send"
-        disabled={savingEdit}
+        // An emptied edit can't be saved (delete removes a message), so Save waits for text.
+        disabled={savingEdit || (editing !== null && !messageText.trim())}
         aria-busy={savingEdit || undefined}
       >
         <Icon name={editing ? 'check' : 'send'} />
@@ -1207,7 +1188,7 @@ function FellowshipRoomContent() {
           >
             Skip to message box
           </a>
-          <ul className="msgs" role="log" aria-live="polite" ref={msgsRef}>
+          <ul className="msgs" role="log" aria-live="polite" aria-relevant="additions" ref={msgsRef}>
             {msgItems.length ? (
               msgItems
             ) : (
@@ -1237,7 +1218,7 @@ function FellowshipRoomContent() {
       <DeleteConfirm
         open={deleteId !== null}
         busy={deleteBusy}
-        failed={deleteFailed}
+        error={deleteError}
         onCancel={() => setDeleteId(null)}
         onConfirm={() => void confirmDelete()}
         onClosed={deleteClosed}

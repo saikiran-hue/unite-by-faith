@@ -116,6 +116,31 @@ export function newSenders(
   return [...out];
 }
 
+const ERROR_COPY = new Map<string, string>([
+  ['message_deleted', 'This message was deleted.'],
+  ['message_not_found', 'That message is no longer in this chat.'],
+  ['edit_window_passed', 'Messages can only be edited for 15 minutes.'],
+  ['only_text_editable', 'Only text messages can be edited.'],
+  ['not_your_message', 'You can only change your own messages.'],
+  ['not_a_member', 'You’re no longer a member of this chat.'],
+  ['pin_not_found', 'That pin is no longer on the board.'],
+]);
+
+/** What a room POST came back with; status 0 when no answer came. */
+export type PostResult = { ok: boolean; status: number; error?: string };
+
+/**
+ * Copy for a room action that failed: what happened when the server said so, the caller's
+ * connection hint when no answer came or the server failed (5xx).
+ */
+export function errorCopy(r: Pick<PostResult, 'status' | 'error'>, connection: string): string {
+  const known = r.error === undefined ? undefined : ERROR_COPY.get(r.error);
+  if (known) return known;
+  if (r.status === 0 || r.status >= 500) return connection;
+  if (r.status === 403) return ERROR_COPY.get('not_your_message')!;
+  return 'That didn’t go through. Refresh the chat, then try again.';
+}
+
 /** Runs fn at once, then at most once more when the window ends if it was called again meanwhile. */
 export function leadingThrottle(fn: () => void, ms: number) {
   let last = -Infinity;
