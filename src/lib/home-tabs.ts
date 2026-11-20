@@ -78,7 +78,7 @@ export function recentChats(
 }
 
 /** Whole calendar days from `d` back to `now`, by local midnight (a future time counts as today). */
-function daysAgo(d: Date, now: Date): number {
+export function daysAgo(d: Date, now: Date): number {
   const midnight = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
   return Math.max(0, Math.round((midnight(now) - midnight(d)) / 86_400_000));
 }
