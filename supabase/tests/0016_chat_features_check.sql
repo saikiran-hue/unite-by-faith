@@ -100,8 +100,13 @@ begin
   select unread into n from public.unread_counts(b) where room_id = room;
   assert n = 1, 'unread_counts(B) after delete should be 1, got ' || coalesce(n::text, 'null');
 
-  -- mark_room_read never moves backwards
+  -- mark_room_read clears A's unread (B's text from 40 minutes ago is still unread here)
+  assert exists (select 1 from public.unread_counts(a) where room_id = room), 'A has unread before marking';
   perform public.mark_room_read(room, a);
+  assert not exists (select 1 from public.unread_counts(a) where room_id = room),
+    'mark_room_read should clear A''s unread';
+
+  -- mark_room_read never moves backwards
   perform public.mark_room_read(room, a);
   -- Put A's mark a day ahead: the next mark_room_read stamps now(), which must not pull it back.
   update public.room_reads set last_read_at = now() + interval '1 day' where room_id = room and user_id = a;
@@ -109,7 +114,6 @@ begin
   perform public.mark_room_read(room, a);
   assert (select last_read_at from public.room_reads where room_id = room and user_id = a) = t3,
     'mark_room_read moved last_read_at backwards';
-  assert not exists (select 1 from public.unread_counts(a) where room_id = room), 'A fully read';
 
   -- since lower bound: a stale room_reads row must not count messages from before the duo began
   insert into public.chat_messages (room_id, sender_id, content, created_at)
