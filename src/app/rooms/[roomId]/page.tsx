@@ -534,7 +534,7 @@ function FellowshipRoomContent() {
     const label = special ? (opts.mine ? 'You' : first) : first;
     const cls = [
       'msg',
-      opts.mine && !special ? 'me' : '',
+      opts.mine ? 'me' : '',
       special ? `special ${opts.type === 'prayer_request' ? 'prayer' : opts.type === 'icebreaker' ? 'starter' : opts.type}` : '',
       opts.status === 'sending' ? 'pending pop' : '',
       opts.status === 'failed' ? 'failed' : '',
@@ -543,7 +543,7 @@ function FellowshipRoomContent() {
       .join(' ');
     return (
       <li key={opts.key} className={cls}>
-        {opts.mine && !special ? null : (
+        {opts.mine ? null : (
           // eslint-disable-next-line @next/next/no-img-element
           <img className="avatar" src={opts.avatar} width={32} height={32} alt="" />
         )}

@@ -449,6 +449,8 @@ html:has(dialog.hm-scrim[open]) { overflow: hidden; }
 .ubf .msg.me time, .ubf .msg.me .stat { text-align: right; }
 .ubf .msg.special { max-width: 100%; align-self: stretch; }
 .ubf .msg.special > div { flex: 1; }
+.ubf .msg.special.me { align-self: flex-end; max-width: 86%; }
+.ubf .msg.me .who { text-align: right; margin: 0 6px 4px 0; }
 .ubf .msg.special .bubble { background: linear-gradient(90deg, var(--u-accent-tint), color-mix(in srgb, var(--u-accent-2) 45%, var(--u-raised))); color: var(--u-ink); box-shadow: none; padding: 14px 16px; }
 .ubf .kind { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; margin-bottom: 4px; }
 .ubf .msg.pending .bubble { opacity: .6; }
