@@ -8,6 +8,26 @@ export function parseTab(value: string | null | undefined): Tab {
   return (TABS as readonly string[]).includes(value ?? '') ? (value as Tab) : 'home';
 }
 
+/** Match results shown per page; Show More reveals the next page. */
+export const MATCH_PAGE = 20;
+
+/** Opening Match starts one 1v1 search: no results yet, at least 3 habits, signed in, not already started. */
+export function shouldAutoSearch(s: {
+  tab: Tab;
+  hasSearch: boolean;
+  tooFew: boolean;
+  signedIn: boolean;
+  alreadyFired: boolean;
+}): boolean {
+  return s.tab === 'matches' && !s.hasSearch && !s.tooFew && s.signedIn && !s.alreadyFired;
+}
+
+/** The first `shown` items, and how many are still hidden. */
+export function pageOf<T>(items: T[], shown: number): { visible: T[]; remaining: number } {
+  const visible = items.slice(0, shown);
+  return { visible, remaining: items.length - visible.length };
+}
+
 export interface RecentChat {
   roomId: string;
   kind: 'duo' | 'pod';

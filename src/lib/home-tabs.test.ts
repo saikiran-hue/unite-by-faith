@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DuoChat, FellowshipPod, LastMessage } from '@/types/database';
-import { TABS, cleanText, parseTab, recentChats, relTime } from './home-tabs';
+import { MATCH_PAGE, TABS, cleanText, pageOf, parseTab, recentChats, relTime, shouldAutoSearch } from './home-tabs';
 
 describe('parseTab', () => {
   it('returns valid tab names unchanged', () => {
@@ -217,5 +217,25 @@ describe('recentChats unread and deleted', () => {
     expect(theirs[0].preview).toBe('This message was deleted');
     const mine = recentChats([duo], [], { r1: msg({ deleted_at: del, sender_id: meId }) }, meId);
     expect(mine[0].preview).toBe('You: This message was deleted');
+  });
+});
+
+describe('shouldAutoSearch', () => {
+  const base = { tab: 'matches' as const, hasSearch: false, tooFew: false, signedIn: true, alreadyFired: false };
+  it('auto-searches on the Match tab with no search yet', () => expect(shouldAutoSearch(base)).toBe(true));
+  it('never on another tab, with a search, with < 3 habits, signed out, or twice', () => {
+    for (const o of [{ tab: 'home' as const }, { hasSearch: true }, { tooFew: true }, { signedIn: false }, { alreadyFired: true }])
+      expect(shouldAutoSearch({ ...base, ...o })).toBe(false);
+  });
+});
+
+describe('pageOf', () => {
+  it('pageOf: 20 items show all, nothing remaining', () => {
+    expect(pageOf(Array.from({ length: 20 }, (_, i) => i), MATCH_PAGE)).toMatchObject({ remaining: 0 });
+  });
+  it('pageOf: 21 items show 20 then 1 remaining; next page shows 21', () => {
+    const xs = Array.from({ length: 21 }, (_, i) => i);
+    expect(pageOf(xs, 20)).toMatchObject({ remaining: 1 });
+    expect(pageOf(xs, 40).visible).toHaveLength(21);
   });
 });

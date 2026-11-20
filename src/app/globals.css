@@ -505,6 +505,13 @@ html:has(.ubf .tabbar) { scroll-padding-bottom: 96px; }
 .ubf .vc-text p { margin: 0; font-family: var(--font-verse); font-size: 20px; line-height: 1.45; }
 .ubf .vc-skel { display: grid; gap: 10px; }
 .ubf .vc-skel .skel { background: rgba(255,255,255,.18); animation: none; }
+/* Match tab while a search runs: a compact verse card, a status line, then card placeholders */
+.ubf .match-wait { display: grid; gap: 14px; }
+.ubf .verse-card.vc-compact { padding: 14px 16px 16px; }
+.ubf .vc-compact .vc-text p { font-size: 18px; }
+.ubf .wait-line { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--u-mute); }
+.ubf .pulse-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--u-accent); animation: ubf-dot 1.4s ease-in-out infinite; }
+@keyframes ubf-dot { 0%, 100% { transform: scale(.75); opacity: .5; } 50% { transform: scale(1.15); opacity: 1; } }
 .ubf .crow { display: grid; gap: 2px; min-width: 0; }
 .ubf .crow-top { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
 .ubf .crow-top b { flex: 1; min-width: 0; }
@@ -752,6 +759,7 @@ html:has(.ubf .ob-bar) { scroll-padding-bottom: 160px; }
   .ubf .home-panel > .recent-card { grid-column: 2; grid-row: 3 / -1; align-self: start; }
   .ubf .verse-card { padding: 20px 24px 24px; }
   .ubf .vc-text p { font-size: 24px; max-width: 40ch; }
+  .ubf .vc-compact .vc-text p { font-size: 20px; }
   .ubf .app .results-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ubf .narrow-panel { max-width: 760px; }
   /* Room: a wider conversation (message list up to about 860px); head, body and top bar share edges */

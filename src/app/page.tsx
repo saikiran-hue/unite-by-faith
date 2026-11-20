@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { Suspense, useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { TaxonomyTag } from '@/types/database';
@@ -14,7 +14,16 @@ import { AlertBox, Btn, Empty, Icon, Note, type IconName } from '@/components/ub
 import { podCover } from '@/lib/sample-content';
 import { VerseCard } from '@/components/VerseCard';
 import { verseFor, msToNextDay } from '@/lib/verses';
-import { parseTab, recentChats, relTime, type RecentChat, type Tab } from '@/lib/home-tabs';
+import {
+  MATCH_PAGE,
+  pageOf,
+  parseTab,
+  recentChats,
+  relTime,
+  shouldAutoSearch,
+  type RecentChat,
+  type Tab,
+} from '@/lib/home-tabs';
 
 type Kind = 'duo' | 'pods';
 type Search = { kind: Kind; status: 'loading' | 'done' | 'error' | 'incomplete' };
@@ -41,6 +50,10 @@ const EMPTY_BY_RULE: Record<string, { text: string; button: string; href?: strin
     text: 'Nobody from your tradition yet. Try turning off Only my tradition.',
     button: 'Change tradition',
     href: '/onboarding#life-fit-tradition',
+  },
+  chatted: {
+    text: 'You’ve already started chats with everyone who matches right now. Try Groups, or check back soon.',
+    button: 'Search Groups',
   },
 };
 
@@ -123,6 +136,7 @@ function Home() {
   const [podRes, setPodRes] = useState<PodResult[]>([]);
   const [labels, setLabels] = useState<Record<string, string>>({});
   const [emptyRule, setEmptyRule] = useState<string | null>(null);
+  const [shown, setShown] = useState(MATCH_PAGE);
   const [saved, setSaved] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [joiningId, setJoiningId] = useState<string | null>(null);
@@ -187,6 +201,7 @@ function Home() {
     setTab('matches');
     setActionError(null);
     setSearch({ kind, status: 'loading' });
+    setShown(MATCH_PAGE);
     setToast(null);
     setSaved(false);
     setJoinFailedId(null);
@@ -210,6 +225,37 @@ function Home() {
     setSearchId((n) => n + 1);
     requestAnimationFrame(() => resultsHeadingRef.current?.focus({ preventScroll: true }));
   }
+
+  // Opening Match searches 1v1 once. These effects come after the viewerRef effect, so the search
+  // starts for the viewer now shown, not the null one from before the state loaded.
+  const tooFewForSearch = (currentUser?.tags.length ?? 0) < 3;
+  const autoFired = useRef(false);
+  const hadSearch = useRef(false);
+  // Re-arm only when a search is cleared (new habits, another viewer). StrictMode's re-run of the
+  // fire effect then still finds the guard set.
+  useEffect(() => {
+    if (search) hadSearch.current = true;
+    else if (hadSearch.current) {
+      hadSearch.current = false;
+      autoFired.current = false;
+    }
+  }, [search]);
+  const fireAutoSearch = useEffectEvent(() => void runSearch('duo'));
+  useEffect(() => {
+    if (
+      !shouldAutoSearch({
+        tab,
+        hasSearch: search !== null,
+        tooFew: tooFewForSearch,
+        signedIn: viewerId !== null,
+        alreadyFired: autoFired.current,
+      })
+    )
+      return;
+    autoFired.current = true;
+    // No cleanup: cancelling here would let StrictMode's re-run drop the only search.
+    queueMicrotask(() => fireAutoSearch());
+  }, [tab, search, tooFewForSearch, viewerId]);
 
   async function joinPod(pod: PodResult) {
     setJoiningId(pod.id);
@@ -310,6 +356,19 @@ function Home() {
   // The gender rule never narrows group search, so it falls back to the generic message.
   const podEmptyCopy = emptyRule && emptyRule !== 'gender' ? EMPTY_BY_RULE[emptyRule] : undefined;
   const fresh = search?.status === 'done';
+  const duoPage = pageOf(duoRes, shown);
+  const podPage = pageOf(podRes, shown);
+  const showMore = ({ visible, remaining }: { visible: unknown[]; remaining: number }) =>
+    remaining > 0 && (
+      <div style={{ display: 'grid', gap: 8, justifyItems: 'center' }}>
+        <p className="small">
+          Showing {visible.length} of {visible.length + remaining}
+        </p>
+        <Btn variant="btn-outline" onClick={() => setShown((s) => s + MATCH_PAGE)}>
+          Show More
+        </Btn>
+      </div>
+    );
   const chats = recentChats(duoChats, joinedPods, lastMessages, currentUser.id, unread);
   const totalUnread = chats.reduce((n, c) => n + c.unread, 0);
   const shownChats = chatFilter === 'all' ? chats : chats.filter((c) => c.kind === chatFilter);
@@ -492,17 +551,13 @@ function Home() {
                 <p className="sub">
                   {!search
                     ? 'Pick 1v1 or Groups to search.'
-                    : search.status === 'loading'
-                      ? search.kind === 'duo'
-                        ? 'Finding people who share your habits…'
-                        : 'Finding groups that fit your habits…'
-                      : search.status === 'incomplete'
-                        ? 'One more step before we can match you.'
-                        : `Matched on your ${habits.length} habits${
-                          search.status === 'done'
-                            ? `, ${search.kind === 'duo' ? duoRes.length : podRes.length} found`
-                            : ''
-                        }`}
+                    : search.status === 'incomplete'
+                      ? 'One more step before we can match you.'
+                      : `Matched on your ${habits.length} habits${
+                        search.status === 'done'
+                          ? `, ${search.kind === 'duo' ? duoRes.length : podRes.length} found`
+                          : ''
+                      }`}
                 </p>
               </div>
             </div>
@@ -538,7 +593,16 @@ function Home() {
               <AlertBox title="We couldn’t open that chat." text="Check your connection and tap Connect 1v1 again." />
             )}
 
-            {search?.status === 'loading' && <Skeletons />}
+            {search?.status === 'loading' && (
+              <div className="match-wait">
+                <VerseCard verse={verse} compact />
+                <p className="wait-line" role="status">
+                  <span className="pulse-dot" aria-hidden="true" />
+                  {search.kind === 'duo' ? 'Finding people who share your habits…' : 'Finding groups that fit your habits…'}
+                </p>
+                <Skeletons />
+              </div>
+            )}
 
             {search?.status === 'incomplete' && (
               <div className="card pad" style={{ display: 'grid', gap: 12, justifyItems: 'start' }}>
@@ -561,23 +625,26 @@ function Home() {
             {search?.status === 'done' &&
               (search.kind === 'duo' ? (
                 duoRes.length ? (
-                  <ul className="results-grid stagger" key={searchId}>
-                    {duoRes.map((m) => (
-                      <DuoCard
-                        key={m.partner.id}
-                        match={m}
-                        tagMap={resultTagMap}
-                        busy={startingDuoId === m.partner.id}
-                        countUp={fresh}
-                        onConnect={(r) =>
-                          startDuoChat({
-                            partner: r.partner,
-                            shared_tags: sharedOf(r),
-                          })
-                        }
-                      />
-                    ))}
-                  </ul>
+                  <>
+                    <ul className="results-grid stagger" key={searchId}>
+                      {duoPage.visible.map((m) => (
+                        <DuoCard
+                          key={m.partner.id}
+                          match={m}
+                          tagMap={resultTagMap}
+                          busy={startingDuoId === m.partner.id}
+                          countUp={fresh}
+                          onConnect={(r) =>
+                            startDuoChat({
+                              partner: r.partner,
+                              shared_tags: sharedOf(r),
+                            })
+                          }
+                        />
+                      ))}
+                    </ul>
+                    {showMore(duoPage)}
+                  </>
                 ) : (
                   <div className="card">
                     {emptyCopy ? (
@@ -611,21 +678,24 @@ function Home() {
                   </div>
                 )
               ) : podRes.length ? (
-                <ul className="results-grid stagger" key={searchId}>
-                  {podRes.map((p) => (
-                    <PodCard
-                      key={p.id}
-                      pod={p}
-                      tagMap={resultTagMap}
-                      starred={starred}
-                      busy={joiningId === p.id}
-                      failed={joinFailedId === p.id}
-                      countUp={fresh}
-                      onJoin={joinPod}
-                      onOpen={(pod) => router.push(`/rooms/${pod.chat_room_id}`)}
-                    />
-                  ))}
-                </ul>
+                <>
+                  <ul className="results-grid stagger" key={searchId}>
+                    {podPage.visible.map((p) => (
+                      <PodCard
+                        key={p.id}
+                        pod={p}
+                        tagMap={resultTagMap}
+                        starred={starred}
+                        busy={joiningId === p.id}
+                        failed={joinFailedId === p.id}
+                        countUp={fresh}
+                        onJoin={joinPod}
+                        onOpen={(pod) => router.push(`/rooms/${pod.chat_room_id}`)}
+                      />
+                    ))}
+                  </ul>
+                  {showMore(podPage)}
+                </>
               ) : (
                 <div className="card">
                   {podEmptyCopy ? (
