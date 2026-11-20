@@ -129,7 +129,28 @@ After Task 1's review is clean, apply `0016_chat_features.sql` to the hosted pro
 - [ ] **Step 2:** run → FAIL. **Step 3:** implement. **Step 4: UI**: count pill on rows with `unread > 0` (sr "{n} unread"), bold name and preview, total on the Chats tab button (sr text in its label). **Step 5:** `npx tsc --noEmit && npx vitest run` → PASS; browser: open a chat, return, its badge is gone.
 - [ ] **Step 6: Commit** `git commit -am "Unread badges and deleted-message previews on Home and Chats"`
 
-### Task 7: Ship (owner-gated)
+### Task 7: Desktop layout for the home app (owner request 2026-11-20)
+
+Owner picks: left sidebar on desktop; chat list + open chat side by side is a later, separate step; build after Tasks 5–6 and ship together.
+
+**Files:** Modify `src/app/globals.css`, `src/app/page.tsx` (markup only where CSS alone cannot do it), `src/components/AppShell.tsx` (only if the width prop needs a desktop value).
+
+**Decisions (builder's calls, owner can reverse):**
+- Breakpoint: viewport `min-width: 1024px`. Below it, nothing changes (the phone layout the owner likes stays pixel-identical).
+- Shell: content area max ~1200 px; `.app` becomes a two-column grid (sidebar ~220 px + content). The existing `.tabbar` turns into a sticky vertical sidebar under the top bar (icon + label in a row, active item as the same raised pill), not a second nav component — same buttons, same `aria-current`, same order.
+- Home: two columns — left: greeting, the two hero buttons, create row; right: Recent Messages card (shows up to 8 rows on desktop).
+- Match: result cards in a responsive grid (2 columns ≥1024, 3 ≥1360) using the existing card components.
+- Chats and Profile: single column, readable width (max ~760 px), left-aligned in the content area.
+- Habits: the existing container-query layouts take over at the new width.
+- Room page: widen its column for desktop so the conversation is not a phone strip (readable max ~860 px for the message list).
+- No new pages, no new copy, design tokens only; light + dark.
+
+- [ ] **Step 1:** Implement the CSS (and minimal markup) above.
+- [ ] **Step 2: Browser check** at 390, 768, 1024, 1280, 1440 and 1920 px, light and dark, every tab plus a room page: no horizontal scroll, nothing clipped, sidebar sticky, phone layout unchanged at 390 px (compare screenshots before/after).
+- [ ] **Step 3:** `npx tsc --noEmit && npx vitest run` → PASS.
+- [ ] **Step 4: Commit** `git commit -am "Desktop layout: sidebar navigation and wide home, match, chat pages"`
+
+### Task 8: Ship (owner-gated)
 
 - [ ] **Step 1:** `npm run cf-build` succeeds; full test suite passes.
 - [ ] **Step 2:** Ask the owner to approve merge to main, push and deploy. On approval: merge, `git push`, `npm run deploy`, smoke-test the live site, restart the dev server (the build overwrites `.next`).
