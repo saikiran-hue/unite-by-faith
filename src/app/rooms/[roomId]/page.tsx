@@ -657,6 +657,7 @@ function FellowshipRoomContent() {
     <AppShell
       currentUser={currentUser}
       onSwitchedUser={() => fetchRoomData(false)}
+      width="room"
     >
       {children}
     </AppShell>
@@ -664,7 +665,7 @@ function FellowshipRoomContent() {
 
   if (loadError && !room) {
     return shell(
-      <main className="wrap" style={{ paddingTop: 12, paddingBottom: 32 }}>
+      <main className="wrap w-room" style={{ paddingTop: 12, paddingBottom: 32 }}>
         <AlertBox
           title="We couldn’t open this room."
           text="It may have been removed, or the connection dropped. Tap Try Again."
@@ -676,7 +677,7 @@ function FellowshipRoomContent() {
 
   if (loading || !room) {
     return shell(
-      <main className="wrap">
+      <main className="wrap w-room">
         <p className="empty" role="status">
           <Spinner />
           Connecting to room…
@@ -1130,7 +1131,7 @@ function FellowshipRoomContent() {
   return shell(
     <main className={`chat ${pod ? 'pod' : 'duo'}`}>
       {head}
-      <div className="wrap chat-body">
+      <div className="wrap w-room chat-body">
         <section className="card chat-main" aria-label="Messages">
           {starters}
           <a

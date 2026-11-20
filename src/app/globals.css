@@ -728,7 +728,7 @@ html:has(.ubf .ob-bar) { scroll-padding-bottom: 160px; }
   .ubf .app .results-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ubf .narrow-panel { max-width: 760px; }
   /* Room: a wider conversation (message list up to about 860px); head, body and top bar share edges */
-  .ubf .chat-body, .ubf:has(.chat-body) .topbar-in { max-width: 1252px; }
+  .ubf .wrap.w-room { max-width: 1252px; }
   .ubf .chat-head { max-width: 1228px; margin-inline: max(20px, (100% - 1228px) / 2); }
 }
 @media (min-width: 1360px) {

@@ -130,7 +130,7 @@ function Home() {
   const [chatFilter, setChatFilter] = useState<'all' | 'duo' | 'pod'>('all');
   const [now, setNow] = useState<Date | null>(null);
   const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
-  // The server and phones show 5 recent chats; desktop shows 8.
+  // The server and phones show 5 recent chats and the tab bar last; desktop shows 8 and the sidebar first.
   const desktop = useSyncExternalStore(subscribeDesktop, () => window.matchMedia(DESKTOP).matches, () => false);
   const recentMax = desktop ? 8 : 5;
 
@@ -330,6 +330,32 @@ function Home() {
     </ul>
   );
 
+  // One tab bar: after the panels on phones (a bottom bar), before them on desktop (a sidebar), so
+  // keyboard order follows what is on screen.
+  const nav = (
+    <nav className="tabbar" aria-label="Main">
+      {TAB_ITEMS.map((t) => (
+        <button
+          key={t.id}
+          type="button"
+          aria-current={tab === t.id ? 'page' : undefined}
+          onClick={() => setTab(t.id)}
+        >
+          <Icon name={t.icon} />
+          <span>
+            {t.label}
+            {t.id === 'chats' && totalUnread > 0 && <span className="sr">, {totalUnread > 99 ? '99+' : totalUnread} unread</span>}
+          </span>
+          {t.id === 'chats' && totalUnread > 0 && (
+            <span className="ucount tab" aria-hidden="true">
+              {totalUnread > 99 ? '99+' : totalUnread}
+            </span>
+          )}
+        </button>
+      ))}
+    </nav>
+  );
+
   return (
     <AppShell
       currentUser={currentUser}
@@ -343,6 +369,7 @@ function Home() {
       }}
     >
       <main className="wrap w-app app">
+        {desktop && nav}
         <div className="app-body">
           {/* ---------------- Home ---------------- */}
           <section hidden={tab !== 'home'} aria-labelledby="home-h" className="tabpanel home-panel">
@@ -710,27 +737,7 @@ function Home() {
           </section>
         </div>
 
-        <nav className="tabbar" aria-label="Main">
-          {TAB_ITEMS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              aria-current={tab === t.id ? 'page' : undefined}
-              onClick={() => setTab(t.id)}
-            >
-              <Icon name={t.icon} />
-              <span>
-                {t.label}
-                {t.id === 'chats' && totalUnread > 0 && <span className="sr">, {totalUnread > 99 ? '99+' : totalUnread} unread</span>}
-              </span>
-              {t.id === 'chats' && totalUnread > 0 && (
-                <span className="ucount tab" aria-hidden="true">
-                  {totalUnread > 99 ? '99+' : totalUnread}
-                </span>
-              )}
-            </button>
-          ))}
-        </nav>
+        {!desktop && nav}
       </main>
 
       <CreatePodDialog
