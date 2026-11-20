@@ -30,7 +30,7 @@ export function rankDuos(
   viewer: MatchPerson,
   candidates: MatchPerson[],
   ctx: ScoreContext,
-  limit = 20,
+  limit = Infinity,
 ): Array<PairScore & { userId: string }> {
   return candidates
     .map((c) => ({ ...scorePair(viewer, c, ctx), userId: c.id }))
@@ -42,7 +42,7 @@ export function rankPods(
   viewer: MatchPerson,
   pods: { podId: string; members: MatchPerson[]; anchorTags: string[] }[],
   ctx: ScoreContext,
-  limit = 20,
+  limit = Infinity,
 ): Array<PairScore & { podId: string }> {
   return pods
     .filter((p) => p.members.length > 0)

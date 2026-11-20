@@ -2,10 +2,13 @@ import { after, NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { requireUserId } from '@/lib/session';
 import { fetchChunked, loadPeople, loadScoreContext, loadViewerLifeFit, type LoadedPerson } from '@/lib/matching/load';
+import { splitChatPartners } from '@/lib/matching/chat-partners';
 import { rankDuos, rankPods } from '@/lib/matching/rank';
 import { cardTopics, sharedTopics } from '@/lib/matching/personal';
 import type { PairScore } from '@/lib/matching/score';
 import { pickEmptyReason, type FilterCount } from '@/lib/matching/empty-reason';
+
+type DuoRow = { user_a_id: string; user_b_id: string; chat_room_id: string | null };
 
 interface PodRow {
   id: string; chat_room_id: string; title: string; description: string; focus_pillar: string; anchor_tags: string[];
@@ -46,26 +49,18 @@ export async function GET(req: NextRequest) {
     if (kind === 'duo') {
       const { data, error } = await admin.rpc('match_candidates', { viewer: userId, kind: 'duo', lim: 300 });
       if (error) throw new Error(`match_candidates: ${error.message}`);
-      const ids = ((data ?? []) as { user_id: string }[]).map((r) => r.user_id);
+      const sqlIds = ((data ?? []) as { user_id: string }[]).map((r) => r.user_id);
+      const { data: duoRows, error: duoErr } = await admin
+        .from('duo_matches')
+        .select('user_a_id, user_b_id, chat_room_id')
+        .or(`user_a_id.eq.${userId},user_b_id.eq.${userId}`);
+      if (duoErr) throw new Error(`duo_matches: ${duoErr.message}`);
+      const { keep: ids, allChatted } = splitChatPartners(userId, sqlIds, (duoRows ?? []) as DuoRow[]);
       const people = await loadPeople(admin, ids);
       const slugs = [...viewer.match.tags, ...[...people.values()].flatMap((p) => p.match.tags)].map((t) => t.slug);
       const { ctx, labels } = await loadScoreContext(admin, slugs, viewer.match.isDemo);
-      const ranked = rankDuos(viewer.match, [...people.values()].map((p) => p.match), ctx, 20);
+      const ranked = rankDuos(viewer.match, [...people.values()].map((p) => p.match), ctx);
 
-      const rooms = new Map<string, string>();
-      if (ranked.length > 0) {
-        const top = ranked.map((r) => r.userId);
-        const [a, b] = await Promise.all([
-          admin.from('duo_matches').select('user_b_id, chat_room_id').eq('user_a_id', userId).in('user_b_id', top),
-          admin.from('duo_matches').select('user_a_id, chat_room_id').eq('user_b_id', userId).in('user_a_id', top),
-        ]);
-        for (const r of (a.data ?? []) as { user_b_id: string; chat_room_id: string | null }[]) {
-          if (r.chat_room_id) rooms.set(r.user_b_id, r.chat_room_id);
-        }
-        for (const r of (b.data ?? []) as { user_a_id: string; chat_room_id: string | null }[]) {
-          if (r.chat_room_id) rooms.set(r.user_a_id, r.chat_room_id);
-        }
-      }
       results = ranked.map((r) => {
         const person = people.get(r.userId) as LoadedPerson;
         const { personal_topics, ...partner } = person.pub;
@@ -73,12 +68,11 @@ export async function GET(req: NextRequest) {
           partner,
           // Shared personal topics first, then a couple of others.
           topics: cardTopics(personal_topics, sharedTopics(viewer.match.topics, person.match.topics)),
-          existing_chat_room_id: rooms.get(r.userId) ?? null,
           ...scoreFields(r),
         };
       });
-      events = ranked.map((r) => ({ target_id: r.userId, score: r.score, breakdown: r.breakdown, weights_version: r.weightsVersion }));
-      return await respond(kind, results, events, labels, ids.length === 0);
+      events = ranked.slice(0, 20).map((r) => ({ target_id: r.userId, score: r.score, breakdown: r.breakdown, weights_version: r.weightsVersion }));
+      return await respond(kind, results, events, labels, sqlIds.length === 0, allChatted);
     }
 
     // kind === 'pods'
@@ -128,7 +122,6 @@ export async function GET(req: NextRequest) {
           anchorTags: p.anchor_tags,
         })),
       ctx,
-      20,
     );
     results = ranked.map((r) => {
       const p = podById.get(r.podId)!;
@@ -155,7 +148,7 @@ export async function GET(req: NextRequest) {
         ...scoreFields(r),
       };
     });
-    events = ranked.map((r) => ({ target_id: r.podId, score: r.score, breakdown: r.breakdown, weights_version: r.weightsVersion }));
+    events = ranked.slice(0, 20).map((r) => ({ target_id: r.podId, score: r.score, breakdown: r.breakdown, weights_version: r.weightsVersion }));
     return await respond(kind, results, events, labels, podIds.length === 0);
 
     async function respond(
@@ -164,9 +157,12 @@ export async function GET(req: NextRequest) {
       evs: typeof events,
       labelMap: Map<string, string>,
       sqlEmpty: boolean,
+      allChatted = false,
     ) {
       const body: Record<string, unknown> = { kind: k, results: res, tag_labels: Object.fromEntries(labelMap) };
-      if (res.length === 0 && sqlEmpty) {
+      if (res.length === 0 && allChatted) {
+        body.emptyReason = { rule: 'chatted', passing: 0 };
+      } else if (res.length === 0 && sqlEmpty) {
         const { data: counts, error: cErr } = await admin.rpc('match_filter_counts', { viewer: userId, kind: k });
         if (cErr) {
           console.error(`match_filter_counts failed: ${cErr.message}`);

@@ -25,7 +25,6 @@ export interface DuoResult {
   };
   /** The partner's personal topics: shared ones first, then a couple of others. */
   topics?: { label: string; shared: boolean }[];
-  existing_chat_room_id: string | null;
   score: number;
   breakdown: Breakdown;
   reasons: Reason[];
@@ -57,7 +56,6 @@ export function DuoCard({
   onConnect: (match: DuoResult) => void;
 }) {
   const p = match.partner;
-  const first = p.full_name.split(' ')[0];
   return (
     <li className="card mcard spot">
       <div className="m-top">
@@ -96,21 +94,15 @@ export function DuoCard({
           </ul>
         </div>
       )}
-      {match.existing_chat_room_id ? (
-        <Btn variant="btn-outline indigo block" icon="chat" onClick={() => onConnect(match)}>
-          Continue with {first}
-        </Btn>
-      ) : (
-        <Btn
-          variant="btn-indigo block"
-          icon="userplus"
-          busy={busy}
-          busyLabel="Connecting…"
-          onClick={() => onConnect(match)}
-        >
-          Connect 1v1
-        </Btn>
-      )}
+      <Btn
+        variant="btn-indigo block"
+        icon="userplus"
+        busy={busy}
+        busyLabel="Connecting…"
+        onClick={() => onConnect(match)}
+      >
+        Connect 1v1
+      </Btn>
     </li>
   );
 }

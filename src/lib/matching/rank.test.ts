@@ -64,9 +64,9 @@ describe('rankDuos', () => {
     const out = rankDuos(viewer, [person('a', ['x']), person('b', ['hiking', 'jazz']), person('c', ['hiking'])], ctx);
     expect(out.map((r) => r.userId)).toEqual(['b', 'c', 'a']);
   });
-  it('caps at the limit', () => {
+  it('returns everyone by default and caps only at an explicit limit', () => {
     const many = Array.from({ length: 30 }, (_, i) => person(`u${i}`, ['hiking']));
-    expect(rankDuos(viewer, many, ctx)).toHaveLength(20);
+    expect(rankDuos(viewer, many, ctx)).toHaveLength(30);
     expect(rankDuos(viewer, many, ctx, 5)).toHaveLength(5);
   });
   it('breaks ties by user id', () => {
