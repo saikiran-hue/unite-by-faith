@@ -165,6 +165,28 @@ export interface LastMessage {
   message_type: ChatMessage['message_type'];
   content: string;
   created_at: string;
+  deleted_at: string | null;
+}
+
+export type ReactionEmoji = '🙏' | '❤️' | '👍' | '😂' | '🙌';
+
+export interface ReplyQuote {
+  id: string;
+  sender_name: string;
+  snippet: string;
+  deleted: boolean;
+}
+
+export interface ReactionCount {
+  emoji: ReactionEmoji;
+  count: number;
+  mine: boolean;
+}
+
+export interface MemberRead {
+  user_id: string;
+  last_read_at: string | null;
+  joined_at: string;
 }
 
 export interface ChatMessage {
@@ -175,6 +197,11 @@ export interface ChatMessage {
   content: string;
   metadata: Record<string, unknown>;
   created_at: string;
+  reply_to_id: string | null;
+  edited_at: string | null;
+  deleted_at: string | null;
+  reply_to?: ReplyQuote | null;
+  reactions?: ReactionCount[];
   sender?: {
     id: string;
     full_name: string;
