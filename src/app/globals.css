@@ -522,6 +522,8 @@ html:has(.ubf .tabbar) { scroll-padding-bottom: 96px; }
 .ubf .menu .rx-bar button[aria-checked="true"] { background: var(--grad); box-shadow: var(--glow); }
 .ubf .menu button.danger { color: var(--u-danger); }
 .ubf .msg-menu button:focus-visible { outline-offset: -2px; }
+/* Skip link past the message list: hidden like .sr until it has focus. */
+.ubf .sr.skip:focus { position: static; width: auto; height: auto; overflow: visible; clip-path: none; white-space: normal; align-self: flex-start; margin: 8px 16px 0; padding: 8px 14px; border-radius: 999px; background: var(--u-ink); color: var(--u-on-ink); font-size: 14px; font-weight: 600; text-decoration: none; }
 .ubf .quote { display: block; width: 100%; margin: -2px 0 6px; padding: 6px 10px; border: 0; border-left: 3px solid var(--u-accent); border-radius: 10px; background: color-mix(in srgb, currentColor 9%, transparent); color: inherit; text-align: left; font-size: 13px; line-height: 1.35; }
 .ubf button.quote:hover { background: color-mix(in srgb, currentColor 14%, transparent); }
 .ubf .quote:focus-visible { outline-color: currentColor; }

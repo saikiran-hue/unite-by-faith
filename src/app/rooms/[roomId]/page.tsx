@@ -25,6 +25,7 @@ import {
   leadingThrottle,
   newestFromOthers,
   reactionToSend,
+  resolvePendingReply,
   withDaySeparators,
 } from '@/lib/chat/view';
 import {
@@ -57,6 +58,8 @@ interface PendingMessage {
   status: 'sending' | 'failed';
   replyToId?: string;
   quote?: ReplyQuote;
+  /** The server refused the reply because its parent was deleted. */
+  replyGone?: boolean;
 }
 
 type Row = { kind: 'msg'; m: ChatMessage } | { kind: 'pending'; p: PendingMessage };
@@ -317,7 +320,11 @@ function FellowshipRoomContent() {
   }
 
   /** Post to the API. A prayer request is pinned to the board; the server also posts it to the chat. */
-  async function deliver(kind: SendKind, text: string, replyToId?: string) {
+  async function deliver(
+    kind: SendKind,
+    text: string,
+    replyToId?: string
+  ): Promise<'ok' | 'reply_gone' | 'failed'> {
     const body =
       kind === 'prayer'
         ? { action: 'create_pin', senderId: currentUser?.id, pinType: 'prayer', title: text, body: '' }
@@ -329,21 +336,28 @@ function FellowshipRoomContent() {
         body: JSON.stringify(body),
       });
       if (res.status === 401) router.replace('/auth');
-      return res.ok;
+      if (res.ok) return 'ok';
+      if (res.status === 400 && replyToId) {
+        const data = await res.json().catch(() => null);
+        if (data?.error === 'reply_target_invalid') return 'reply_gone';
+      }
+      return 'failed';
     } catch {
-      return false;
+      return 'failed';
     }
   }
 
   async function sendPending(m: PendingMessage) {
-    const ok = await deliver(m.kind, m.text, m.replyToId);
-    if (ok) {
+    // A parent deleted meanwhile is dropped, so the message itself still goes.
+    const result = await deliver(m.kind, m.text, resolvePendingReply(m, messages).replyToId);
+    if (result === 'ok') {
       await fetchRoomData(true);
       setPending((list) => list.filter((x) => x.key !== m.key));
       setSentNote(m.kind === 'prayer' ? 'Prayer request sent and pinned.' : 'Message sent.');
     } else {
+      const replyGone = m.replyGone || result === 'reply_gone';
       setPending((list) =>
-        list.map((x) => (x.key === m.key ? { ...x, status: 'failed' } : x))
+        list.map((x) => (x.key === m.key ? { ...x, status: 'failed', replyGone } : x))
       );
     }
   }
@@ -864,7 +878,7 @@ function FellowshipRoomContent() {
         avatar={currentUser?.avatar_url}
         name={currentUser?.full_name}
         status={m.status}
-        quote={m.quote}
+        quote={resolvePendingReply(m, messages).quote}
         time={
           m.status === 'sending' ? (
             <span className="stat" role="status">
@@ -873,9 +887,11 @@ function FellowshipRoomContent() {
           ) : (
             <span className="stat" role="alert">
               <Icon name="alert" />
-              Not sent. Check your connection.
+              {m.replyGone
+                ? 'Not sent. The message you replied to was deleted.'
+                : 'Not sent. Check your connection.'}
               <button type="button" className="retry" onClick={() => retry(m.key)}>
-                Retry
+                {m.replyGone ? 'Send Anyway' : 'Retry'}
               </button>
             </span>
           )
@@ -1117,6 +1133,16 @@ function FellowshipRoomContent() {
       <div className="wrap chat-body">
         <section className="card chat-main" aria-label="Messages">
           {starters}
+          <a
+            className="sr skip"
+            href="#msg-in"
+            onClick={(e) => {
+              e.preventDefault();
+              inputRef.current?.focus();
+            }}
+          >
+            Skip to message box
+          </a>
           <ul className="msgs" role="log" aria-live="polite" ref={msgsRef}>
             {msgItems.length ? (
               msgItems

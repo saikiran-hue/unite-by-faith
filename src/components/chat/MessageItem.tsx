@@ -139,6 +139,8 @@ export function MessageItem({
   }
 
   const reactions = !deleted && message?.reactions ? message.reactions : [];
+  // Lets the More Actions button say whose message it acts on.
+  const descId = canMenu && message ? `msg-${message.id}` : undefined;
 
   return (
     <li
@@ -164,9 +166,13 @@ export function MessageItem({
       )}
       <div>
         {showName || special ? (
-          <p className="who">{label}</p>
+          <p className="who" id={descId && `${descId}-who`}>
+            {label}
+          </p>
         ) : (
-          <span className="sr">{mine ? 'You' : first}: </span>
+          <span className="sr" id={descId && `${descId}-who`}>
+            {mine ? 'You' : first}:{' '}
+          </span>
         )}
         <div
           className="bubble"
@@ -203,7 +209,13 @@ export function MessageItem({
         >
           {quoteEl}
           {kind}
-          {deleted ? <span className="del-text">This message was deleted</span> : text}
+          {deleted ? (
+            <span className="del-text">This message was deleted</span>
+          ) : descId ? (
+            <span id={`${descId}-text`}>{text}</span>
+          ) : (
+            text
+          )}
         </div>
         {reactions.length > 0 && message && handlers && (
           <div className="reacts">
@@ -245,6 +257,7 @@ export function MessageItem({
             className="more"
             aria-haspopup="menu"
             aria-expanded={menuAt !== null}
+            aria-describedby={`${descId}-who ${descId}-text`}
             onClick={() => (menuAt === null ? openMenu() : closeMenu(false))}
           >
             <Icon name="more" />

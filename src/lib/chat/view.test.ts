@@ -5,6 +5,7 @@ import {
   messageActions,
   newestFromOthers,
   reactionToSend,
+  resolvePendingReply,
   withDaySeparators,
 } from './view';
 
@@ -153,5 +154,31 @@ describe('leadingThrottle', () => {
     t.cancel();
     vi.advanceTimersByTime(2000);
     expect(fn).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('resolvePendingReply', () => {
+  const quote = { id: 'p1', sender_name: 'Hannah', snippet: 'Praying for you', deleted: false };
+  const pend = { replyToId: 'p1', quote };
+  const gone = { replyToId: undefined, quote: { ...quote, snippet: '', deleted: true } };
+
+  it('keeps the quote and the reply while the parent is live', () => {
+    expect(resolvePendingReply(pend, [{ id: 'p1', deleted_at: null }])).toEqual({ replyToId: 'p1', quote });
+  });
+
+  it('shows a deleted parent as gone, with no snippet, and stops sending the reply', () => {
+    expect(resolvePendingReply(pend, [{ id: 'p1', deleted_at: '2026-11-20T10:00:00Z' }])).toEqual(gone);
+  });
+
+  it('treats a parent the server rejected as gone, even before the list shows it deleted', () => {
+    expect(resolvePendingReply({ ...pend, replyGone: true }, [{ id: 'p1', deleted_at: null }])).toEqual(gone);
+  });
+
+  it('keeps the reply when the parent is not in the loaded list, so the server decides', () => {
+    expect(resolvePendingReply(pend, [{ id: 'other', deleted_at: null }])).toEqual({ replyToId: 'p1', quote });
+  });
+
+  it('passes a message that is not a reply through unchanged', () => {
+    expect(resolvePendingReply({}, [])).toEqual({ replyToId: undefined, quote: undefined });
   });
 });

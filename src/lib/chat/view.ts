@@ -1,4 +1,4 @@
-import type { ChatMessage, ReactionCount, ReactionEmoji } from '@/types/database';
+import type { ChatMessage, ReactionCount, ReactionEmoji, ReplyQuote } from '@/types/database';
 import { EDIT_WINDOW_MS } from './rules';
 import { dayKey, dayLabel } from './status';
 
@@ -80,4 +80,29 @@ export function leadingThrottle(fn: () => void, ms: number) {
       timer = null;
     },
   };
+}
+
+export interface PendingReply {
+  replyToId?: string;
+  /** The quote as it was when the reply was written. */
+  quote?: ReplyQuote;
+  /** The server refused the parent (400 reply_target_invalid). */
+  replyGone?: boolean;
+}
+
+/**
+ * A sending or failed reply, judged against the loaded messages. A deleted (or server-refused)
+ * parent shows as "Deleted message" with no text and is not sent again, so Retry can succeed.
+ * A parent outside the loaded list is kept: the server decides.
+ */
+export function resolvePendingReply(
+  p: PendingReply,
+  messages: Pick<ChatMessage, 'id' | 'deleted_at'>[]
+): { replyToId?: string; quote?: ReplyQuote } {
+  if (!p.replyToId || !p.quote) return { replyToId: p.replyToId, quote: p.quote };
+  const parent = messages.find((m) => m.id === p.replyToId);
+  if (p.replyGone || parent?.deleted_at) {
+    return { replyToId: undefined, quote: { ...p.quote, snippet: '', deleted: true } };
+  }
+  return { replyToId: p.replyToId, quote: p.quote };
 }
