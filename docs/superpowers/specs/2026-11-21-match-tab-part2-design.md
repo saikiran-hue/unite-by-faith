@@ -98,8 +98,8 @@ Today the tab is empty until a button is tapped. Results are near-empty because 
   - Groups also show 20 at a time with Show More. The pod query's cap of 100 stays.
 - **After Connect:**
   - Connect opens an active chat straight away: `start_or_get_duo_chat` has no accept step.
-  - Back from that chat keeps the list as it was. The person stays on screen until the next search, and tapping Connect again reopens the same chat, because the function returns the existing room.
-  - The room lookup the API does after ranking becomes unnecessary once existing chats are hidden. Whether to drop it and the `existing_chat_room_id` field is the builder's call.
+  - Back from that chat remounts Home (the app doesn't keep pages alive), so the Match tab runs one fresh search. The person just connected is now a chat partner and drops out of the list.
+  - The room lookup the API does after ranking, and the `existing_chat_room_id` field with its "Continue with …" button, become dead once existing chats are hidden. They are removed (plan ruling). A stale card still works: Connect calls `start_or_get_duo_chat`, which returns the existing room.
 - **Consequence for the owner to know:** because Connect has no accept step, someone's own age range and travel distance no longer stop other people opening a chat with them. Fellowship mode, gender and "Only my tradition" still do.
 - **Shown %:** at least 1. A real match that rounds to 0% would read like an error.
 - **Hiding existing chats** happens in the match API, before ranking. The API loads the viewer's `duo_matches` that have rooms and leaves those people out. This needs no database change, so it can ship before the migration.
