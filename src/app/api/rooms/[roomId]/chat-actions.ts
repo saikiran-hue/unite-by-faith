@@ -21,15 +21,22 @@ export function checkResponse(check: Extract<Check, { ok: false }>) {
   return NextResponse.json({ error: check.error }, { status: check.status });
 }
 
-/** The parent a reply points at, for the reply-target rule. */
+/**
+ * The parent a reply points at, for the reply-target rule. A failed read throws (the route answers
+ * 500) rather than calling a parent that may well exist invalid.
+ */
 export async function fetchReplyParent(admin: Admin, roomId: string, replyToId: string) {
   if (!UUID.test(replyToId)) return checkReplyTarget(null, roomId);
-  const { data } = await admin
+  const { data, error } = await admin
     .from('chat_messages')
     .select(RULE_COLUMNS)
     .eq('id', replyToId)
     .eq('room_id', roomId)
     .maybeSingle();
+  if (error) {
+    console.error('reply parent read failed', error.message);
+    throw new Error(error.message);
+  }
   return checkReplyTarget(data, roomId);
 }
 
@@ -60,11 +67,16 @@ export async function handleChatAction(
   if (body.action === 'edit_message') {
     const content = trimContent(body.content);
     if (!content) return emptyContentResponse();
-    const { data: msg } = await admin
+    const { data: msg, error: readError } = await admin
       .from('chat_messages')
       .select(RULE_COLUMNS)
       .eq('id', messageId)
       .maybeSingle();
+    // A failed read is not "message not found".
+    if (readError) {
+      console.error('edit target read failed', readError.message);
+      return NextResponse.json({ error: readError.message }, { status: 500 });
+    }
     const check = checkEdit(msg, userId, roomId, new Date());
     if (!check.ok) return checkResponse(check);
 
