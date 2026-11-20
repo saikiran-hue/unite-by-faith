@@ -125,6 +125,8 @@ Today the tab is empty until a button is tapped. Results are near-empty because 
 - **Release order:**
   1. App changes first: search on open, loading screen, hiding chats, Show More, the new scoring and the new wording. All of these are safe while the SQL is still strict.
   2. Then the migration, which relaxes search and Connect/Join in one transaction so they never disagree.
+  - Apply 0019 only after the build with the new scoring is live. Relaxed SQL with the old scorer would give mismatched pairs high scores.
+  - The empty-state change (dropping age, language and place) and the Life Fit wording ship with 0019 on branch `feature/match-0019`, because they are only true once the SQL is soft.
   - Each step records the live version first. Push and deploy need owner approval.
 - **Under-18s:**
   - Sign-up blocks them in `/api/auth/age`, which deletes the account.

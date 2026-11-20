@@ -16,7 +16,7 @@
 
 **Process**
 - Next.js 16 has breaking changes. Read the relevant guide in `node_modules/next/dist/docs/` before writing Next code.
-- Branch `feature/match-part2`. Migration 0019 must not reach `main` until the owner approves applying it, because a later `supabase db push` (e.g. for 0018) would apply it too. Commits are fine. Pushing, deploying, and applying or test-running SQL against the hosted database (`jqfgqglxesixnczieges`) need explicit owner approval. Task 4 writes files only.
+- Tasks 1–3 on branch `feature/match-part2`. Task 4 on its own branch `feature/match-0019`, cut from the Task 3 head, so Tasks 1–3 can merge and ship first. Migration 0019 must not reach `main` until the owner approves applying it, because a later `supabase db push` (e.g. for 0018) would apply it too. Commits are fine. Pushing, deploying, and applying or test-running SQL against the hosted database (`jqfgqglxesixnczieges`) need explicit owner approval. Task 4 writes files only.
 - Every commit ends with:
   ```
   Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
@@ -54,8 +54,6 @@
 - Modify:
   - `src/lib/matching/rank.ts:29-51` (default limit)
   - `src/lib/matching/rank.test.ts`
-  - `src/lib/matching/empty-reason.ts`
-  - `src/lib/matching/empty-reason.test.ts`
   - `src/app/api/match/route.ts`
   - `src/components/MatchCards.tsx:28,99-112`
   - `src/lib/useAppState.ts:111-120`
@@ -65,7 +63,6 @@
 - Produces:
   - `splitChatPartners(viewerId: string, candidateIds: string[], duoRows: { user_a_id: string; user_b_id: string; chat_room_id: string | null }[]): { keep: string[]; allChatted: boolean }`
   - `rankDuos(viewer, candidates, ctx, limit = Infinity)` and `rankPods(viewer, pods, ctx, limit = Infinity)`
-  - `RULE_ORDER = ['gender', 'tradition']`
   - API body `emptyReason: { rule: 'chatted', passing: 0 }` when every SQL candidate is a chat partner
   - `DuoResult` without `existing_chat_room_id`
 
@@ -95,20 +92,12 @@ it('returns everyone by default and caps only at an explicit limit', () => {
   expect(rankDuos(viewer, many, ctx, 5)).toHaveLength(5);
 });
 
-// empty-reason.test.ts: rewrite the cases that blamed age, language or place
-it('soft rules are never blamed', () => {
-  expect(pickEmptyReason(rows(5, { age: 0, language: 0, place: 0 }))).toBeNull();
-});
-it('blames gender or tradition when nobody passes it', () => {
-  expect(pickEmptyReason(rows(5, { tradition: 0 }))).toEqual({ rule: 'tradition', passing: 0 });
-  expect(pickEmptyReason(rows(5, { gender: 0, tradition: 0 }))).toEqual({ rule: 'gender', passing: 0 });
-});
 ```
 
-- [ ] **Step 2: Run them and confirm they fail.** Run `npx vitest run src/lib/matching`. Expected: FAIL (module `./chat-partners` not found; empty-reason still blames `age`).
+- [ ] **Step 2: Run them and confirm they fail.** Run `npx vitest run src/lib/matching`. Expected: FAIL (module `./chat-partners` not found).
 
 - [ ] **Step 3: Implement**
-  - Implement `splitChatPartners` in `chat-partners.ts`. Change the default `limit` to `Infinity` in both rank functions, and change `RULE_ORDER`.
+  - Implement `splitChatPartners` in `chat-partners.ts`. Change the default `limit` to `Infinity` in both rank functions. Leave `RULE_ORDER` alone: the SQL is still strict until Task 4.
   - In `route.ts`, duo branch, before `loadPeople`:
     - Fetch the viewer's rows with `admin.from('duo_matches').select('user_a_id, user_b_id, chat_room_id').or(\`user_a_id.eq.${userId},user_b_id.eq.${userId}\`)`. Throw on error, like the other queries.
     - Run `splitChatPartners`, then load and rank only `keep`, calling `rankDuos(...)` without a limit.
@@ -190,7 +179,7 @@ it('pageOf: 21 items show 20 then 1 remaining; next page shows 21', () => {
     - Render `pageOf(duoRes or podRes, shown).visible`.
     - When `remaining > 0`, render below the grid `<p className="small">Showing {visible.length} of {total}</p>` and `<Btn variant="btn-outline" onClick={() => setShown(s => s + MATCH_PAGE)}>Show More</Btn>`.
   - **Empty copy:**
-    - Delete the `place`, `age` and `language` entries from `EMPTY_BY_RULE`.
+    - Keep the `place`, `age` and `language` entries (the SQL is still strict until Task 4).
     - Add `chatted: { text: 'You’ve already started chats with everyone who matches right now. Try Groups, or check back soon.', button: 'Search Groups' }`. It has no `href`, so the existing Search Groups button branch handles it.
 
 - [ ] **Step 4: Run the tests again.** Run `npm test && npx tsc --noEmit && npx eslint src/app/page.tsx src/components/VerseCard.tsx src/lib/home-tabs.ts`. Expected: PASS, clean.
@@ -292,7 +281,12 @@ describe('soft rules', () => {
 - Create:
   - `supabase/migrations/0019_soft_match_rules.sql`
   - `supabase/tests/0019_soft_match_rules_check.sql` (rolled back; follow `supabase/tests/0017_unread_counts_check.sql`)
-- Modify: `src/components/LifeFitFields.tsx:131,254`, `scripts/check-filters.ts:140-168` (it asserts the old hard filters)
+- Modify:
+  - `src/components/LifeFitFields.tsx:131,254`
+  - `scripts/check-filters.ts:140-168` (it asserts the old hard filters)
+  - `src/lib/matching/empty-reason.ts`, `src/lib/matching/empty-reason.test.ts`
+  - `src/app/page.tsx` (`EMPTY_BY_RULE`)
+- Branch: first `git checkout -b feature/match-0019` from the Task 3 head.
 
 **Interfaces:**
 - Consumes: weights `life.language` (Task 3), and the unchanged signatures of all four functions:
@@ -331,13 +325,28 @@ describe('soft rules', () => {
     - Header comment: the soft rules moved to scoring, and `match_rule_flags` and `match_filter_counts` are untouched.
   - **Weights:** insert version 2 with `jsonb_set(jsonb_set(config, '{life,language}', '0.15'), '{version}', '2')` from version 1, `on conflict (version) do nothing`. Then `update match_weights set is_active = (version = 2) where version in (1, 2)`, so exactly one row is active whatever the conflict did. `load.ts:370` throws if none is active.
 
-- [ ] **Step 3: Life Fit wording**
-  - Distance hint: `We show people nearer you first. Only you can see this.`
-  - Age hint: `Required. We show closer ages first. Only you can see this.`
+- [ ] **Step 3: App changes that only make sense once the SQL is soft**
+  - `RULE_ORDER = ['gender', 'tradition']`. Rewrite the empty-reason tests that blamed age, language or place:
+
+```ts
+it('soft rules are never blamed', () => {
+  expect(pickEmptyReason(rows(5, { age: 0, language: 0, place: 0 }))).toBeNull();
+});
+it('blames gender or tradition when nobody passes it', () => {
+  expect(pickEmptyReason(rows(5, { tradition: 0 }))).toEqual({ rule: 'tradition', passing: 0 });
+  expect(pickEmptyReason(rows(5, { gender: 0, tradition: 0 }))).toEqual({ rule: 'gender', passing: 0 });
+});
+```
+
+  - Delete the `place`, `age` and `language` entries from `EMPTY_BY_RULE` in `page.tsx`.
+  - **Life Fit wording:**
+    - Distance hint: `We show people nearer you first. Only you can see this.`
+    - Age hint: `Required. We show closer ages first. Only you can see this.`
 
 - [ ] **Step 4: Verify locally** (local Docker database only).
   - Run `npm test && npx tsc --noEmit`. Expected: PASS.
   - Update `scripts/check-filters.ts` to the new rules: soft rules no longer exclude; the 18+, complete-profile, gender, fellowship and tradition rules still do.
+  - First confirm the dev app does not use the local Docker stack (`grep -c "127.0.0.1\|localhost" .env.local` prints 0 when it points at the hosted project). If it does use it, stop: the reset would wipe that data.
   - Run `npx supabase start && npx supabase db reset`, then the 0019 check script with `psql -v ON_ERROR_STOP=1` against the local database URL from `npx supabase status`, then `npx tsx scripts/check-filters.ts`. Expected: every migration applies and every assert passes.
   - Check by eye that each `create or replace` header matches 0009/0012 exactly.
   - **Never point either SQL file at the hosted database.**
