@@ -124,6 +124,11 @@ function FellowshipRoomContent() {
   // Reply and edit targets are held by id, so a target deleted meanwhile drops out.
   const [replyToId, setReplyToId] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ id: string; draft: string } | null>(null);
+  // The edit session now, for a save that resolves after the user moved on.
+  const editingRef = useRef(editing);
+  useEffect(() => {
+    editingRef.current = editing;
+  }, [editing]);
   const [savingEdit, setSavingEdit] = useState(false);
   const [editError, setEditError] = useState('');
   const [actionError, setActionError] = useState('');
@@ -443,6 +448,15 @@ function FellowshipRoomContent() {
     ? messages.find((m) => m.id === replyToId && !m.deleted_at)
     : undefined;
 
+  // The message being edited was deleted (another tab or device): end the edit and put the
+  // earlier draft back, so none of the deleted text stays in the box.
+  if (editing && !messages.some((m) => m.id === editing.id && !m.deleted_at)) {
+    setMessageText(editing.draft);
+    setEditing(null);
+    setEditError('');
+    setSentNote('The message you were editing was deleted.');
+  }
+
   function focusInput(caretToEnd = false) {
     const input = inputRef.current;
     if (!input) return;
@@ -483,15 +497,19 @@ function FellowshipRoomContent() {
       endEdit();
       return;
     }
+    const session = editing;
     setSavingEdit(true);
     setEditError('');
     const r = await postAction({ action: 'edit_message', messageId: id, content: text });
+    // Cancelled, or another edit or a reply started meanwhile: this result must not end or mark
+    // the new one.
     if (r.ok) {
       await fetchRoomData(true);
-      endEdit();
+      if (editingRef.current === session) endEdit();
       setSentNote('Message edited.');
     } else if (r.status !== 401) {
-      setEditError(errorCopy(r, EDIT_ERROR_DEFAULT));
+      if (editingRef.current === session) setEditError(errorCopy(r, EDIT_ERROR_DEFAULT));
+      else setActionError(`Your edit wasn’t saved. ${errorCopy(r, 'Check your connection.')}`);
     }
     setSavingEdit(false);
   }
