@@ -12,6 +12,11 @@ describe('cleanVerseText', () => {
       .toBe('Do not be afraid; do not be discouraged, for the LORD your God is with you.');
   });
 
+  it('joins an em dash to the next word across a poetry line break', () => {
+    expect(cleanVerseText('The LORD is my light and my salvation—\n\nwhom shall I fear?'))
+      .toBe('The LORD is my light and my salvation—whom shall I fear?');
+  });
+
   it('completes a quotation that is opened but not closed in the verse', () => {
     expect(cleanVerseText('“Come to Me, all you who are weary and burdened, and I will give you rest.'))
       .toBe('“Come to Me, all you who are weary and burdened, and I will give you rest.”');

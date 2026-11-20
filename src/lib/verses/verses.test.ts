@@ -14,6 +14,8 @@ describe('VERSES', () => {
 
   it('never repeats a reference', () => expect(new Set(all.map(([, v]) => v.ref)).size).toBe(366));
 
+  it('never repeats a text', () => expect(new Set(all.map(([, v]) => v.text)).size).toBe(366));
+
   it('keeps every verse whole and short', () => {
     for (const [key, v] of all) {
       expect(v.text.length, key).toBeGreaterThan(0);
